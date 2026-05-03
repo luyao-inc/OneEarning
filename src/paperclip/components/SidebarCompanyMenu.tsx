@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronsUpDown, LogOut, Plus, Settings } from "lucide-react";
+import { Check, ChevronsUpDown, LogOut, Plus, Settings, UserPlus } from "lucide-react";
 import type { Company } from "@paperclipai/shared";
 import { Link, useLocation, useNavigate } from "@/lib/router";
 import { authApi } from "@/api/auth";
@@ -142,6 +142,15 @@ export function SidebarCompanyMenu({ open: controlledOpen, onOpenChange }: Sideb
         <DropdownMenuItem onClick={addCompany} className="gap-2 py-2 text-muted-foreground">
           <Plus className="size-4" />
           <span>Add company...</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/company/settings/invites" onClick={closeNavigationChrome}>
+            <UserPlus className="size-4" />
+            <span className="truncate">
+              {selectedCompany ? `Invite people to ${selectedCompany.name}` : "Invite people"}
+            </span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to="/company/settings" onClick={closeNavigationChrome}>

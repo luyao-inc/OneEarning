@@ -16,6 +16,23 @@ const mockAuthApi = vi.hoisted(() => ({
 }));
 const mockToggleTheme = vi.hoisted(() => vi.fn());
 const mockSetSidebarOpen = vi.hoisted(() => vi.fn());
+const mockToggleUiLocale = vi.hoisted(() => vi.fn());
+
+vi.mock("@shell/i18n", () => ({
+  toggleUiLocale: mockToggleUiLocale,
+}));
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      if (key === "paperclip.accountMenu.switchToEnglish") return "Switch to English";
+      if (key === "paperclip.accountMenu.switchToChinese") return "Switch to Chinese";
+      if (key === "paperclip.accountMenu.languageHint") return "Tap to switch language";
+      return key;
+    },
+    i18n: { language: "en" },
+  }),
+}));
 
 vi.mock("@/api/auth", () => ({
   authApi: mockAuthApi,
@@ -85,7 +102,7 @@ describe("SidebarAccountMenu", () => {
         <QueryClientProvider client={queryClient}>
           <SidebarAccountMenu
             deploymentMode="authenticated"
-            instanceSettingsTarget="/instance/settings/heartbeats"
+            instanceSettingsTarget="/instance/settings/general"
             version="1.2.3"
           />
         </QueryClientProvider>,
@@ -94,11 +111,10 @@ describe("SidebarAccountMenu", () => {
     await flushReact();
     await flushReact();
 
-    expect(container.textContent).toContain("设置");
-    expect(container.textContent).not.toContain("Jane Example");
+    expect(container.textContent).toContain("Jane Example");
     expect(container.textContent).not.toContain("jane@example.com");
 
-    const trigger = container.querySelector('button[aria-label="打开设置"]');
+    const trigger = container.querySelector('button[aria-label="Open account menu"]');
     expect(trigger).not.toBeNull();
 
     await act(async () => {
@@ -106,10 +122,8 @@ describe("SidebarAccountMenu", () => {
     });
     await flushReact();
 
-    expect(document.body.textContent).toContain("Instance settings");
-    expect(document.body.textContent).not.toContain("View profile");
-    expect(document.body.textContent).not.toContain("Edit profile");
-    expect(document.body.textContent).not.toContain("Documentation");
+    expect(document.body.textContent).toContain("Edit profile");
+    expect(document.body.textContent).toContain("Switch to Chinese");
     expect(document.body.textContent).toContain("Paperclip v1.2.3");
     expect(document.body.textContent).toContain("jane@example.com");
 

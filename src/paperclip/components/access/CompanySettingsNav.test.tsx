@@ -29,6 +29,9 @@ vi.mock("@/components/PageTabBar", () => ({
     return (
       <div>
         <div data-testid="active-tab">{props.value}</div>
+        <button type="button" onClick={() => props.onValueChange?.("invites")}>
+          switch-tab
+        </button>
       </div>
     );
   },
@@ -52,17 +55,17 @@ describe("CompanySettingsNav", () => {
     vi.clearAllMocks();
   });
 
-  it("maps company settings routes to the general tab", () => {
+  it("maps company settings routes to the expected shared tab value", () => {
     expect(getCompanySettingsTab("/company/settings")).toBe("general");
     expect(getCompanySettingsTab("/PAP/company/settings")).toBe("general");
-    expect(getCompanySettingsTab("/company/settings/environments")).toBe("general");
-    expect(getCompanySettingsTab("/PAP/company/settings/environments")).toBe("general");
-    expect(getCompanySettingsTab("/company/settings/access")).toBe("general");
-    expect(getCompanySettingsTab("/PAP/company/settings/access")).toBe("general");
-    expect(getCompanySettingsTab("/company/settings/invites")).toBe("general");
+    expect(getCompanySettingsTab("/company/settings/environments")).toBe("environments");
+    expect(getCompanySettingsTab("/PAP/company/settings/environments")).toBe("environments");
+    expect(getCompanySettingsTab("/company/settings/access")).toBe("access");
+    expect(getCompanySettingsTab("/PAP/company/settings/access")).toBe("access");
+    expect(getCompanySettingsTab("/company/settings/invites")).toBe("invites");
   });
 
-  it("renders only the General tab in PageTabBar", async () => {
+  it("renders the active tab and navigates when a different tab is selected", async () => {
     currentPathname = "/PAP/company/settings/access";
     const root = createRoot(container);
 
@@ -70,13 +73,27 @@ describe("CompanySettingsNav", () => {
       root.render(<CompanySettingsNav />);
     });
 
-    expect(container.querySelector('[data-testid="active-tab"]')?.textContent).toBe("general");
+    expect(container.textContent).toContain("access");
     expect(pageTabBarMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        value: "general",
-        items: [{ value: "general", label: "General" }],
+        value: "access",
+        items: [
+          { value: "general", label: "General" },
+          { value: "environments", label: "Environments" },
+          { value: "access", label: "Access" },
+          { value: "invites", label: "Invites" },
+        ],
       }),
     );
+
+    const button = container.querySelector("button");
+    expect(button).not.toBeNull();
+
+    await act(async () => {
+      button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(navigateMock).toHaveBeenCalledWith("/company/settings/invites");
 
     await act(async () => {
       root.unmount();

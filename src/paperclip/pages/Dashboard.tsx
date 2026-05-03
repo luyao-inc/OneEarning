@@ -193,13 +193,6 @@ export function Dashboard() {
 
   const hasNoAgents = agents !== undefined && agents.length === 0;
 
-  const budgets = data?.budgets ?? {
-    activeIncidents: 0,
-    pausedAgents: 0,
-    pausedProjects: 0,
-    pendingApprovals: 0,
-  };
-
   return (
     <div className="space-y-6">
       {error && <p className="text-sm text-destructive">{error.message}</p>}
@@ -225,16 +218,16 @@ export function Dashboard() {
 
       {data && (
         <>
-          {budgets.activeIncidents > 0 ? (
+          {data.budgets.activeIncidents > 0 ? (
             <div className="flex items-start justify-between gap-3 rounded-xl border border-red-500/20 bg-[linear-gradient(180deg,rgba(255,80,80,0.12),rgba(255,255,255,0.02))] px-4 py-3">
               <div className="flex items-start gap-2.5">
                 <PauseCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
                 <div>
                   <p className="text-sm font-medium text-red-50">
-                    {budgets.activeIncidents} active budget incident{budgets.activeIncidents === 1 ? "" : "s"}
+                    {data.budgets.activeIncidents} active budget incident{data.budgets.activeIncidents === 1 ? "" : "s"}
                   </p>
                   <p className="text-xs text-red-100/70">
-                    {budgets.pausedAgents} agents paused · {budgets.pausedProjects} projects paused · {budgets.pendingApprovals} pending budget approvals
+                    {data.budgets.pausedAgents} agents paused · {data.budgets.pausedProjects} projects paused · {data.budgets.pendingApprovals} pending budget approvals
                   </p>
                 </div>
               </div>
@@ -285,13 +278,13 @@ export function Dashboard() {
             />
             <MetricCard
               icon={ShieldCheck}
-              value={data.pendingApprovals + budgets.pendingApprovals}
+              value={data.pendingApprovals + data.budgets.pendingApprovals}
               label="Pending Approvals"
               to="/approvals"
               description={
                 <span>
-                  {budgets.pendingApprovals > 0
-                    ? `${budgets.pendingApprovals} budget overrides awaiting board review`
+                  {data.budgets.pendingApprovals > 0
+                    ? `${data.budgets.pendingApprovals} budget overrides awaiting board review`
                     : "Awaiting board review"}
                 </span>
               }

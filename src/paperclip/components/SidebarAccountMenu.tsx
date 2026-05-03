@@ -1,8 +1,19 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LogOut, type LucideIcon, Moon, Settings, Sun } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import {
+  Languages,
+  LogOut,
+  type LucideIcon,
+  Moon,
+  Settings,
+  UserRound,
+  Sun,
+  UserRoundPen,
+} from "lucide-react";
 import type { DeploymentMode } from "@paperclipai/shared";
 import { Link } from "@/lib/router";
+import { toggleUiLocale } from "@shell/i18n";
 import { authApi } from "@/api/auth";
 import { queryKeys } from "@/lib/queryKeys";
 import { useSidebar } from "../context/SidebarContext";
@@ -10,6 +21,8 @@ import { useTheme } from "../context/ThemeContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "../lib/utils";
+
+const PROFILE_SETTINGS_PATH = "/instance/settings/profile";
 
 interface SidebarAccountMenuProps {
   deploymentMode?: DeploymentMode;
@@ -86,6 +99,11 @@ export function SidebarAccountMenu({
   const queryClient = useQueryClient();
   const { isMobile, setSidebarOpen } = useSidebar();
   const { theme, toggleTheme } = useTheme();
+  const { t, i18n } = useTranslation();
+  const isZhUi = i18n.language.startsWith("zh");
+  const languageSwitchLabel = isZhUi
+    ? t("paperclip.accountMenu.switchToEnglish")
+    : t("paperclip.accountMenu.switchToChinese");
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
   const { data: session } = useQuery({
@@ -107,6 +125,8 @@ export function SidebarAccountMenu({
     session?.user.email?.trim() || (deploymentMode === "authenticated" ? "Signed in" : "Local workspace board");
   const accountBadge = deploymentMode === "authenticated" ? "Account" : "Local";
   const initials = deriveInitials(displayName);
+  /** Canonical self profile URL; server resolves `me` to the signed-in board user (see user-profiles route). */
+  const profileHref = "/u/me";
 
   function closeNavigationChrome() {
     setOpen(false);
@@ -120,12 +140,13 @@ export function SidebarAccountMenu({
           <button
             type="button"
             className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-foreground/80 transition-colors hover:bg-accent/50 hover:text-foreground"
-            aria-label="打开设置"
+            aria-label="Open account menu"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted/40 text-muted-foreground">
-              <Settings className="size-4" />
-            </span>
-            <span className="min-w-0 flex-1 truncate">设置</span>
+            <Avatar size="sm">
+              {session?.user.image ? <AvatarImage src={session.user.image} alt={displayName} /> : null}
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <span className="min-w-0 flex-1 truncate">{displayName}</span>
           </button>
         </PopoverTrigger>
         <PopoverContent
@@ -159,11 +180,34 @@ export function SidebarAccountMenu({
 
             <div className="mt-4 space-y-1">
               <MenuAction
+                label="View profile"
+                description="Open your activity, task, and usage ledger."
+                icon={UserRound}
+                href={profileHref}
+                onClick={closeNavigationChrome}
+              />
+              <MenuAction
+                label="Edit profile"
+                description="Update your display name and avatar."
+                icon={UserRoundPen}
+                href={PROFILE_SETTINGS_PATH}
+                onClick={closeNavigationChrome}
+              />
+              <MenuAction
                 label="Instance settings"
                 description="Jump back to the last settings page you opened."
                 icon={Settings}
                 href={instanceSettingsTarget}
                 onClick={closeNavigationChrome}
+              />
+              <MenuAction
+                label={languageSwitchLabel}
+                description={t("paperclip.accountMenu.languageHint")}
+                icon={Languages}
+                onClick={() => {
+                  toggleUiLocale();
+                  closeNavigationChrome();
+                }}
               />
               <MenuAction
                 label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}

@@ -18,7 +18,7 @@ import type {
   PluginConfig,
   PluginStatus,
 } from "@paperclipai/shared";
-import { api, ApiError } from "./client";
+import { api } from "./client";
 
 /**
  * Normalized UI contribution record returned by `GET /api/plugins/ui-contributions`.
@@ -293,16 +293,7 @@ export const pluginsApi = {
    * ```
    */
   listUiContributions: () =>
-    (async () => {
-      try {
-        return await api.get<PluginUiContribution[]>("/plugins/ui-contributions");
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 404) {
-          return [];
-        }
-        throw e;
-      }
-    })(),
+    api.get<PluginUiContribution[]>("/plugins/ui-contributions"),
 
   // ===========================================================================
   // Plugin configuration endpoints

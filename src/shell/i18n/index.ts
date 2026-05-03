@@ -38,4 +38,9 @@ export function setUiLocale(next: UiLocale): void {
   void i18n.changeLanguage(next);
 }
 
+export function toggleUiLocale(): void {
+  const next: UiLocale = i18n.language.startsWith("zh") ? "en" : "zh-CN";
+  setUiLocale(next);
+}
+
 export default i18n;

@@ -21,7 +21,7 @@ export function InstanceAccess() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: "Instance Settings", href: "/instance/settings/heartbeats" },
+      { label: "Instance Settings", href: "/instance/settings/general" },
       { label: "Access" },
     ]);
   }, [setBreadcrumbs]);

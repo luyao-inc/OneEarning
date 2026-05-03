@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, UserRound } from "lucide-react";
 import type { UserProfileDailyPoint, UserProfileWindowStats } from "@paperclipai/shared";
 import { Link, useParams } from "@/lib/router";
+import { accessApi } from "../api/access";
+import { ApiError } from "../api/client";
 import { userProfilesApi } from "../api/userProfiles";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { EmptyState } from "../components/EmptyState";
@@ -23,6 +25,19 @@ import {
 } from "../lib/utils";
 
 const NO_COMPANY = "__none__";
+
+function isMeProfileSlug(slug: string) {
+  return slug.trim().toLowerCase() === "me";
+}
+
+/** When bundled server lacks local_implicit `me` resolution, map to a real member id (owner first). */
+async function resolveMeFallbackPrincipalId(companyId: string): Promise<string | null> {
+  const { members } = await accessApi.listMembers(companyId);
+  const activeUsers = members.filter((m) => m.status === "active");
+  const owners = activeUsers.filter((m) => m.membershipRole === "owner");
+  const pick = owners[0] ?? activeUsers[0];
+  return pick?.principalId ?? null;
+}
 
 function initials(name: string | null | undefined) {
   const value = name?.trim() || "User";
@@ -202,7 +217,25 @@ export function UserProfile() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: queryKeys.userProfile(companyId, userSlug),
-    queryFn: () => userProfilesApi.get(companyId, userSlug),
+    retry: false,
+    queryFn: async () => {
+      const slug = userSlug.trim();
+      const load = (s: string) => userProfilesApi.get(companyId, s);
+      if (!isMeProfileSlug(slug)) {
+        return load(slug);
+      }
+      try {
+        return await load("me");
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) {
+          const principalId = await resolveMeFallbackPrincipalId(companyId);
+          if (principalId) {
+            return load(principalId);
+          }
+        }
+        throw e;
+      }
+    },
     enabled: !!selectedCompanyId && !!userSlug,
   });
 

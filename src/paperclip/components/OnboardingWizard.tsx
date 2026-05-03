@@ -630,12 +630,11 @@ export function OnboardingWizard() {
       }}
     >
       <DialogPortal>
-        {/* Single full-screen layer: avoids two sibling z-50 stacks (Electron compositor
-            glitches) and ensures foreground tokens apply to portal content. */}
-        <div
-          className="fixed inset-0 z-50 flex min-h-0 min-w-0 bg-background text-foreground"
-          onKeyDown={handleKeyDown}
-        >
+        {/* Plain div instead of DialogOverlay — Radix's overlay wraps in
+            RemoveScroll which blocks wheel events on our custom (non-DialogContent)
+            scroll container. A plain div preserves the background without scroll-locking. */}
+        <div className="fixed inset-0 z-50 bg-background" />
+        <div className="fixed inset-0 z-50 flex" onKeyDown={handleKeyDown}>
           {/* Close button */}
           <button
             onClick={handleClose}
@@ -648,7 +647,7 @@ export function OnboardingWizard() {
           {/* Left half — form */}
           <div
             className={cn(
-              "flex min-h-0 min-w-0 w-full flex-col overflow-y-auto transition-[width] duration-500 ease-in-out",
+              "w-full flex flex-col overflow-y-auto transition-[width] duration-500 ease-in-out",
               step === 1 ? "md:w-1/2" : "md:w-full"
             )}
           >
@@ -1282,7 +1281,7 @@ export function OnboardingWizard() {
           {/* Right half — ASCII art (hidden on mobile) */}
           <div
             className={cn(
-              "hidden min-h-0 min-w-0 overflow-hidden bg-[#1d1d1d] transition-[width,opacity] duration-500 ease-in-out md:block",
+              "hidden md:block overflow-hidden bg-[#1d1d1d] transition-[width,opacity] duration-500 ease-in-out",
               step === 1 ? "w-1/2 opacity-100" : "w-0 opacity-0"
             )}
           >
