@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import i18n from "@shell/i18n";
+import { beforeAll, describe, expect, it } from "vitest";
 import type { Agent } from "@paperclipai/shared";
 import {
   buildAssistantPartsFromTranscript,
@@ -10,6 +11,10 @@ import {
 import type { SuggestTasksInteraction } from "./issue-thread-interactions";
 import type { IssueTimelineEvent } from "./issue-timeline-events";
 import type { LiveRunForIssue } from "../api/heartbeats";
+
+beforeAll(async () => {
+  await i18n.changeLanguage("en");
+});
 
 function createAgent(id: string, name: string): Agent {
   return {

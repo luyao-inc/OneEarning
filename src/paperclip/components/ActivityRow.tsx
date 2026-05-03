@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Link } from "@/lib/router";
 import { Identity } from "./Identity";
 import { IssueReferenceActivitySummary } from "./IssueReferenceActivitySummary";
@@ -28,7 +29,8 @@ interface ActivityRowProps {
 }
 
 export function ActivityRow({ event, agentMap, userProfileMap, entityNameMap, entityTitleMap, className }: ActivityRowProps) {
-  const verb = formatActivityVerb(event.action, event.details, { agentMap, userProfileMap });
+  const { t } = useTranslation();
+  const verb = formatActivityVerb(event.action, event.details, { agentMap, userProfileMap }, t);
 
   const isHeartbeatEvent = event.entityType === "heartbeat_run";
   const heartbeatAgentId = isHeartbeatEvent
@@ -47,7 +49,12 @@ export function ActivityRow({ event, agentMap, userProfileMap, entityNameMap, en
 
   const actor = event.actorType === "agent" ? agentMap.get(event.actorId) : null;
   const userProfile = event.actorType === "user" ? userProfileMap?.get(event.actorId) : null;
-  const actorName = actor?.name ?? (event.actorType === "system" ? "System" : userProfile?.label ?? (event.actorType === "user" ? "Board" : event.actorId || "Unknown"));
+  const actorName =
+    actor?.name
+    ?? (event.actorType === "system"
+      ? t("paperclip.activity.actorSystem")
+      : userProfile?.label
+        ?? (event.actorType === "user" ? t("paperclip.activity.actorBoard") : event.actorId || t("paperclip.activity.actorUnknown")));
   const actorAvatarUrl = userProfile?.image ?? null;
 
   const inner = (

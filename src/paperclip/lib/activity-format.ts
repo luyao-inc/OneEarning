@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { Agent } from "@paperclipai/shared";
 import type { CompanyUserProfile } from "./company-members";
 
@@ -60,6 +61,10 @@ const ACTIVITY_ROW_VERBS: Record<string, string> = {
   "company.updated": "updated company",
   "company.archived": "archived",
   "company.budget_updated": "updated budget for",
+  "issue.read_marked": "marked as read",
+  "asset.created": "created asset",
+  "environment_lease.released": "released environment lease for",
+  "environment_lease.acquired": "acquired environment lease for",
 };
 
 const ISSUE_ACTIVITY_LABELS: Record<string, string> = {
@@ -120,20 +125,22 @@ function readIssueReferences(details: ActivityDetails, key: string): ActivityIss
   return value.filter(isActivityIssueReference);
 }
 
-function formatUserLabel(userId: string | null | undefined, options: ActivityFormatOptions = {}): string {
-  if (!userId || userId === "local-board") return "Board";
-  if (options.currentUserId && userId === options.currentUserId) return "You";
+function formatUserLabel(userId: string | null | undefined, options: ActivityFormatOptions = {}, t?: TFunction): string {
+  if (!userId || userId === "local-board") return t ? t("paperclip.activity.actorBoard") : "Board";
+  if (options.currentUserId && userId === options.currentUserId) return t ? t("paperclip.activity.issueDetail.you") : "You";
   const profile = options.userProfileMap?.get(userId);
   if (profile) return profile.label;
   return `user ${userId.slice(0, 5)}`;
 }
 
-function formatParticipantLabel(participant: ActivityParticipant, options: ActivityFormatOptions): string {
+function formatParticipantLabel(participant: ActivityParticipant, options: ActivityFormatOptions, t?: TFunction): string {
   if (participant.type === "agent") {
     const agentId = participant.agentId ?? "";
-    return options.agentMap?.get(agentId)?.name ?? "agent";
+    return (
+      options.agentMap?.get(agentId)?.name ?? (t ? t("paperclip.activity.issueDetail.agentFallback") : "agent")
+    );
   }
-  return formatUserLabel(participant.userId, options);
+  return formatUserLabel(participant.userId, options, t);
 }
 
 function formatIssueReferenceLabel(reference: ActivityIssueReference): string {
@@ -153,41 +160,106 @@ function formatChangedEntityLabel(
   return `${labels.length} ${plural}`;
 }
 
-function formatIssueUpdatedVerb(details: ActivityDetails): string | null {
+function labelIssueEnumField(kind: "issueStatus" | "issuePriority", value: unknown, t?: TFunction): string {
+  if (typeof value !== "string") return String(value ?? "");
+  if (t) {
+    const key = `paperclip.${kind === "issueStatus" ? "issueStatus" : "issuePriority"}.${value}`;
+    return t(key, { defaultValue: humanizeValue(value) });
+  }
+  return humanizeValue(value);
+}
+
+function formatIssueUpdatedVerb(details: ActivityDetails, t?: TFunction): string | null {
   if (!details) return null;
   const previous = asRecord(details._previous) ?? {};
   if (details.status !== undefined) {
     const from = previous.status;
     return from
-      ? `changed status from ${humanizeValue(from)} to ${humanizeValue(details.status)} on`
-      : `changed status to ${humanizeValue(details.status)} on`;
+      ? t
+        ? t("paperclip.activity.issueStatusFromToOn", {
+            from: labelIssueEnumField("issueStatus", from, t),
+            to: labelIssueEnumField("issueStatus", details.status, t),
+          })
+        : `changed status from ${humanizeValue(from)} to ${humanizeValue(details.status)} on`
+      : t
+        ? t("paperclip.activity.issueStatusToOn", { to: labelIssueEnumField("issueStatus", details.status, t) })
+        : `changed status to ${humanizeValue(details.status)} on`;
   }
   if (details.priority !== undefined) {
     const from = previous.priority;
     return from
-      ? `changed priority from ${humanizeValue(from)} to ${humanizeValue(details.priority)} on`
-      : `changed priority to ${humanizeValue(details.priority)} on`;
+      ? t
+        ? t("paperclip.activity.issuePriorityFromToOn", {
+            from: labelIssueEnumField("issuePriority", from, t),
+            to: labelIssueEnumField("issuePriority", details.priority, t),
+          })
+        : `changed priority from ${humanizeValue(from)} to ${humanizeValue(details.priority)} on`
+      : t
+        ? t("paperclip.activity.issuePriorityToOn", { to: labelIssueEnumField("issuePriority", details.priority, t) })
+        : `changed priority to ${humanizeValue(details.priority)} on`;
   }
   return null;
 }
 
-function formatAssigneeName(details: ActivityDetails, options: ActivityFormatOptions): string | null {
+function formatAssigneeName(details: ActivityDetails, options: ActivityFormatOptions, t?: TFunction): string | null {
   if (!details) return null;
   const agentId = details.assigneeAgentId;
   const userId = details.assigneeUserId;
   if (typeof agentId === "string" && agentId) {
-    return options.agentMap?.get(agentId)?.name ?? "agent";
+    return options.agentMap?.get(agentId)?.name ?? (t ? t("paperclip.activity.issueDetail.agentFallback") : "agent");
   }
   if (typeof userId === "string" && userId) {
-    return formatUserLabel(userId, options);
+    return formatUserLabel(userId, options, t);
   }
   return null;
 }
 
-function formatIssueUpdatedAction(details: ActivityDetails, options: ActivityFormatOptions = {}): string | null {
+function formatIssueUpdatedAction(
+  details: ActivityDetails,
+  options: ActivityFormatOptions = {},
+  t?: TFunction,
+): string | null {
   if (!details) return null;
   const previous = asRecord(details._previous) ?? {};
   const parts: string[] = [];
+
+  if (t) {
+    if (details.status !== undefined) {
+      const from = previous.status;
+      parts.push(
+        from
+          ? t("paperclip.activity.issueDetail.statusFromTo", {
+              from: labelIssueEnumField("issueStatus", from, t),
+              to: labelIssueEnumField("issueStatus", details.status, t),
+            })
+          : t("paperclip.activity.issueDetail.statusTo", {
+              to: labelIssueEnumField("issueStatus", details.status, t),
+            }),
+      );
+    }
+    if (details.priority !== undefined) {
+      const from = previous.priority;
+      parts.push(
+        from
+          ? t("paperclip.activity.issueDetail.priorityFromTo", {
+              from: labelIssueEnumField("issuePriority", from, t),
+              to: labelIssueEnumField("issuePriority", details.priority, t),
+            })
+          : t("paperclip.activity.issueDetail.priorityTo", {
+              to: labelIssueEnumField("issuePriority", details.priority, t),
+            }),
+      );
+    }
+    if (details.assigneeAgentId !== undefined || details.assigneeUserId !== undefined) {
+      const assigneeName = formatAssigneeName(details, options, t);
+      parts.push(
+        assigneeName ? t("paperclip.activity.issueDetail.assignedTo", { name: assigneeName }) : t("paperclip.activity.issueDetail.unassigned"),
+      );
+    }
+    if (details.title !== undefined) parts.push(t("paperclip.activity.issueDetail.titleUpdated"));
+    if (details.description !== undefined) parts.push(t("paperclip.activity.issueDetail.descriptionUpdated"));
+    return parts.length > 0 ? parts.join(", ") : null;
+  }
 
   if (details.status !== undefined) {
     const from = previous.status;
@@ -215,14 +287,87 @@ function formatIssueUpdatedAction(details: ActivityDetails, options: ActivityFor
   return parts.length > 0 ? parts.join(", ") : null;
 }
 
+function buildStructEntityPhrase(
+  labels: string[],
+  singularKey: "blocker" | "reviewer" | "approver",
+  pluralKey: "blockers" | "reviewers" | "approvers",
+  t: TFunction,
+): string {
+  if (labels.length <= 0) return t(`paperclip.activity.struct.${pluralKey}`);
+  if (labels.length === 1) {
+    return t("paperclip.activity.struct.entityLineOne", {
+      entity: t(`paperclip.activity.struct.${singularKey}`),
+      name: labels[0] ?? "",
+    });
+  }
+  return t("paperclip.activity.struct.entityLineMany", {
+    count: labels.length,
+    entity: t(`paperclip.activity.struct.${pluralKey}`),
+  });
+}
+
 function formatStructuredIssueChange(input: {
   action: string;
   details: ActivityDetails;
   options: ActivityFormatOptions;
   forIssueDetail: boolean;
+  t?: TFunction;
 }): string | null {
   const details = input.details;
   if (!details) return null;
+  const { t } = input;
+
+  if (t && input.action === "issue.blockers_updated") {
+    const added = readIssueReferences(details, "addedBlockedByIssues").map(formatIssueReferenceLabel);
+    const removed = readIssueReferences(details, "removedBlockedByIssues").map(formatIssueReferenceLabel);
+    if (added.length > 0 && removed.length === 0) {
+      const what = buildStructEntityPhrase(added, "blocker", "blockers", t);
+      return input.forIssueDetail
+        ? t("paperclip.activity.struct.addedDetail", { what })
+        : t("paperclip.activity.struct.addedTo", { what });
+    }
+    if (removed.length > 0 && added.length === 0) {
+      const what = buildStructEntityPhrase(removed, "blocker", "blockers", t);
+      return input.forIssueDetail
+        ? t("paperclip.activity.struct.removedDetail", { what })
+        : t("paperclip.activity.struct.removedFrom", { what });
+    }
+    return input.forIssueDetail
+      ? t("paperclip.activity.struct.updatedBlockersDetail")
+      : t("paperclip.activity.struct.updatedBlockersOn");
+  }
+
+  if (
+    t &&
+    (input.action === "issue.reviewers_updated" || input.action === "issue.approvers_updated")
+  ) {
+    const isReviewers = input.action === "issue.reviewers_updated";
+    const singularKey = isReviewers ? ("reviewer" as const) : ("approver" as const);
+    const pluralKey = isReviewers ? ("reviewers" as const) : ("approvers" as const);
+    const added = readParticipants(details, "addedParticipants").map((participant) => formatParticipantLabel(participant, input.options, t));
+    const removed = readParticipants(details, "removedParticipants").map((participant) =>
+      formatParticipantLabel(participant, input.options, t),
+    );
+    if (added.length > 0 && removed.length === 0) {
+      const what = buildStructEntityPhrase(added, singularKey, pluralKey, t);
+      return input.forIssueDetail
+        ? t("paperclip.activity.struct.addedDetail", { what })
+        : t("paperclip.activity.struct.addedTo", { what });
+    }
+    if (removed.length > 0 && added.length === 0) {
+      const what = buildStructEntityPhrase(removed, singularKey, pluralKey, t);
+      return input.forIssueDetail
+        ? t("paperclip.activity.struct.removedDetail", { what })
+        : t("paperclip.activity.struct.removedFrom", { what });
+    }
+    return input.forIssueDetail
+      ? isReviewers
+        ? t("paperclip.activity.struct.updatedReviewersDetail")
+        : t("paperclip.activity.struct.updatedApproversDetail")
+      : isReviewers
+        ? t("paperclip.activity.struct.updatedReviewersOn")
+        : t("paperclip.activity.struct.updatedApproversOn");
+  }
 
   if (input.action === "issue.blockers_updated") {
     const added = readIssueReferences(details, "addedBlockedByIssues").map(formatIssueReferenceLabel);
@@ -261,9 +406,10 @@ export function formatActivityVerb(
   action: string,
   details?: Record<string, unknown> | null,
   options: ActivityFormatOptions = {},
+  t?: TFunction,
 ): string {
   if (action === "issue.updated") {
-    const issueUpdatedVerb = formatIssueUpdatedVerb(details);
+    const issueUpdatedVerb = formatIssueUpdatedVerb(details, t);
     if (issueUpdatedVerb) return issueUpdatedVerb;
   }
 
@@ -272,9 +418,14 @@ export function formatActivityVerb(
     details,
     options,
     forIssueDetail: false,
+    t,
   });
   if (structuredChange) return structuredChange;
 
+  if (t) {
+    const tk = `paperclip.activity.verbs.${action.replace(/\./g, "_")}`;
+    return t(tk, { defaultValue: ACTIVITY_ROW_VERBS[action] ?? action.replace(/[._]/g, " ") });
+  }
   return ACTIVITY_ROW_VERBS[action] ?? action.replace(/[._]/g, " ");
 }
 
@@ -282,9 +433,10 @@ export function formatIssueActivityAction(
   action: string,
   details?: Record<string, unknown> | null,
   options: ActivityFormatOptions = {},
+  t?: TFunction,
 ): string {
   if (action === "issue.updated") {
-    const issueUpdatedAction = formatIssueUpdatedAction(details, options);
+    const issueUpdatedAction = formatIssueUpdatedAction(details, options, t);
     if (issueUpdatedAction) return issueUpdatedAction;
   }
 
@@ -293,6 +445,7 @@ export function formatIssueActivityAction(
     details,
     options,
     forIssueDetail: true,
+    t,
   });
   if (structuredChange) return structuredChange;
 

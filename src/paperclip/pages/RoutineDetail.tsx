@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useParams } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -265,6 +266,7 @@ function TriggerEditor({
 }
 
 export function RoutineDetail() {
+  const { t } = useTranslation();
   const { routineId } = useParams<{ routineId: string }>();
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
@@ -390,7 +392,7 @@ export function RoutineDetail() {
 
   useEffect(() => {
     if (!routine) return;
-    setBreadcrumbs([{ label: "Routines", href: "/routines" }, { label: routine.title }]);
+    setBreadcrumbs([{ label: t("paperclip.crumbs.routines"), href: "/routines" }, { label: routine.title }]);
     if (!routineDefaults) return;
 
     const changedRoutine = hydratedRoutineIdRef.current !== routine.id;
@@ -398,7 +400,7 @@ export function RoutineDetail() {
       setEditDraft(routineDefaults);
       hydratedRoutineIdRef.current = routine.id;
     }
-  }, [routine, routineDefaults, isEditDirty, setBreadcrumbs]);
+  }, [routine, routineDefaults, isEditDirty, setBreadcrumbs, t]);
 
   useEffect(() => {
     autoResizeTextarea(titleInputRef.current);
@@ -407,11 +409,11 @@ export function RoutineDetail() {
   const copySecretValue = async (label: string, value: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      pushToast({ title: `${label} copied`, tone: "success" });
+      pushToast({ title: t("paperclip.toasts.routineDetail.copied", { label }), tone: "success" });
     } catch (error) {
       pushToast({
-        title: `Failed to copy ${label.toLowerCase()}`,
-        body: error instanceof Error ? error.message : "Clipboard access was denied.",
+        title: t("paperclip.toasts.routineDetail.copyFailedTitle", { label: label.toLowerCase() }),
+        body: error instanceof Error ? error.message : t("paperclip.toasts.routineDetail.copyDeniedBody"),
         tone: "error",
       });
     }
@@ -448,8 +450,8 @@ export function RoutineDetail() {
     },
     onError: (error) => {
       pushToast({
-        title: "Failed to save routine",
-        body: error instanceof Error ? error.message : "Paperclip could not save the routine.",
+        title: t("paperclip.toasts.routineDetail.saveFailed"),
+        body: error instanceof Error ? error.message : t("paperclip.toasts.routineDetail.saveFailedBody"),
         tone: "error",
       });
     },
@@ -470,7 +472,7 @@ export function RoutineDetail() {
           : {}),
       }),
     onSuccess: async () => {
-      pushToast({ title: "Routine run started", tone: "success" });
+      pushToast({ title: t("paperclip.toasts.routineDetail.runStarted"), tone: "success" });
       setRunVariablesOpen(false);
       setActiveTab("runs");
       await Promise.all([
@@ -482,8 +484,8 @@ export function RoutineDetail() {
     },
     onError: (error) => {
       pushToast({
-        title: "Routine run failed",
-        body: error instanceof Error ? error.message : "Paperclip could not start the routine run.",
+        title: t("paperclip.toasts.routineDetail.runFailed"),
+        body: error instanceof Error ? error.message : t("paperclip.toasts.routineDetail.runFailedBody"),
         tone: "error",
       });
     },
@@ -493,8 +495,10 @@ export function RoutineDetail() {
     mutationFn: (status: string) => routinesApi.update(routineId!, { status }),
     onSuccess: async (_data, status) => {
       pushToast({
-        title: "Routine saved",
-        body: status === "paused" ? "Automation paused." : "Automation enabled.",
+        title: t("paperclip.toasts.routineDetail.saved"),
+        body: status === "paused"
+          ? t("paperclip.toasts.routineDetail.automationPausedBody")
+          : t("paperclip.toasts.routineDetail.automationEnabledBody"),
         tone: "success",
       });
       await Promise.all([
@@ -504,8 +508,8 @@ export function RoutineDetail() {
     },
     onError: (error) => {
       pushToast({
-        title: "Failed to update routine",
-        body: error instanceof Error ? error.message : "Paperclip could not update the routine.",
+        title: t("paperclip.toasts.routineDetail.updateFailed"),
+        body: error instanceof Error ? error.message : t("paperclip.toasts.routineDetail.updateFailedBody"),
         tone: "error",
       });
     },
@@ -532,14 +536,14 @@ export function RoutineDetail() {
     onSuccess: async (result) => {
       if (result.secretMaterial) {
         setSecretMessage({
-          title: "Webhook trigger created",
+          title: t("paperclip.toasts.routineDetail.webhookCreated"),
           webhookUrl: result.secretMaterial.webhookUrl,
           webhookSecret: result.secretMaterial.webhookSecret,
         });
       } else {
         pushToast({
-          title: "Trigger added",
-          body: "The routine schedule was saved.",
+          title: t("paperclip.toasts.routineDetail.triggerAdded"),
+          body: t("paperclip.toasts.routineDetail.triggerAddedBody"),
           tone: "success",
         });
       }
@@ -551,8 +555,8 @@ export function RoutineDetail() {
     },
     onError: (error) => {
       pushToast({
-        title: "Failed to add trigger",
-        body: error instanceof Error ? error.message : "Paperclip could not create the trigger.",
+        title: t("paperclip.toasts.routineDetail.addTriggerFailed"),
+        body: error instanceof Error ? error.message : t("paperclip.toasts.routineDetail.addTriggerFailedBody"),
         tone: "error",
       });
     },
@@ -562,8 +566,8 @@ export function RoutineDetail() {
     mutationFn: ({ id, patch }: { id: string; patch: Record<string, unknown> }) => routinesApi.updateTrigger(id, patch),
     onSuccess: async () => {
       pushToast({
-        title: "Trigger saved",
-        body: "The routine cadence update was saved.",
+        title: t("paperclip.toasts.routineDetail.triggerSaved"),
+        body: t("paperclip.toasts.routineDetail.triggerSavedBody"),
         tone: "success",
       });
       await Promise.all([
@@ -574,8 +578,8 @@ export function RoutineDetail() {
     },
     onError: (error) => {
       pushToast({
-        title: "Failed to update trigger",
-        body: error instanceof Error ? error.message : "Paperclip could not update the trigger.",
+        title: t("paperclip.toasts.routineDetail.updateTriggerFailed"),
+        body: error instanceof Error ? error.message : t("paperclip.toasts.routineDetail.updateTriggerFailedBody"),
         tone: "error",
       });
     },
@@ -585,7 +589,7 @@ export function RoutineDetail() {
     mutationFn: (id: string) => routinesApi.deleteTrigger(id),
     onSuccess: async () => {
       pushToast({
-        title: "Trigger deleted",
+        title: t("paperclip.toasts.routineDetail.triggerDeleted"),
         tone: "success",
       });
       await Promise.all([
@@ -596,8 +600,8 @@ export function RoutineDetail() {
     },
     onError: (error) => {
       pushToast({
-        title: "Failed to delete trigger",
-        body: error instanceof Error ? error.message : "Paperclip could not delete the trigger.",
+        title: t("paperclip.toasts.routineDetail.deleteTriggerFailed"),
+        body: error instanceof Error ? error.message : t("paperclip.toasts.routineDetail.deleteTriggerFailedBody"),
         tone: "error",
       });
     },
@@ -607,7 +611,7 @@ export function RoutineDetail() {
     mutationFn: (id: string): Promise<RotateRoutineTriggerResponse> => routinesApi.rotateTriggerSecret(id),
     onSuccess: async (result) => {
       setSecretMessage({
-        title: "Webhook secret rotated",
+        title: t("paperclip.toasts.routineDetail.secretRotated"),
         webhookUrl: result.secretMaterial.webhookUrl,
         webhookSecret: result.secretMaterial.webhookSecret,
       });
@@ -618,8 +622,8 @@ export function RoutineDetail() {
     },
     onError: (error) => {
       pushToast({
-        title: "Failed to rotate webhook secret",
-        body: error instanceof Error ? error.message : "Paperclip could not rotate the webhook secret.",
+        title: t("paperclip.toasts.routineDetail.rotateSecretFailed"),
+        body: error instanceof Error ? error.message : t("paperclip.toasts.routineDetail.rotateSecretFailedBody"),
         tone: "error",
       });
     },
@@ -745,8 +749,8 @@ export function RoutineDetail() {
             onCheckedChange={() => {
               if (!automationEnabled && !routine.assigneeAgentId) {
                 pushToast({
-                  title: "Default agent required",
-                  body: "Set a default agent before enabling routine automation.",
+                  title: t("paperclip.toasts.routineDetail.defaultAgentTitle"),
+                  body: t("paperclip.toasts.routineDetail.defaultAgentBody"),
                   tone: "warn",
                 });
                 return;
@@ -767,7 +771,7 @@ export function RoutineDetail() {
         <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-4 space-y-3 text-sm">
           <div>
             <p className="font-medium">{secretMessage.title}</p>
-            <p className="text-xs text-muted-foreground">Save this now. Paperclip will not show the secret value again.</p>
+            <p className="text-xs text-muted-foreground">Save this now. OneEarning will not show the secret value again.</p>
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">

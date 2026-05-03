@@ -1,13 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
-import { Clock3, Cpu, FlaskConical, Puzzle, Settings, Shield, SlidersHorizontal, UserRoundPen } from "lucide-react";
-import { NavLink } from "@/lib/router";
+import { useTranslation } from "react-i18next";
+import { ChevronLeft, Clock3, Cpu, FlaskConical, Puzzle, Settings, Shield, SlidersHorizontal, UserRoundPen } from "lucide-react";
+import { Link, NavLink } from "@/lib/router";
 import { pluginsApi } from "@/api/plugins";
 import { queryKeys } from "@/lib/queryKeys";
 import { SIDEBAR_SCROLL_RESET_STATE } from "@/lib/navigation-scroll";
+import { useCompany } from "@/context/CompanyContext";
+import { useSidebar } from "@/context/SidebarContext";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { SidebarCompanyMenu } from "./SidebarCompanyMenu";
 
 export function InstanceSidebar() {
+  const { t } = useTranslation();
+  const { selectedCompany } = useCompany();
+  const { isMobile, setSidebarOpen } = useSidebar();
   const { data: plugins } = useQuery({
     queryKey: queryKeys.plugins.all,
     queryFn: () => pluginsApi.list(),
@@ -18,20 +24,34 @@ export function InstanceSidebar() {
       <div className="flex items-center gap-1 px-3 h-12 shrink-0">
         <SidebarCompanyMenu />
       </div>
-      <div className="flex items-center gap-2 px-5 pb-3 shrink-0">
-        <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="flex-1 truncate text-sm font-bold text-foreground">Instance Settings</span>
+      <div className="flex flex-col gap-1 px-3 pb-3 shrink-0">
+        <Link
+          to="/dashboard"
+          onClick={() => {
+            if (isMobile) setSidebarOpen(false);
+          }}
+          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+        >
+          <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">
+            {selectedCompany?.name ?? t("paperclip.companySettingsPage.companyFallback")}
+          </span>
+        </Link>
+        <div className="flex items-center gap-2 px-2 py-1">
+          <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="flex-1 truncate text-sm font-bold text-foreground">{t("paperclip.instanceSidebar.header")}</span>
+        </div>
       </div>
 
       <nav className="flex-1 min-h-0 overflow-y-auto scrollbar-auto-hide flex flex-col gap-4 px-3 py-2">
         <div className="flex flex-col gap-0.5">
-          <SidebarNavItem to="/instance/settings/profile" label="Profile" icon={UserRoundPen} end />
-          <SidebarNavItem to="/instance/settings/general" label="General" icon={SlidersHorizontal} end />
-          <SidebarNavItem to="/instance/settings/access" label="Access" icon={Shield} end />
-          <SidebarNavItem to="/instance/settings/heartbeats" label="Heartbeats" icon={Clock3} end />
-          <SidebarNavItem to="/instance/settings/experimental" label="Experimental" icon={FlaskConical} />
-          <SidebarNavItem to="/instance/settings/plugins" label="Plugins" icon={Puzzle} />
-          <SidebarNavItem to="/instance/settings/adapters" label="Adapters" icon={Cpu} />
+          <SidebarNavItem to="/instance/settings/profile" label={t("paperclip.instanceSidebar.profile")} icon={UserRoundPen} end />
+          <SidebarNavItem to="/instance/settings/general" label={t("paperclip.instanceSidebar.general")} icon={SlidersHorizontal} end />
+          <SidebarNavItem to="/instance/settings/access" label={t("paperclip.instanceSidebar.access")} icon={Shield} end />
+          <SidebarNavItem to="/instance/settings/heartbeats" label={t("paperclip.instanceSidebar.heartbeats")} icon={Clock3} end />
+          <SidebarNavItem to="/instance/settings/experimental" label={t("paperclip.instanceSidebar.experimental")} icon={FlaskConical} />
+          <SidebarNavItem to="/instance/settings/plugins" label={t("paperclip.instanceSidebar.plugins")} icon={Puzzle} />
+          <SidebarNavItem to="/instance/settings/adapters" label={t("paperclip.instanceSidebar.adapters")} icon={Cpu} />
           {(plugins ?? []).length > 0 ? (
             <div className="ml-4 mt-1 flex flex-col gap-0.5 border-l border-border/70 pl-3">
               {(plugins ?? []).map((plugin) => (

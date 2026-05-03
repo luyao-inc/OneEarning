@@ -4,7 +4,8 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import i18n from "@shell/i18n";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { CompanyInvites } from "./CompanyInvites";
 import { queryKeys } from "@/lib/queryKeys";
 
@@ -41,6 +42,10 @@ vi.mock("@/context/ToastContext", () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+
+beforeAll(async () => {
+  await i18n.changeLanguage("en");
+});
 
 async function flushReact() {
   await act(async () => {
@@ -133,7 +138,7 @@ describe("CompanyInvites", () => {
     await flushReact();
     await flushReact();
 
-    expect(container.textContent).toContain("Company Invites");
+    expect(container.textContent).toContain("Company invites");
     expect(container.textContent).toContain("Create invite");
     expect(container.textContent).toContain("Invite history");
     expect(container.textContent).toContain("Board User 25");
@@ -196,7 +201,7 @@ describe("CompanyInvites", () => {
     });
     expect(clipboardWriteTextMock).toHaveBeenCalledWith("https://paperclip.local/invite/new-token");
     expect(container.textContent).toContain("Latest invite link");
-    expect(container.textContent).toContain("This URL includes the current Paperclip domain returned by the server.");
+    expect(container.textContent).toContain("This URL includes the current OneEarning domain returned by the server.");
     expect(container.textContent).toContain("https://paperclip.local/invite/new-token");
     expect(container.textContent).toContain("Open invite");
     expect(pushToastMock).toHaveBeenCalledWith({

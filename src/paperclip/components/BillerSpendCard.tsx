@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { CostByBiller, CostByProviderModel } from "@paperclipai/shared";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { QuotaBar } from "./QuotaBar";
@@ -19,6 +20,8 @@ export function BillerSpendCard({
   totalCompanySpendCents,
   providerRows,
 }: BillerSpendCardProps) {
+  const { t } = useTranslation();
+
   const providerBreakdown = useMemo(() => {
     const map = new Map<string, { provider: string; costCents: number; inputTokens: number; outputTokens: number }>();
     for (const entry of providerRows) {
@@ -53,6 +56,18 @@ export function BillerSpendCard({
       ? Math.min(100, (row.costCents / providerBudgetShare) * 100)
       : 0;
 
+  const inTok = formatTokens(row.inputTokens + row.cachedInputTokens);
+  const outTok = formatTokens(row.outputTokens);
+
+  const meteredLine =
+    row.apiRunCount > 0
+      ? t("paperclip.costsPage.costCardMeteredRuns", { count: row.apiRunCount })
+      : t("paperclip.costsPage.costCardMeteredRunsZero");
+  const subLine =
+    row.subscriptionRunCount > 0
+      ? t("paperclip.costsPage.costCardSubRuns", { count: row.subscriptionRunCount })
+      : t("paperclip.costsPage.costCardSubRunsZero");
+
   return (
     <Card>
       <CardHeader className="px-4 pt-4 pb-0 gap-1">
@@ -62,13 +77,11 @@ export function BillerSpendCard({
               {providerDisplayName(row.biller)}
             </CardTitle>
             <CardDescription className="text-xs mt-0.5">
-              <span className="font-mono">{formatTokens(row.inputTokens + row.cachedInputTokens)}</span> in
+              {t("paperclip.costsPage.costCardTokensInOut", { inTok, outTok })}
               {" · "}
-              <span className="font-mono">{formatTokens(row.outputTokens)}</span> out
+              {t("paperclip.costsPage.costCardProvider", { count: row.providerCount })}
               {" · "}
-              {row.providerCount} provider{row.providerCount === 1 ? "" : "s"}
-              {" · "}
-              {row.modelCount} model{row.modelCount === 1 ? "" : "s"}
+              {t("paperclip.costsPage.costCardModel", { count: row.modelCount })}
             </CardDescription>
           </div>
           <span className="text-xl font-bold tabular-nums shrink-0">
@@ -80,21 +93,19 @@ export function BillerSpendCard({
       <CardContent className="px-4 pb-4 pt-3 space-y-4">
         {budgetMonthlyCents > 0 && (
           <QuotaBar
-            label="Period spend"
+            label={t("paperclip.costsPage.costCardPeriodSpend")}
             percentUsed={budgetPct}
             leftLabel={formatCents(row.costCents)}
-            rightLabel={`${Math.round(budgetPct)}% of allocation`}
+            rightLabel={t("paperclip.costsPage.costCardAllocationPct", { pct: Math.round(budgetPct) })}
           />
         )}
 
         <div className="text-xs text-muted-foreground">
-          {row.apiRunCount > 0 ? `${row.apiRunCount} metered run${row.apiRunCount === 1 ? "" : "s"}` : "0 metered runs"}
+          {meteredLine}
           {" · "}
-          {row.subscriptionRunCount > 0
-            ? `${row.subscriptionRunCount} subscription run${row.subscriptionRunCount === 1 ? "" : "s"}`
-            : "0 subscription runs"}
+          {subLine}
           {" · "}
-          {formatCents(weekSpendCents)} this week
+          {t("paperclip.costsPage.costCardWeekSpend", { amount: formatCents(weekSpendCents) })}
         </div>
 
         {billingTypeBreakdown.length > 0 && (
@@ -102,12 +113,12 @@ export function BillerSpendCard({
             <div className="border-t border-border" />
             <div className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Billing types
+                {t("paperclip.costsPage.costCardBillingTypes")}
               </p>
               <div className="space-y-1.5">
                 {billingTypeBreakdown.map(([billingType, costCents]) => (
                   <div key={billingType} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="text-muted-foreground">{billingTypeDisplayName(billingType as any)}</span>
+                    <span className="text-muted-foreground">{billingTypeDisplayName(billingType as never)}</span>
                     <span className="font-medium tabular-nums">{formatCents(costCents)}</span>
                   </div>
                 ))}
@@ -121,7 +132,7 @@ export function BillerSpendCard({
             <div className="border-t border-border" />
             <div className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Upstream providers
+                {t("paperclip.costsPage.costCardUpstreamProviders")}
               </p>
               <div className="space-y-1.5">
                 {providerBreakdown.map((entry) => (

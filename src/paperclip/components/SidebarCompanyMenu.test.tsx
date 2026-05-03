@@ -3,7 +3,8 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import i18n from "@shell/i18n";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarCompanyMenu } from "./SidebarCompanyMenu";
 
 const mockAuthApi = vi.hoisted(() => ({
@@ -101,6 +102,10 @@ async function flushReact() {
     await new Promise((resolve) => window.setTimeout(resolve, 0));
   });
 }
+
+beforeAll(async () => {
+  await i18n.changeLanguage("en");
+});
 
 describe("SidebarCompanyMenu", () => {
   let container: HTMLDivElement;

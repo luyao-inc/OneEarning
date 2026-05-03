@@ -1,4 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type Ref } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "@shell/i18n";
 import { pickTextColorForPillBg } from "@/lib/color-contrast";
 import { Link, useLocation, useNavigate, useNavigationType, useParams } from "@/lib/router";
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient, type InfiniteData, type QueryClient } from "@tanstack/react-query";
@@ -159,46 +161,27 @@ const FEEDBACK_TERMS_URL = import.meta.env.VITE_FEEDBACK_TERMS_URL?.trim() || "h
 const ISSUE_COMMENT_PAGE_SIZE = 50;
 const ISSUE_COMMENT_AUTOLOAD_LIMIT = ISSUE_COMMENT_PAGE_SIZE * 3;
 const JUMP_TO_LATEST_MAX_COMMENT_PAGES = 10;
-const TREE_CONTROL_MODE_LABEL: Record<IssueTreeControlMode, string> = {
-  pause: "Pause subtree",
-  resume: "Resume subtree",
-  cancel: "Cancel subtree",
-  restore: "Restore subtree",
-};
-const LEAF_WORK_CONTROL_MODE_LABEL: Partial<Record<IssueTreeControlMode, string>> = {
-  pause: "Pause work",
-  resume: "Resume work",
-};
-const TREE_CONTROL_MODE_HELP_TEXT: Record<IssueTreeControlMode, string> = {
-  pause: "Pause active execution in this issue subtree until an explicit resume.",
-  resume: "Release the active subtree pause hold so held work can continue.",
-  cancel: "Cancel non-terminal issues in this subtree and stop queued/running work where possible.",
-  restore: "Restore issues cancelled by this subtree operation so work can resume.",
-};
-const LEAF_WORK_CONTROL_MODE_HELP_TEXT: Partial<Record<IssueTreeControlMode, string>> = {
-  pause: "Pause active execution on this issue until an explicit resume.",
-  resume: "Release the active pause hold so this issue can continue.",
-};
-
 function issueTreeControlLabel(mode: IssueTreeControlMode, scope: "leaf" | "subtree") {
-  return scope === "leaf"
-    ? LEAF_WORK_CONTROL_MODE_LABEL[mode] ?? TREE_CONTROL_MODE_LABEL[mode]
-    : TREE_CONTROL_MODE_LABEL[mode];
+  if (scope === "leaf" && (mode === "pause" || mode === "resume")) {
+    return i18n.t(`paperclip.treeControl.leaf.${mode}`);
+  }
+  return i18n.t(`paperclip.treeControl.subtree.${mode}`);
 }
 
 function issueTreeControlHelpText(mode: IssueTreeControlMode, scope: "leaf" | "subtree") {
-  return scope === "leaf"
-    ? LEAF_WORK_CONTROL_MODE_HELP_TEXT[mode] ?? TREE_CONTROL_MODE_HELP_TEXT[mode]
-    : TREE_CONTROL_MODE_HELP_TEXT[mode];
+  if (scope === "leaf" && (mode === "pause" || mode === "resume")) {
+    return i18n.t(`paperclip.treeControl.helpLeaf.${mode}`);
+  }
+  return i18n.t(`paperclip.treeControl.helpSubtree.${mode}`);
 }
 
 function treeControlPreviewErrorCopy(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.status === 403) return "Only board users can preview subtree controls.";
-    if (error.status === 409) return "Preview is stale because subtree hold state changed. Retry to refresh.";
-    if (error.status === 422) return "This subtree action is currently invalid for the selected issues.";
+    if (error.status === 403) return i18n.t("paperclip.treeControl.previewForbidden");
+    if (error.status === 409) return i18n.t("paperclip.treeControl.previewStale");
+    if (error.status === 422) return i18n.t("paperclip.treeControl.previewInvalid");
   }
-  return error instanceof Error ? error.message : "Unable to load preview.";
+  return error instanceof Error ? error.message : i18n.t("paperclip.treeControl.previewUnknown");
 }
 
 function resolveRunningIssueRun(
@@ -399,6 +382,7 @@ function IssueDetailLoadingState({
 }: {
   headerSeed: ReturnType<typeof readIssueDetailHeaderSeed>;
 }) {
+  const { t } = useTranslation();
   const identifier = headerSeed?.identifier ?? headerSeed?.id.slice(0, 8) ?? null;
 
   return (
@@ -417,7 +401,7 @@ function IssueDetailLoadingState({
               {headerSeed.originKind === "routine_execution" && headerSeed.originId ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-600 dark:text-violet-400 shrink-0">
                   <Repeat className="h-3 w-3" />
-                  Routine
+                  {t("paperclip.issueDetail.routineBadge")}
                 </span>
               ) : null}
               {headerSeed.projectId ? (
@@ -430,7 +414,7 @@ function IssueDetailLoadingState({
               ) : (
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground opacity-50 px-1 -mx-1 py-0.5">
                   <Hexagon className="h-3 w-3 shrink-0" />
-                  No project
+                  {t("paperclip.issueDetail.noProject")}
                 </span>
               )}
             </>
@@ -496,6 +480,7 @@ function InboxMobileToolbar({
   onProperties,
   onHide,
 }: InboxMobileToolbarProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -544,14 +529,14 @@ function InboxMobileToolbar({
               onClick={() => { onCopy(); setMenuOpen(false); }}
             >
               <Copy className="h-3 w-3" />
-              Copy as markdown
+              {t("paperclip.issueDetail.copyAsMarkdown")}
             </button>
             <button
               className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50"
               onClick={() => { onProperties(); setMenuOpen(false); }}
             >
               <SlidersHorizontal className="h-3 w-3" />
-              Properties
+              {t("paperclip.issueDetail.properties")}
             </button>
             {issueIdProp && (
               <button
@@ -559,7 +544,7 @@ function InboxMobileToolbar({
                 onClick={() => { onHide(); setMenuOpen(false); }}
               >
                 <EyeOff className="h-3 w-3" />
-                Hide this issue
+                {t("paperclip.issueDetail.hideThisIssue")}
               </button>
             )}
           </PopoverContent>
@@ -907,6 +892,7 @@ function IssueDetailActivityTab({
   onApprovalAction,
   handoffFocusSignal = 0,
 }: IssueDetailActivityTabProps) {
+  const { t } = useTranslation();
   const { data: activity, isLoading: activityLoading } = useQuery({
     queryKey: queryKeys.issues.activity(issueId),
     queryFn: () => activityApi.forIssue(issueId),
@@ -1062,7 +1048,7 @@ function IssueDetailActivityTab({
             <div className="space-y-1.5 rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <ActorIdentity evt={evt} agentMap={agentMap} userProfileMap={userProfileMap} />
-                <span>{formatIssueActivityAction(evt.action, evt.details, { agentMap, userProfileMap, currentUserId })}</span>
+                <span>{formatIssueActivityAction(evt.action, evt.details, { agentMap, userProfileMap, currentUserId }, t)}</span>
                 <span className="ml-auto shrink-0">{relativeTime(evt.createdAt)}</span>
               </div>
               <IssueReferenceActivitySummary event={evt} />
@@ -1106,6 +1092,7 @@ export function IssueDetail() {
   const navigationType = useNavigationType();
   const location = useLocation();
   const { pushToast } = useToastActions();
+  const { t } = useTranslation();
   const { isMobile } = useSidebar();
   const [moreOpen, setMoreOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -1235,8 +1222,12 @@ export function IssueDetail() {
     }
   }, [hasLiveRuns, locallyQueuedCommentRunIds.size]);
   const sourceBreadcrumb = useMemo(
-    () => readIssueDetailBreadcrumb(issueId, location.state, location.search) ?? { label: "Issues", href: "/issues" },
-    [issueId, location.state, location.search],
+    () =>
+      readIssueDetailBreadcrumb(issueId, location.state, location.search) ?? {
+        label: t("paperclip.crumbs.issues"),
+        href: "/issues",
+      },
+    [issueId, location.state, location.search, t],
   );
 
   const { data: rawChildIssues = [], isLoading: childIssuesLoading } = useQuery({
@@ -1435,10 +1426,10 @@ export function IssueDetail() {
       options.push({ id: `agent:${agent.id}`, label: agent.name });
     }
     if (currentUserId) {
-      options.push({ id: `user:${currentUserId}`, label: "Me" });
+      options.push({ id: `user:${currentUserId}`, label: t("paperclip.issueDetail.assigneeMe") });
     }
     return options;
-  }, [agents, companyMembers?.users, currentUserId]);
+  }, [agents, companyMembers?.users, currentUserId, t]);
 
   const actualAssigneeValue = useMemo(
     () => assigneeValueFromSelection(issue ?? {}),
@@ -1598,8 +1589,8 @@ export function IssueDetail() {
         queryClient.setQueryData(queryKeys.issues.list(context.selectedCompanyId), context.previousList);
       }
       pushToast({
-        title: "Issue update failed",
-        body: err instanceof Error ? err.message : "Unable to save issue changes",
+        title: t("paperclip.toasts.issueDetail.issueUpdateFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.issueUpdateFailedBody"),
         tone: "error",
       });
     },
@@ -1615,7 +1606,7 @@ export function IssueDetail() {
       if (treeControlMode === "resume") {
         const pauseHoldId = treeControlState?.activePauseHold?.holdId;
         if (!pauseHoldId) {
-          throw new Error("No active subtree pause hold is available to resume.");
+          throw new Error(i18n.t("paperclip.toasts.issueDetail.noActivePauseHold"));
         }
         const releasedHold = await issuesApi.releaseTreeHold(issueId!, pauseHoldId, {
           reason: treeControlReason.trim() || null,
@@ -1643,19 +1634,21 @@ export function IssueDetail() {
       const cancelCount = result.preview?.totals.activeRuns ?? 0;
       pushToast({
         title: result.kind === "release"
-          ? treeControlScope === "leaf" ? "Work resumed" : "Subtree resumed"
+          ? (treeControlScope === "leaf" ? t("paperclip.toasts.issueDetail.workResumedLeaf") : t("paperclip.toasts.issueDetail.workResumedSubtree"))
           : result.hold.mode === "pause"
-            ? treeControlScope === "leaf" ? "Work paused" : "Subtree paused"
-            : `${modeLabel} applied`,
+            ? (treeControlScope === "leaf" ? t("paperclip.toasts.issueDetail.workPausedLeaf") : t("paperclip.toasts.issueDetail.workPausedSubtree"))
+            : t("paperclip.toasts.issueDetail.modeApplied", { mode: modeLabel }),
         body: result.kind === "release"
-          ? (result.hold.releaseReason?.trim() || (treeControlScope === "leaf" ? "Active issue pause released." : "Active subtree pause released."))
+          ? (result.hold.releaseReason?.trim() || (treeControlScope === "leaf"
+            ? t("paperclip.toasts.issueDetail.releaseLeafReason")
+            : t("paperclip.toasts.issueDetail.releaseSubtreeReason")))
           : result.hold.mode === "pause"
-            ? treeControlScope === "leaf"
-              ? `Work paused. ${cancelCount} run${cancelCount === 1 ? "" : "s"} cancelled.`
-              : `Subtree paused. ${cancelCount} run${cancelCount === 1 ? "" : "s"} cancelled.`
+            ? (treeControlScope === "leaf"
+              ? t("paperclip.toasts.issueDetail.pauseLeafRuns", { count: cancelCount })
+              : t("paperclip.toasts.issueDetail.pauseSubtreeRuns", { count: cancelCount }))
             : result.hold.reason?.trim()
               ? result.hold.reason
-              : "Subtree control applied.",
+              : t("paperclip.toasts.issueDetail.subtreeControlApplied"),
       });
       setTreeControlOpen(false);
       setTreeControlReason("");
@@ -1685,8 +1678,8 @@ export function IssueDetail() {
     },
     onError: (err) => {
       pushToast({
-        title: "Unable to apply subtree control",
-        body: err instanceof Error ? err.message : "Please try again.",
+        title: t("paperclip.toasts.issueDetail.subtreeControlFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.subtreeControlTryAgain"),
         tone: "error",
       });
     },
@@ -1704,10 +1697,10 @@ export function IssueDetail() {
     onSuccess: async (result) => {
       const cancelCount = result.preview?.totals.activeRuns ?? 0;
       pushToast({
-        title: "Work paused",
+        title: t("paperclip.toasts.issueDetail.workPausedTitle"),
         body: cancelCount > 0
-          ? `Work paused. ${cancelCount} run${cancelCount === 1 ? "" : "s"} cancelled.`
-          : "Work paused. This issue is held until resume.",
+          ? t("paperclip.toasts.issueDetail.pauseLeafRuns", { count: cancelCount })
+          : t("paperclip.toasts.issueDetail.workPausedHeld"),
         tone: "success",
       });
       await Promise.all([
@@ -1724,8 +1717,8 @@ export function IssueDetail() {
     },
     onError: (err) => {
       pushToast({
-        title: "Unable to pause work",
-        body: err instanceof Error ? err.message : "Please try again.",
+        title: t("paperclip.toasts.issueDetail.unablePauseWork"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.subtreeControlTryAgain"),
         tone: "error",
       });
     },
@@ -1744,8 +1737,8 @@ export function IssueDetail() {
     },
     onError: (err) => {
       pushToast({
-        title: "Issue update failed",
-        body: err instanceof Error ? err.message : "Unable to save sub-issue changes",
+        title: t("paperclip.toasts.issueDetail.childIssueUpdateFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.childIssueUpdateBody"),
         tone: "error",
       });
     },
@@ -1773,14 +1766,14 @@ export function IssueDetail() {
         queryClient.invalidateQueries({ queryKey: queryKeys.approvals.list(resolvedCompanyId) });
       }
       pushToast({
-        title: variables.action === "approve" ? "Approval approved" : "Approval rejected",
+        title: variables.action === "approve" ? t("paperclip.toasts.issueDetail.approvalApproved") : t("paperclip.toasts.issueDetail.approvalRejected"),
         tone: "success",
       });
     },
     onError: (err, variables) => {
       pushToast({
-        title: variables.action === "approve" ? "Approval failed" : "Rejection failed",
-        body: err instanceof Error ? err.message : "Unable to update approval",
+        title: variables.action === "approve" ? t("paperclip.toasts.issueDetail.approvalFailed") : t("paperclip.toasts.issueDetail.rejectionFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.approvalUpdateBody"),
         tone: "error",
       });
     },
@@ -1841,8 +1834,8 @@ export function IssueDetail() {
           return;
         } catch (err) {
           pushToast({
-            title: "Cancel failed",
-            body: err instanceof Error ? err.message : "Unable to cancel the queued comment",
+            title: t("paperclip.toasts.issueDetail.cancelFailed"),
+            body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.cancelQueuedBody"),
             tone: "error",
           });
         }
@@ -1875,8 +1868,8 @@ export function IssueDetail() {
         queryClient.setQueryData(queryKeys.issues.detail(issueId!), context.previousIssue);
       }
       pushToast({
-        title: "Comment failed",
-        body: err instanceof Error ? err.message : "Unable to post comment",
+        title: t("paperclip.toasts.issueDetail.commentFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.commentFailedBody"),
         tone: "error",
       });
     },
@@ -1913,17 +1906,17 @@ export function IssueDetail() {
         : 0;
       pushToast({
         title: interaction.kind === "request_confirmation"
-          ? "Request confirmed"
+          ? t("paperclip.toasts.issueDetail.requestConfirmed")
           : skippedCount > 0
-          ? `Accepted ${createdCount} draft${createdCount === 1 ? "" : "s"} and skipped ${skippedCount}`
-          : "Suggested tasks accepted",
+          ? t("paperclip.toasts.issueDetail.acceptedDraftsSkipped", { created: createdCount, skipped: skippedCount })
+          : t("paperclip.toasts.issueDetail.suggestedTasksAccepted"),
         tone: "success",
       });
     },
     onError: (err) => {
       pushToast({
-        title: "Accept failed",
-        body: err instanceof Error ? err.message : "Unable to accept the suggested tasks",
+        title: t("paperclip.toasts.issueDetail.acceptFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.acceptFailedBody"),
         tone: "error",
       });
     },
@@ -1936,14 +1929,14 @@ export function IssueDetail() {
       invalidateIssueDetail();
       invalidateIssueCollections();
       pushToast({
-        title: interaction.kind === "request_confirmation" ? "Request declined" : "Suggestion rejected",
+        title: interaction.kind === "request_confirmation" ? t("paperclip.toasts.issueDetail.requestDeclined") : t("paperclip.toasts.issueDetail.suggestionRejected"),
         tone: "success",
       });
     },
     onError: (err) => {
       pushToast({
-        title: "Reject failed",
-        body: err instanceof Error ? err.message : "Unable to reject the suggested tasks",
+        title: t("paperclip.toasts.issueDetail.rejectFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.rejectFailedBody"),
         tone: "error",
       });
     },
@@ -1961,14 +1954,14 @@ export function IssueDetail() {
       invalidateIssueDetail();
       invalidateIssueCollections();
       pushToast({
-        title: "Answers submitted",
+        title: t("paperclip.toasts.issueDetail.answersSubmitted"),
         tone: "success",
       });
     },
     onError: (err) => {
       pushToast({
-        title: "Submit failed",
-        body: err instanceof Error ? err.message : "Unable to submit answers",
+        title: t("paperclip.toasts.issueDetail.submitFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.submitFailedBody"),
         tone: "error",
       });
     },
@@ -1982,14 +1975,14 @@ export function IssueDetail() {
       invalidateIssueDetail();
       invalidateIssueCollections();
       pushToast({
-        title: "Question cancelled",
+        title: t("paperclip.toasts.issueDetail.questionCancelled"),
         tone: "success",
       });
     },
     onError: (err) => {
       pushToast({
-        title: "Cancel failed",
-        body: err instanceof Error ? err.message : "Unable to cancel the question",
+        title: t("paperclip.toasts.issueDetail.cancelFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.cancelQuestionBody"),
         tone: "error",
       });
     },
@@ -2066,8 +2059,8 @@ export function IssueDetail() {
           return;
         } catch (err) {
           pushToast({
-            title: "Cancel failed",
-            body: err instanceof Error ? err.message : "Unable to cancel the queued comment",
+            title: t("paperclip.toasts.issueDetail.cancelFailed"),
+            body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.cancelQueuedBody"),
             tone: "error",
           });
         }
@@ -2102,8 +2095,8 @@ export function IssueDetail() {
         queryClient.setQueryData(queryKeys.issues.detail(issueId!), context.previousIssue);
       }
       pushToast({
-        title: "Comment failed",
-        body: err instanceof Error ? err.message : "Unable to post comment",
+        title: t("paperclip.toasts.issueDetail.commentFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.commentFailedBody"),
         tone: "error",
       });
     },
@@ -2174,8 +2167,8 @@ export function IssueDetail() {
       invalidateIssueDetail();
       invalidateIssueRunState();
       pushToast({
-        title: "Interrupt requested",
-        body: "The active run is stopping so queued comments can continue next.",
+        title: t("paperclip.toasts.issueDetail.interruptRequested"),
+        body: t("paperclip.toasts.issueDetail.interruptBody"),
         tone: "success",
       });
     },
@@ -2188,8 +2181,8 @@ export function IssueDetail() {
         setLocallyQueuedCommentRunIds(context.previousLocalQueuedCommentRunIds);
       }
       pushToast({
-        title: "Interrupt failed",
-        body: err instanceof Error ? err.message : "Unable to interrupt the active run",
+        title: t("paperclip.toasts.issueDetail.interruptFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.interruptFailedBody"),
         tone: "error",
       });
     },
@@ -2210,15 +2203,15 @@ export function IssueDetail() {
       invalidateIssueThreadLazily();
       invalidateIssueCollections();
       pushToast({
-        title: "Queued comment canceled",
-        body: "The queued message was restored to the composer.",
+        title: t("paperclip.toasts.issueDetail.queuedCommentCanceled"),
+        body: t("paperclip.toasts.issueDetail.queuedCommentRestored"),
         tone: "success",
       });
     },
     onError: (err) => {
       pushToast({
-        title: "Cancel failed",
-        body: err instanceof Error ? err.message : "Unable to cancel the queued comment",
+        title: t("paperclip.toasts.issueDetail.cancelFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.cancelQueuedBody"),
         tone: "error",
       });
     },
@@ -2236,8 +2229,8 @@ export function IssueDetail() {
       if (cancelledCommentBody) {
         restoreQueuedCommentDraft(cancelledCommentBody);
         pushToast({
-          title: "Queued comment canceled",
-          body: "The queued message was restored to the composer.",
+          title: t("paperclip.toasts.issueDetail.queuedCommentCanceled"),
+          body: t("paperclip.toasts.issueDetail.queuedCommentRestored"),
           tone: "success",
         });
       }
@@ -2245,7 +2238,7 @@ export function IssueDetail() {
     }
 
     void cancelQueuedComment.mutateAsync({ commentId });
-  }, [cancelQueuedComment, restoreQueuedCommentDraft, pushToast]);
+  }, [cancelQueuedComment, restoreQueuedCommentDraft, pushToast, t]);
 
   const feedbackVoteMutation = useMutation({
     mutationFn: (variables: {
@@ -2292,11 +2285,11 @@ export function IssueDetail() {
         title:
           variables.sharingPreferenceAtSubmit === "prompt"
             ? variables.allowSharing
-              ? "Feedback saved. Future votes will share"
-              : "Feedback saved. Future votes will stay local"
+              ? t("paperclip.toasts.issueDetail.feedbackSavedPromptShare")
+              : t("paperclip.toasts.issueDetail.feedbackSavedPromptLocal")
             : variables.allowSharing
-              ? "Feedback saved and sharing enabled"
-              : "Feedback saved",
+              ? t("paperclip.toasts.issueDetail.feedbackSavedSharingOn")
+              : t("paperclip.toasts.issueDetail.feedbackSaved"),
         tone: "success",
       });
     },
@@ -2305,8 +2298,8 @@ export function IssueDetail() {
         queryClient.setQueryData(queryKeys.issues.feedbackVotes(issueId!), context.previousVotes);
       }
       pushToast({
-        title: "Failed to save feedback",
-        body: err instanceof Error ? err.message : "Unknown error",
+        title: t("paperclip.toasts.issueDetail.feedbackSaveFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.common.unknownError"),
         tone: "error",
       });
     },
@@ -2314,7 +2307,7 @@ export function IssueDetail() {
 
   const uploadAttachment = useMutation({
     mutationFn: async (file: File) => {
-      if (!selectedCompanyId) throw new Error("No company selected");
+      if (!selectedCompanyId) throw new Error(i18n.t("paperclip.toasts.common.noCompanySelected"));
       return issuesApi.uploadAttachment(selectedCompanyId, issueId!, file);
     },
     onSuccess: () => {
@@ -2323,7 +2316,7 @@ export function IssueDetail() {
       invalidateIssueDetail();
     },
     onError: (err) => {
-      setAttachmentError(err instanceof Error ? err.message : "Upload failed");
+      setAttachmentError(err instanceof Error ? err.message : t("paperclip.toasts.common.uploadFailed"));
     },
   });
 
@@ -2348,7 +2341,7 @@ export function IssueDetail() {
       queryClient.invalidateQueries({ queryKey: queryKeys.issues.documents(issueId!) });
     },
     onError: (err) => {
-      setAttachmentError(err instanceof Error ? err.message : "Document import failed");
+      setAttachmentError(err instanceof Error ? err.message : t("paperclip.toasts.common.documentImportFailed"));
     },
   });
 
@@ -2360,7 +2353,7 @@ export function IssueDetail() {
       invalidateIssueDetail();
     },
     onError: (err) => {
-      setAttachmentError(err instanceof Error ? err.message : "Delete failed");
+      setAttachmentError(err instanceof Error ? err.message : t("paperclip.toasts.common.deleteFailed"));
     },
   });
 
@@ -2369,12 +2362,12 @@ export function IssueDetail() {
     onSuccess: () => {
       invalidateIssueCollections();
       navigate(sourceBreadcrumb.href.startsWith("/inbox") ? sourceBreadcrumb.href : "/inbox", { replace: true });
-      pushToast({ title: "Issue archived from inbox", tone: "success" });
+      pushToast({ title: t("paperclip.toasts.issueDetail.issueArchivedInbox"), tone: "success" });
     },
     onError: (err) => {
       pushToast({
-        title: "Archive failed",
-        body: err instanceof Error ? err.message : "Unable to archive this issue from the inbox",
+        title: t("paperclip.toasts.issueDetail.archiveFailed"),
+        body: err instanceof Error ? err.message : t("paperclip.toasts.issueDetail.archiveFailedBody"),
         tone: "error",
       });
     },
@@ -2629,7 +2622,7 @@ export function IssueDetail() {
     const md = `# ${issue.identifier}: ${title}\n\n${body}`.trimEnd();
     await navigator.clipboard.writeText(md);
     setCopied(true);
-    pushToast({ title: "Copied to clipboard", tone: "success" });
+    pushToast({ title: t("paperclip.toasts.common.copiedToClipboard"), tone: "success" });
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -3094,7 +3087,7 @@ export function IssueDetail() {
               className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 border border-violet-500/30 px-2 py-0.5 text-[10px] font-medium text-violet-600 dark:text-violet-400 shrink-0 hover:bg-violet-500/20 transition-colors"
             >
               <Repeat className="h-3 w-3" />
-              Routine
+              {t("paperclip.issueDetail.routineBadge")}
             </Link>
           )}
 
@@ -3105,10 +3098,10 @@ export function IssueDetail() {
           {issue.originKind === "issue_productivity_review" ? (
             <span
               className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300 shrink-0"
-              title="This task is a productivity review."
+              title={t("paperclip.issueDetail.productivityReviewTitle")}
             >
               <Eye className="h-3 w-3" />
-              Productivity review
+              {t("paperclip.issueDetail.productivityReviewBadge")}
             </span>
           ) : null}
 
@@ -3123,7 +3116,7 @@ export function IssueDetail() {
           ) : (
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground opacity-50 px-1 -mx-1 py-0.5">
               <Hexagon className="h-3 w-3 shrink-0" />
-              No project
+              {t("paperclip.issueDetail.noProject")}
             </span>
           )}
 
@@ -3154,7 +3147,7 @@ export function IssueDetail() {
                 variant="ghost"
                 size="icon-xs"
                 onClick={copyIssueToClipboard}
-                title="Copy issue as markdown"
+                title={t("paperclip.issueDetail.copyIssueMarkdown")}
               >
                 {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
               </Button>
@@ -3162,7 +3155,7 @@ export function IssueDetail() {
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => setMobilePropsOpen(true)}
-                title="Properties"
+                title={t("paperclip.issueDetail.properties")}
               >
                 <SlidersHorizontal className="h-4 w-4" />
               </Button>
@@ -3188,7 +3181,7 @@ export function IssueDetail() {
               variant="ghost"
               size="icon-xs"
               onClick={copyIssueToClipboard}
-              title="Copy issue as markdown"
+              title={t("paperclip.issueDetail.copyIssueMarkdown")}
             >
               {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
             </Button>
@@ -3397,7 +3390,7 @@ export function IssueDetail() {
       {showRichSubIssuesSection ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Sub-issues</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">{t("paperclip.issueDetail.subIssuesTitle")}</h3>
           </div>
           <IssuesList
             issues={childIssues}
@@ -3413,7 +3406,7 @@ export function IssueDetail() {
             searchFilters={{ descendantOf: issue.id, includeBlockedBy: true }}
             searchWithinLoadedIssues
             baseCreateIssueDefaults={buildSubIssueDefaultsForViewer(issue, currentUserId)}
-            createIssueLabel="Sub-issue"
+            createIssueLabel={t("paperclip.issueDetail.subIssueShortLabel")}
             defaultSortField="workflow"
             showProgressSummary
             onUpdateIssue={handleChildIssueUpdate}
@@ -3423,7 +3416,7 @@ export function IssueDetail() {
         <div className="flex flex-wrap items-center justify-end gap-2 min-w-0">
           <Button variant="outline" size="sm" onClick={openNewSubIssue} className="shrink-0 shadow-none">
             <Plus className="mr-1.5 h-3.5 w-3.5" />
-            New Sub-issue
+            {t("paperclip.issueDetail.newSubIssue")}
           </Button>
         </div>
       )}
@@ -3868,7 +3861,7 @@ export function IssueDetail() {
       <Sheet open={mobilePropsOpen} onOpenChange={setMobilePropsOpen}>
         <SheetContent side="bottom" className="max-h-[85dvh] pb-[env(safe-area-inset-bottom)]">
           <SheetHeader>
-            <SheetTitle className="text-sm">Properties</SheetTitle>
+            <SheetTitle className="text-sm">{t("paperclip.issueDetail.properties")}</SheetTitle>
           </SheetHeader>
           <ScrollArea className="flex-1 overflow-y-auto">
             <div className="px-4 pb-4">

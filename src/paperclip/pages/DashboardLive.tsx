@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, RadioTower } from "lucide-react";
 import { Link } from "@/lib/router";
 import { ActiveAgentsPanel } from "../components/ActiveAgentsPanel";
@@ -9,21 +10,22 @@ import { useCompany } from "../context/CompanyContext";
 const DASHBOARD_LIVE_RUN_LIMIT = 50;
 
 export function DashboardLive() {
+  const { t } = useTranslation();
   const { selectedCompanyId, companies } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: "Dashboard", href: "/dashboard" },
-      { label: "Live runs" },
+      { label: t("paperclip.crumbs.dashboard"), href: "/dashboard" },
+      { label: t("paperclip.crumbs.dashboardLive") },
     ]);
-  }, [setBreadcrumbs]);
+  }, [setBreadcrumbs, t]);
 
   if (!selectedCompanyId) {
     return (
       <EmptyState
         icon={RadioTower}
-        message={companies.length === 0 ? "Create a company to view live runs." : "Select a company to view live runs."}
+        message={companies.length === 0 ? t("paperclip.dashboardLive.emptyNoCompany") : t("paperclip.dashboardLive.emptySelect")}
       />
     );
   }
@@ -37,25 +39,27 @@ export function DashboardLive() {
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Dashboard
+            {t("paperclip.dashboardLive.backLink")}
           </Link>
-          <h1 className="mt-2 text-2xl font-semibold tracking-normal text-foreground">Live agent runs</h1>
+          <h1 className="mt-2 text-2xl font-semibold tracking-normal text-foreground">{t("paperclip.dashboardLive.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Active runs first, followed by the most recent completed runs.
+            {t("paperclip.dashboardLive.subtitle")}
           </p>
         </div>
-        <div className="text-sm text-muted-foreground">Showing up to {DASHBOARD_LIVE_RUN_LIMIT}</div>
+        <div className="text-sm text-muted-foreground">
+          {t("paperclip.dashboardLive.showingLimit", { limit: DASHBOARD_LIVE_RUN_LIMIT })}
+        </div>
       </div>
 
       <ActiveAgentsPanel
         companyId={selectedCompanyId}
-        title="Active / recent"
+        title={t("paperclip.dashboardLive.panelTitle")}
         minRunCount={DASHBOARD_LIVE_RUN_LIMIT}
         fetchLimit={DASHBOARD_LIVE_RUN_LIMIT}
         cardLimit={DASHBOARD_LIVE_RUN_LIMIT}
         gridClassName="gap-3 md:grid-cols-2 2xl:grid-cols-3"
         cardClassName="h-[420px]"
-        emptyMessage="No active or recent agent runs."
+        emptyMessage={t("paperclip.dashboardLive.panelEmpty")}
         queryScope="dashboard-live"
         showMoreLink={false}
       />

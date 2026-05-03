@@ -124,7 +124,7 @@ describe("SidebarAccountMenu", () => {
 
     expect(document.body.textContent).toContain("Edit profile");
     expect(document.body.textContent).toContain("Switch to Chinese");
-    expect(document.body.textContent).toContain("Paperclip v1.2.3");
+    expect(document.body.textContent).toContain("OneEarning v1.2.3");
     expect(document.body.textContent).toContain("jane@example.com");
 
     await act(async () => {

@@ -1,16 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowUp, ArrowDown, Minus, AlertTriangle } from "lucide-react";
 import { cn } from "../lib/utils";
 import { priorityColor, priorityColorDefault } from "../lib/status-colors";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-
-const priorityConfig: Record<string, { icon: typeof ArrowUp; color: string; label: string }> = {
-  critical: { icon: AlertTriangle, color: priorityColor.critical ?? priorityColorDefault, label: "Critical" },
-  high: { icon: ArrowUp, color: priorityColor.high ?? priorityColorDefault, label: "High" },
-  medium: { icon: Minus, color: priorityColor.medium ?? priorityColorDefault, label: "Medium" },
-  low: { icon: ArrowDown, color: priorityColor.low ?? priorityColorDefault, label: "Low" },
-};
 
 const allPriorities = ["critical", "high", "medium", "low"];
 
@@ -22,7 +16,23 @@ interface PriorityIconProps {
 }
 
 export function PriorityIcon({ priority, onChange, className, showLabel }: PriorityIconProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+
+  const priorityConfig = useMemo(
+    () =>
+      ({
+        critical: { icon: AlertTriangle, color: priorityColor.critical ?? priorityColorDefault, label: t("paperclip.issuePriority.critical") },
+        high: { icon: ArrowUp, color: priorityColor.high ?? priorityColorDefault, label: t("paperclip.issuePriority.high") },
+        medium: { icon: Minus, color: priorityColor.medium ?? priorityColorDefault, label: t("paperclip.issuePriority.medium") },
+        low: { icon: ArrowDown, color: priorityColor.low ?? priorityColorDefault, label: t("paperclip.issuePriority.low") },
+      }) as Record<
+        string,
+        { icon: typeof ArrowUp; color: string; label: string }
+      >,
+    [t],
+  );
+
   const config = priorityConfig[priority] ?? priorityConfig.medium!;
   const Icon = config.icon;
 

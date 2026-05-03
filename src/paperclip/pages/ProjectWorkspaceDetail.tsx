@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isUuidLike, type ProjectWorkspace } from "@paperclipai/shared";
@@ -35,18 +36,6 @@ type WorkspaceFormState = {
 
 type ProjectWorkspaceSourceType = ProjectWorkspace["sourceType"];
 type ProjectWorkspaceVisibility = ProjectWorkspace["visibility"];
-
-const SOURCE_TYPE_OPTIONS: Array<{ value: ProjectWorkspaceSourceType; label: string; description: string }> = [
-  { value: "local_path", label: "Local git checkout", description: "A local path Paperclip can use directly." },
-  { value: "non_git_path", label: "Local non-git path", description: "A local folder without git semantics." },
-  { value: "git_repo", label: "Remote git repo", description: "A repo URL with optional refs and local checkout." },
-  { value: "remote_managed", label: "Remote-managed workspace", description: "A hosted workspace tracked by external reference." },
-];
-
-const VISIBILITY_OPTIONS: Array<{ value: ProjectWorkspaceVisibility; label: string }> = [
-  { value: "default", label: "Default" },
-  { value: "advanced", label: "Advanced" },
-];
 
 function isSafeExternalUrl(value: string | null | undefined) {
   if (!value) return false;
@@ -210,6 +199,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
 }
 
 export function ProjectWorkspaceDetail() {
+  const { t } = useTranslation();
   const { companyPrefix, projectId, workspaceId } = useParams<{
     companyPrefix?: string;
     projectId: string;
@@ -248,6 +238,42 @@ export function ProjectWorkspaceDetail() {
   const initialState = useMemo(() => (workspace ? formStateFromWorkspace(workspace) : null), [workspace]);
   const isDirty = Boolean(form && initialState && JSON.stringify(form) !== JSON.stringify(initialState));
 
+  const workspaceSourceTypeOptions = useMemo(
+    () =>
+      [
+        {
+          value: "local_path" as const,
+          label: t("paperclip.projectsPage.workspaceSourceLocalPath"),
+          description: t("paperclip.projectsPage.workspaceSourceLocalPathDesc"),
+        },
+        {
+          value: "non_git_path" as const,
+          label: t("paperclip.projectsPage.workspaceSourceNonGit"),
+          description: t("paperclip.projectsPage.workspaceSourceNonGitDesc"),
+        },
+        {
+          value: "git_repo" as const,
+          label: t("paperclip.projectsPage.workspaceSourceGitRepo"),
+          description: t("paperclip.projectsPage.workspaceSourceGitRepoDesc"),
+        },
+        {
+          value: "remote_managed" as const,
+          label: t("paperclip.projectsPage.workspaceSourceRemoteManaged"),
+          description: t("paperclip.projectsPage.workspaceSourceRemoteManagedDesc"),
+        },
+      ] satisfies Array<{ value: ProjectWorkspaceSourceType; label: string; description: string }>,
+    [t],
+  );
+
+  const workspaceVisibilityOptions = useMemo(
+    () =>
+      [
+        { value: "default" as const, label: t("paperclip.projectsPage.visibilityDefault") },
+        { value: "advanced" as const, label: t("paperclip.projectsPage.visibilityAdvanced") },
+      ] satisfies Array<{ value: ProjectWorkspaceVisibility; label: string }>,
+    [t],
+  );
+
   useEffect(() => {
     if (!project?.companyId || project.companyId === selectedCompanyId) return;
     setSelectedCompanyId(project.companyId, { source: "route_sync" });
@@ -262,12 +288,12 @@ export function ProjectWorkspaceDetail() {
   useEffect(() => {
     if (!project) return;
     setBreadcrumbs([
-      { label: "Projects", href: "/projects" },
+      { label: t("paperclip.crumbs.projects"), href: "/projects" },
       { label: project.name, href: `/projects/${canonicalProjectRef}` },
-      { label: "Workspaces", href: `/projects/${canonicalProjectRef}/workspaces` },
+      { label: t("paperclip.crumbs.workspaces"), href: `/projects/${canonicalProjectRef}/workspaces` },
       { label: workspace?.name ?? routeWorkspaceId },
     ]);
-  }, [setBreadcrumbs, project, canonicalProjectRef, workspace?.name, routeWorkspaceId]);
+  }, [setBreadcrumbs, project, canonicalProjectRef, workspace?.name, routeWorkspaceId, t]);
 
   useEffect(() => {
     if (!project) return;
@@ -292,7 +318,7 @@ export function ProjectWorkspaceDetail() {
       setErrorMessage(null);
     },
     onError: (error) => {
-      setErrorMessage(error instanceof Error ? error.message : "Failed to save workspace.");
+      setErrorMessage(error instanceof Error ? error.message : t("paperclip.projectsPage.workspaceSaveFailed"));
     },
   });
 
@@ -303,7 +329,7 @@ export function ProjectWorkspaceDetail() {
       setErrorMessage(null);
     },
     onError: (error) => {
-      setErrorMessage(error instanceof Error ? error.message : "Failed to update workspace.");
+      setErrorMessage(error instanceof Error ? error.message : t("paperclip.projectsPage.workspaceUpdateFailed"));
     },
   });
 
@@ -315,30 +341,30 @@ export function ProjectWorkspaceDetail() {
       setErrorMessage(null);
       setRuntimeActionMessage(
         request.action === "run"
-          ? "Workspace job completed."
+          ? t("paperclip.projectsPage.workspaceRuntimeRunDone")
           : request.action === "stop"
-            ? "Workspace service stopped. Issue execution is not paused."
+            ? t("paperclip.projectsPage.workspaceRuntimeStopDone")
             : request.action === "restart"
-              ? "Workspace service restarted. Issue execution is not paused."
-              : "Workspace service started.",
+              ? t("paperclip.projectsPage.workspaceRuntimeRestartDone")
+              : t("paperclip.projectsPage.workspaceRuntimeStartDone"),
       );
     },
     onError: (error) => {
       setRuntimeActionMessage(null);
-      setErrorMessage(error instanceof Error ? error.message : "Failed to control workspace commands.");
+      setErrorMessage(error instanceof Error ? error.message : t("paperclip.projectsPage.workspaceControlCommandsFailed"));
     },
   });
 
-  if (projectQuery.isLoading) return <p className="text-sm text-muted-foreground">Loading workspace…</p>;
+  if (projectQuery.isLoading) return <p className="text-sm text-muted-foreground">{t("paperclip.projectsPage.workspaceLoading")}</p>;
   if (projectQuery.error) {
     return (
       <p className="text-sm text-destructive">
-        {projectQuery.error instanceof Error ? projectQuery.error.message : "Failed to load workspace"}
+        {projectQuery.error instanceof Error ? projectQuery.error.message : t("paperclip.projectsPage.workspaceLoadFailed")}
       </p>
     );
   }
   if (!project || !workspace || !form || !initialState) {
-    return <p className="text-sm text-muted-foreground">Workspace not found for this project.</p>;
+    return <p className="text-sm text-muted-foreground">{t("paperclip.projectsPage.workspaceNotFound")}</p>;
   }
 
   const canRunWorkspaceCommands = Boolean(workspace.cwd);
@@ -362,7 +388,7 @@ export function ProjectWorkspaceDetail() {
     updateWorkspace.mutate(patch);
   };
 
-  const sourceTypeDescription = SOURCE_TYPE_OPTIONS.find((option) => option.value === form.sourceType)?.description ?? null;
+  const sourceTypeDescription = workspaceSourceTypeOptions.find((option) => option.value === form.sourceType)?.description ?? null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -370,11 +396,11 @@ export function ProjectWorkspaceDetail() {
         <Button variant="ghost" size="sm" asChild>
           <Link to={`/projects/${canonicalProjectRef}/workspaces`}>
             <ArrowLeft className="mr-1 h-4 w-4" />
-            Back to workspaces
+            {t("paperclip.projectsPage.workspaceBackToList")}
           </Link>
         </Button>
         <div className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground">
-          {workspace.isPrimary ? "Primary workspace" : "Secondary workspace"}
+          {workspace.isPrimary ? t("paperclip.projectsPage.workspaceBadgePrimary") : t("paperclip.projectsPage.workspaceBadgeSecondary")}
         </div>
       </div>
 
@@ -384,13 +410,11 @@ export function ProjectWorkspaceDetail() {
             <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
               <div className="space-y-2">
                 <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                  Project workspace
+                  {t("paperclip.projectsPage.workspaceEditorHeading")}
                 </div>
                 <h1 className="text-2xl font-semibold">{workspace.name}</h1>
                 <p className="max-w-2xl text-sm text-muted-foreground">
-                  Configure the concrete workspace Paperclip attaches to this project. These values drive per-workspace
-                  checkout behavior, default runtime services for child execution workspaces, and let you override setup
-                  or cleanup commands when one workspace needs special handling.
+                  {t("paperclip.projectsPage.workspaceEditorIntro")}
                 </p>
               </div>
               {!workspace.isPrimary ? (
@@ -433,7 +457,7 @@ export function ProjectWorkspaceDetail() {
                     setForm((current) => current ? { ...current, visibility: event.target.value as ProjectWorkspaceVisibility } : current)
                   }
                 >
-                  {VISIBILITY_OPTIONS.map((option) => (
+                  {workspaceVisibilityOptions.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
@@ -449,7 +473,7 @@ export function ProjectWorkspaceDetail() {
                     setForm((current) => current ? { ...current, sourceType: event.target.value as ProjectWorkspaceSourceType } : current)
                   }
                 >
-                  {SOURCE_TYPE_OPTIONS.map((option) => (
+                  {workspaceSourceTypeOptions.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
@@ -548,7 +572,7 @@ export function ProjectWorkspaceDetail() {
               <details className="rounded-xl border border-dashed border-border/70 bg-background px-3 py-3">
                 <summary className="cursor-pointer text-sm font-medium">Advanced runtime JSON</summary>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Paperclip derives Services and Jobs from this JSON. Prefer editing named commands first; use raw JSON for advanced lifecycle, port, readiness, or environment settings.
+                  OneEarning derives Services and Jobs from this JSON. Prefer editing named commands first; use raw JSON for advanced lifecycle, port, readiness, or environment settings.
                 </p>
                 <div className="mt-3">
                   <Field label="Workspace commands JSON" hint="Execution workspaces inherit this config unless they override it. Legacy `services` arrays still work, but `commands` supports both services and jobs.">

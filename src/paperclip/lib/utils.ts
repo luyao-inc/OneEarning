@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import i18n from "@shell/i18n";
 import { deriveAgentUrlKey, deriveProjectUrlKey, normalizeProjectUrlKey, hasNonAsciiContent } from "@paperclipai/shared";
 import type { BillingType, FinanceDirection, FinanceEventKind } from "@paperclipai/shared";
 
@@ -44,13 +45,13 @@ export function relativeTime(date: Date | string): string {
   const now = Date.now();
   const then = new Date(date).getTime();
   const diffSec = Math.round((now - then) / 1000);
-  if (diffSec < 60) return "just now";
+  if (diffSec < 60) return i18n.t("paperclip.timeAgo.justNow");
   const diffMin = Math.round(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 60) return i18n.t("paperclip.timeAgo.minutesAgo", { count: diffMin });
   const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffHr < 24) return i18n.t("paperclip.timeAgo.hoursAgo", { count: diffHr });
   const diffDay = Math.round(diffHr / 24);
-  if (diffDay < 30) return `${diffDay}d ago`;
+  if (diffDay < 30) return i18n.t("paperclip.timeAgo.daysAgo", { count: diffDay });
   return formatDate(date);
 }
 
@@ -63,6 +64,10 @@ export function formatTokens(n: number): string {
 
 /** Map a raw provider slug to a display-friendly name. */
 export function providerDisplayName(provider: string): string {
+  const lower = provider.toLowerCase();
+  if (lower === "unknown") {
+    return i18n.t("paperclip.costsPage.unknownProviderBiller");
+  }
   const map: Record<string, string> = {
     anthropic: "Anthropic",
     aws_bedrock: "AWS Bedrock",
@@ -73,19 +78,11 @@ export function providerDisplayName(provider: string): string {
     cursor: "Cursor",
     jetbrains: "JetBrains AI",
   };
-  return map[provider.toLowerCase()] ?? provider;
+  return map[lower] ?? provider;
 }
 
 export function billingTypeDisplayName(billingType: BillingType): string {
-  const map: Record<BillingType, string> = {
-    metered_api: "Metered API",
-    subscription_included: "Subscription",
-    subscription_overage: "Subscription overage",
-    credits: "Credits",
-    fixed: "Fixed",
-    unknown: "Unknown",
-  };
-  return map[billingType];
+  return i18n.t(`paperclip.costsPage.billingTypes.${billingType}`);
 }
 
 export function quotaSourceDisplayName(source: string): string {
@@ -132,27 +129,11 @@ export function visibleRunCostUsd(
 }
 
 export function financeEventKindDisplayName(eventKind: FinanceEventKind): string {
-  const map: Record<FinanceEventKind, string> = {
-    inference_charge: "Inference charge",
-    platform_fee: "Platform fee",
-    credit_purchase: "Credit purchase",
-    credit_refund: "Credit refund",
-    credit_expiry: "Credit expiry",
-    byok_fee: "BYOK fee",
-    gateway_overhead: "Gateway overhead",
-    log_storage_charge: "Log storage",
-    logpush_charge: "Logpush",
-    provisioned_capacity_charge: "Provisioned capacity",
-    training_charge: "Training",
-    custom_model_import_charge: "Custom model import",
-    custom_model_storage_charge: "Custom model storage",
-    manual_adjustment: "Manual adjustment",
-  };
-  return map[eventKind];
+  return i18n.t(`paperclip.costsPage.financeEventKinds.${eventKind}`);
 }
 
 export function financeDirectionDisplayName(direction: FinanceDirection): string {
-  return direction === "credit" ? "Credit" : "Debit";
+  return i18n.t(`paperclip.costsPage.financeDirections.${direction}`);
 }
 
 /** Build an issue URL using the human-readable identifier when available. */

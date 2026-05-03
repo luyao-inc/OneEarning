@@ -7,6 +7,7 @@ import type {
   ThreadSystemMessage,
   ThreadUserMessage,
 } from "@assistant-ui/react";
+import i18n from "@shell/i18n";
 import type { Agent, IssueComment } from "@paperclipai/shared";
 import type { ActiveRunForIssue, LiveRunForIssue } from "../api/heartbeats";
 import { formatAssigneeUserLabel } from "./assignees";
@@ -290,7 +291,10 @@ function authorNameForComment(
   return formatAssigneeUserLabel(authorUserId, currentUserId, userLabelMap) ?? "You";
 }
 
-function formatStatusLabel(status: string) {
+export function translateRunStatusLabel(status: string) {
+  const key = `paperclip.runStatusDisplay.${status}`;
+  const translated = i18n.t(key);
+  if (translated !== key) return translated;
   return status.replace(/_/g, " ");
 }
 
@@ -466,18 +470,18 @@ export function formatDurationWords(ms: number | null) {
   if (ms === null || !Number.isFinite(ms) || ms <= 0) return null;
   const totalSeconds = Math.max(1, Math.round(ms / 1000));
   if (totalSeconds < 60) {
-    return `${totalSeconds} second${totalSeconds === 1 ? "" : "s"}`;
+    return i18n.t("paperclip.runDuration.seconds", { count: totalSeconds });
   }
   const totalMinutes = Math.round(totalSeconds / 60);
   if (totalMinutes < 60) {
-    return `${totalMinutes} minute${totalMinutes === 1 ? "" : "s"}`;
+    return i18n.t("paperclip.runDuration.minutes", { count: totalMinutes });
   }
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  if (minutes === 0) {
-    return `${hours} hour${hours === 1 ? "" : "s"}`;
-  }
-  return `${hours} hour${hours === 1 ? "" : "s"} ${minutes} minute${minutes === 1 ? "" : "s"}`;
+  const hoursText = i18n.t("paperclip.runDuration.hours", { count: hours });
+  if (minutes === 0) return hoursText;
+  const minutesText = i18n.t("paperclip.runDuration.minutes", { count: minutes });
+  return `${hoursText} ${minutesText}`;
 }
 
 function runDurationLabel(run: {
@@ -494,23 +498,33 @@ function runDurationLabel(run: {
   const stopReason = typeof run.resultJson?.stopReason === "string" ? run.resultJson.stopReason : null;
   switch (run.status) {
     case "succeeded":
-      return durationText ? `Worked for ${durationText}` : "Finished work";
+      return durationText
+        ? i18n.t("paperclip.runLabels.workedFor", { duration: durationText })
+        : i18n.t("paperclip.runLabels.finishedWork");
     case "failed":
     case "error":
-      return durationText ? `Failed after ${durationText}` : "Run failed";
+      return durationText
+        ? i18n.t("paperclip.runLabels.failedAfter", { duration: durationText })
+        : i18n.t("paperclip.runLabels.runFailed");
     case "timed_out":
-      return durationText ? `Timed out after ${durationText}` : "Run timed out";
+      return durationText
+        ? i18n.t("paperclip.runLabels.timedOutAfter", { duration: durationText })
+        : i18n.t("paperclip.runLabels.runTimedOut");
     case "cancelled":
       if (stopReason === "paused") {
-        return durationText ? `Paused by board after ${durationText}` : "Paused by board";
+        return durationText
+          ? i18n.t("paperclip.runLabels.pausedByBoardAfter", { duration: durationText })
+          : i18n.t("paperclip.runLabels.pausedByBoard");
       }
-      return durationText ? `Cancelled after ${durationText}` : "Run cancelled";
+      return durationText
+        ? i18n.t("paperclip.runLabels.cancelledAfter", { duration: durationText })
+        : i18n.t("paperclip.runLabels.runCancelled");
     case "queued":
-      return "Queued";
+      return i18n.t("paperclip.runLabels.queued");
     case "running":
-      return "Working...";
+      return i18n.t("paperclip.runLabels.working");
     default:
-      return formatStatusLabel(run.status);
+      return translateRunStatusLabel(run.status);
   }
 }
 
@@ -520,7 +534,7 @@ function createHistoricalRunMessage(run: IssueChatLinkedRun, agentMap?: Map<stri
     id: `run:${run.runId}`,
     role: "system",
     createdAt: toDate(runTimestamp(run)),
-    content: [{ type: "text", text: `${agentName} run ${run.runId.slice(0, 8)} ${formatStatusLabel(run.status)}` }],
+    content: [{ type: "text", text: `${agentName} run ${run.runId.slice(0, 8)} ${translateRunStatusLabel(run.status)}` }],
     metadata: {
       custom: {
         kind: "run",
@@ -545,7 +559,7 @@ function createHistoricalTranscriptMessage(args: {
   const agentName = run.agentName ?? agentMap?.get(run.agentId)?.name ?? run.agentId.slice(0, 8);
   const compactedTranscript = compactIssueChatTranscript(transcript);
   const { parts, notices, segments } = buildAssistantPartsFromTranscript(compactedTranscript);
-  const waitingText = hasOutput ? "" : "Run finished";
+  const waitingText = hasOutput ? "" : i18n.t("paperclip.runLabels.runFinished");
   const content = parts.length > 0
     ? parts
     : waitingText
@@ -742,10 +756,10 @@ function createLiveRunMessage(args: {
   const { parts, notices, segments } = buildAssistantPartsFromTranscript(compactedTranscript);
   const waitingText =
     run.status === "queued"
-      ? "Queued..."
+      ? i18n.t("paperclip.runLabels.queuedEllipsis")
       : parts.length > 0
         ? ""
-        : "Working...";
+        : i18n.t("paperclip.runLabels.workingEllipsis");
 
   const content = parts;
 

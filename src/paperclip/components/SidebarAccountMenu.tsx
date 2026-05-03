@@ -120,10 +120,15 @@ export function SidebarAccountMenu({
     },
   });
 
-  const displayName = session?.user.name?.trim() || "Board";
+  const displayName = session?.user.name?.trim() || t("paperclip.accountMenu.defaultDisplayName");
   const secondaryLabel =
-    session?.user.email?.trim() || (deploymentMode === "authenticated" ? "Signed in" : "Local workspace board");
-  const accountBadge = deploymentMode === "authenticated" ? "Account" : "Local";
+    session?.user.email?.trim()
+    ?? (deploymentMode === "authenticated"
+      ? t("paperclip.accountMenu.secondarySignedIn")
+      : t("paperclip.accountMenu.secondaryLocalWorkspace"));
+  const accountBadge = deploymentMode === "authenticated"
+    ? t("paperclip.accountMenu.accountBadgeAccount")
+    : t("paperclip.accountMenu.accountBadgeLocal");
   const initials = deriveInitials(displayName);
   /** Canonical self profile URL; server resolves `me` to the signed-in board user (see user-profiles route). */
   const profileHref = "/u/me";
@@ -140,7 +145,7 @@ export function SidebarAccountMenu({
           <button
             type="button"
             className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-foreground/80 transition-colors hover:bg-accent/50 hover:text-foreground"
-            aria-label="Open account menu"
+            aria-label={t("paperclip.accountMenu.openAccountMenuAria")}
           >
             <Avatar size="sm">
               {session?.user.image ? <AvatarImage src={session.user.image} alt={displayName} /> : null}
@@ -155,8 +160,8 @@ export function SidebarAccountMenu({
           sideOffset={10}
           className="w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-t-2xl rounded-b-none border-border p-0 shadow-2xl"
         >
-          <div className="h-24 bg-[linear-gradient(135deg,hsl(var(--primary))_0%,hsl(var(--accent))_55%,hsl(var(--muted))_100%)]" />
-          <div className="-mt-8 px-4 pb-4">
+          <div className="h-14 bg-[linear-gradient(135deg,hsl(var(--primary))_0%,hsl(var(--accent))_55%,hsl(var(--muted))_100%)]" />
+          <div className="-mt-6 px-4 pb-4">
             <div className="flex items-start gap-3">
               <div className="rounded-2xl border-4 border-popover bg-popover p-0.5 shadow-sm">
                 <Avatar size="lg">
@@ -173,29 +178,31 @@ export function SidebarAccountMenu({
                 </div>
                 <p className="truncate text-sm text-muted-foreground">{secondaryLabel}</p>
                 {version ? (
-                  <p className="mt-1 text-xs text-muted-foreground">Paperclip v{version}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("paperclip.accountMenu.versionLine", { version })}
+                  </p>
                 ) : null}
               </div>
             </div>
 
             <div className="mt-4 space-y-1">
               <MenuAction
-                label="View profile"
-                description="Open your activity, task, and usage ledger."
+                label={t("paperclip.accountMenu.viewProfile")}
+                description={t("paperclip.accountMenu.viewProfileDesc")}
                 icon={UserRound}
                 href={profileHref}
                 onClick={closeNavigationChrome}
               />
               <MenuAction
-                label="Edit profile"
-                description="Update your display name and avatar."
+                label={t("paperclip.accountMenu.editProfile")}
+                description={t("paperclip.accountMenu.editProfileDesc")}
                 icon={UserRoundPen}
                 href={PROFILE_SETTINGS_PATH}
                 onClick={closeNavigationChrome}
               />
               <MenuAction
-                label="Instance settings"
-                description="Jump back to the last settings page you opened."
+                label={t("paperclip.accountMenu.instanceSettings")}
+                description={t("paperclip.accountMenu.instanceSettingsDesc")}
                 icon={Settings}
                 href={instanceSettingsTarget}
                 onClick={closeNavigationChrome}
@@ -210,8 +217,8 @@ export function SidebarAccountMenu({
                 }}
               />
               <MenuAction
-                label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                description="Toggle the app appearance."
+                label={theme === "dark" ? t("paperclip.accountMenu.switchToLight") : t("paperclip.accountMenu.switchToDark")}
+                description={t("paperclip.accountMenu.themeDesc")}
                 icon={theme === "dark" ? Sun : Moon}
                 onClick={() => {
                   toggleTheme();
@@ -233,10 +240,10 @@ export function SidebarAccountMenu({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium text-foreground">
-                      {signOutMutation.isPending ? "Signing out..." : "Sign out"}
+                      {signOutMutation.isPending ? t("paperclip.accountMenu.signingOut") : t("paperclip.accountMenu.signOut")}
                     </span>
                     <span className="block text-xs text-muted-foreground">
-                      End this browser session.
+                      {t("paperclip.accountMenu.signOutDesc")}
                     </span>
                   </span>
                 </button>

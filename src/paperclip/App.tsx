@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Navigate, Outlet, Route, Routes, useLocation, useParams } from "@/lib/router";
 import { Button } from "@/components/ui/button";
 import { Layout } from "./components/Layout";
@@ -145,6 +146,7 @@ function LegacySettingsRedirect() {
 }
 
 function OnboardingRoutePage() {
+  const { t } = useTranslation();
   const { companies } = useCompany();
   const { openOnboarding } = useDialogActions();
   const { companyPrefix } = useParams<{ companyPrefix?: string }>();
@@ -153,15 +155,15 @@ function OnboardingRoutePage() {
     : null;
 
   const title = matchedCompany
-    ? `Add another agent to ${matchedCompany.name}`
+    ? t("paperclip.onboardingWizard.routeTitleAddAgent", { name: matchedCompany.name })
     : companies.length > 0
-      ? "Create another company"
-      : "Create your first company";
+      ? t("paperclip.onboardingWizard.routeTitleAnotherCompany")
+      : t("paperclip.onboardingWizard.routeTitleFirstCompany");
   const description = matchedCompany
-    ? "Run onboarding again to add an agent and a starter task for this company."
+    ? t("paperclip.onboardingWizard.routeDescMatchedCompany")
     : companies.length > 0
-      ? "Run onboarding again to create another company and seed its first agent."
-      : "Get started by creating a company and your first agent.";
+      ? t("paperclip.onboardingWizard.routeDescAnotherCompany")
+      : t("paperclip.onboardingWizard.routeDescFirst");
 
   return (
     <div className="mx-auto max-w-xl py-10">
@@ -176,7 +178,7 @@ function OnboardingRoutePage() {
                 : openOnboarding()
             }
           >
-            {matchedCompany ? "Add Agent" : "Start Onboarding"}
+            {matchedCompany ? t("paperclip.onboardingWizard.routeButtonAddAgent") : t("paperclip.onboardingWizard.routeButtonStart")}
           </Button>
         </div>
       </div>

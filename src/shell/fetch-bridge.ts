@@ -37,7 +37,7 @@ function paperclipResultToResponse(r: PaperclipFetchResult): Response {
   if (!r.ok) {
     return new Response(JSON.stringify({ error: r.error }), {
       status: 503,
-      statusText: 'Paperclip proxy error',
+      statusText: 'OneEarning proxy error',
       headers: { 'Content-Type': 'application/json' },
     });
   }

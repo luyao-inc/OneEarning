@@ -27,6 +27,7 @@ import {
   type Ref,
   type ReactNode,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "@/lib/router";
 import type {
   Agent,
@@ -44,6 +45,7 @@ import {
   buildIssueChatMessages,
   formatDurationWords,
   stabilizeThreadMessages,
+  translateRunStatusLabel,
   type IssueChatComment,
   type IssueChatLinkedRun,
   type StableThreadMessageCacheEntry,
@@ -658,15 +660,6 @@ export function resolveIssueChatHumanAuthor(args: {
     authorName: resolvedAuthorName,
     avatarUrl: profile?.image ?? null,
   };
-}
-
-function formatRunStatusLabel(status: string) {
-  switch (status) {
-    case "timed_out":
-      return "timed out";
-    default:
-      return status.replace(/_/g, " ");
-  }
 }
 
 function runStatusClass(status: string) {
@@ -1341,23 +1334,26 @@ function IssueChatAssistantMessage({
   isRunActive: boolean;
   isStoppingRun: boolean;
 }) {
+  const { t } = useTranslation();
   const {
     feedbackDataSharingPreference,
     feedbackTermsUrl,
     onVote,
     agentMap,
     onStopRun,
-    stopRunLabel = "Stop run",
-    stoppingRunLabel = "Stopping...",
+    stopRunLabel: stopRunLabelFromCtx,
+    stoppingRunLabel: stoppingRunLabelFromCtx,
     stopRunVariant = "stop",
   } = useContext(IssueChatCtx);
+  const stopRunLabel = stopRunLabelFromCtx ?? t("paperclip.issueChat.stopRun");
+  const stoppingRunLabel = stoppingRunLabelFromCtx ?? t("paperclip.issueChat.stoppingRun");
   const custom = message.metadata.custom as Record<string, unknown>;
   const anchorId = typeof custom.anchorId === "string" ? custom.anchorId : undefined;
   const authorName = typeof custom.authorName === "string"
     ? custom.authorName
     : typeof custom.runAgentName === "string"
       ? custom.runAgentName
-      : "Agent";
+      : t("paperclip.issueChat.agentFallback");
   const authorAgentId = typeof custom.authorAgentId === "string" ? custom.authorAgentId : null;
   const runId = typeof custom.runId === "string" ? custom.runId : null;
   const runAgentId = typeof custom.runAgentId === "string" ? custom.runAgentId : null;
@@ -1441,13 +1437,13 @@ function IssueChatAssistantMessage({
               <span className="text-sm font-medium text-foreground">{authorName}</span>
               {followUpRequested ? (
                 <Badge variant="outline" className="text-[10px] uppercase tracking-[0.14em]">
-                  Follow-up
+                  {t("paperclip.issueChat.followUp")}
                 </Badge>
               ) : null}
               {isRunning ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/40 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-200">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Running
+                  {t("paperclip.issueChat.runningBadge")}
                 </span>
               ) : null}
             </div>
@@ -1740,7 +1736,7 @@ function IssueChatFeedbackButtons({
           <DialogHeader>
             <DialogTitle>Save your feedback sharing preference</DialogTitle>
             <DialogDescription>
-              Choose whether voted AI outputs can be shared with Paperclip Labs. This
+              Choose whether voted AI outputs can be shared with OneEarning Labs. This
               answer becomes the default for future thumbs up and thumbs down votes.
             </DialogDescription>
           </DialogHeader>
@@ -2065,7 +2061,7 @@ function IssueChatSystemMessage({ message }: { message: ThreadMessage }) {
                 {runId.slice(0, 8)}
               </Link>
               <span className={cn("font-medium", runStatusClass(runStatus))}>
-                {formatRunStatusLabel(runStatus)}
+                {translateRunStatusLabel(runStatus)}
               </span>
               <a
                 href={anchorId ? `#${anchorId}` : undefined}
@@ -2637,6 +2633,7 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
   composerHint = null,
   issueStatus,
 }, forwardedRef) {
+  const { t } = useTranslation();
   const api = useAui();
   const toastActions = useOptionalToastActions();
   const [body, setBody] = useState("");
@@ -2722,8 +2719,8 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
       && !unassignedConfirmed
     ) {
       toastActions?.pushToast({
-        title: "No assignee selected",
-        body: "Pick an assignee or click Send again to post without one.",
+        title: t("paperclip.toasts.issueChat.noAssigneeTitle"),
+        body: t("paperclip.toasts.issueChat.noAssigneeBody"),
         tone: "warn",
         dedupeKey: `issue-chat-no-assignee:${draftKey ?? ""}`,
       });
@@ -3058,7 +3055,7 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
         ) : null}
 
         <Button size="sm" disabled={!canSubmit} onClick={() => void handleSubmit()}>
-          {submitting ? "Posting..." : "Send"}
+          {submitting ? t("paperclip.issueChat.composerPosting") : t("paperclip.issueChat.composerSend")}
         </Button>
       </div>
     </div>
@@ -3121,6 +3118,7 @@ export function IssueChatThread({
   composerRef,
   onRefreshLatestComments,
 }: IssueChatThreadProps) {
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const lastScrolledHashRef = useRef<string | null>(null);
   const virtualizedThreadRef = useRef<VirtualizedIssueChatThreadListHandle | null>(null);
@@ -3224,6 +3222,7 @@ export function IssueChatThread({
       agentMap,
       currentUserId,
       userLabelMap,
+      i18n.language,
     ],
   );
   const stableMessagesRef = useRef<readonly ThreadMessage[]>([]);
@@ -3587,8 +3586,8 @@ export function IssueChatThread({
       userProfileMap,
       onVote: stableOnVote,
       onStopRun: stableOnStopRun,
-      stopRunLabel,
-      stoppingRunLabel,
+      stopRunLabel: stopRunLabel ?? t("paperclip.issueChat.stopRun"),
+      stoppingRunLabel: stoppingRunLabel ?? t("paperclip.issueChat.stoppingRun"),
       stopRunVariant,
       onInterruptQueued: stableOnInterruptQueued,
       onCancelQueued: stableOnCancelQueued,
@@ -3610,6 +3609,7 @@ export function IssueChatThread({
       stopRunLabel,
       stoppingRunLabel,
       stopRunVariant,
+      t,
       stableOnInterruptQueued,
       stableOnCancelQueued,
       stableOnImageClick,
@@ -3623,8 +3623,8 @@ export function IssueChatThread({
   const resolvedShowJumpToLatest = showJumpToLatest ?? variant === "full";
   const resolvedEmptyMessage = emptyMessage
     ?? (variant === "embedded"
-      ? "No run output yet."
-      : "This issue conversation is empty. Start with a message below.");
+      ? t("paperclip.issueChat.emptyEmbedded")
+      : t("paperclip.issueChat.emptyFull"));
   const previousErrorBoundaryMessagesRef = useRef<readonly ThreadMessage[] | null>(null);
   const errorBoundaryResetVersionRef = useRef(0);
   if (previousErrorBoundaryMessagesRef.current !== messages) {
@@ -3644,7 +3644,7 @@ export function IssueChatThread({
               onClick={handleJumpToLatest}
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
-              Jump to latest
+              {t("paperclip.issueChat.jumpToLatest")}
             </button>
           </div>
         ) : null}

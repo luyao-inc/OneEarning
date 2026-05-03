@@ -355,7 +355,7 @@ export function Layout() {
               <div
                 className={cn(
                   "overflow-hidden transition-[width] duration-100 ease-out",
-                  sidebarOpen ? "w-60" : "w-0"
+                  sidebarOpen ? "w-60" : "w-0",
                 )}
               >
                 {isInstanceSettingsRoute ? (

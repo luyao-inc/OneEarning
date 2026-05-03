@@ -3,7 +3,8 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import i18n from "@shell/i18n";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { CompanySettingsSidebar } from "./CompanySettingsSidebar";
 
 const sidebarNavItemMock = vi.hoisted(() => vi.fn());
@@ -63,6 +64,10 @@ vi.mock("@/api/sidebarBadges", () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+
+beforeAll(async () => {
+  await i18n.changeLanguage("en");
+});
 
 async function flushReact() {
   await act(async () => {

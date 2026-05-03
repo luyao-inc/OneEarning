@@ -1,4 +1,5 @@
 import { memo, useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent, type DragEvent, type RefObject } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { pickTextColorForSolidBg } from "@/lib/color-contrast";
 import { useDialog } from "../context/DialogContext";
@@ -104,31 +105,24 @@ import {
 
 const STAGED_FILE_ACCEPT = "image/*,application/pdf,text/plain,text/markdown,application/json,text/csv,text/html,.md,.markdown";
 
-const ISSUE_THINKING_EFFORT_OPTIONS = {
-  claude_local: [
-    { value: "", label: "Default" },
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-  ],
-  codex_local: [
-    { value: "", label: "Default" },
-    { value: "minimal", label: "Minimal" },
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-    { value: "xhigh", label: "X-High" },
-  ],
-  opencode_local: [
-    { value: "", label: "Default" },
-    { value: "minimal", label: "Minimal" },
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-    { value: "xhigh", label: "X-High" },
-    { value: "max", label: "Max" },
-  ],
+const THINKING_EFFORT_VALUES_BY_ADAPTER = {
+  claude_local: ["", "low", "medium", "high"],
+  codex_local: ["", "minimal", "low", "medium", "high", "xhigh"],
+  opencode_local: ["", "minimal", "low", "medium", "high", "xhigh", "max"],
 } as const;
+
+function thinkingEffortI18nKey(value: string): string {
+  const map: Record<string, string> = {
+    "": "thinkingDefault",
+    minimal: "thinkingMinimal",
+    low: "thinkingLow",
+    medium: "thinkingMedium",
+    high: "thinkingHigh",
+    xhigh: "thinkingXHigh",
+    max: "thinkingMax",
+  };
+  return map[value] ?? "thinkingDefault";
+}
 
 function loadDraft(): IssueDraft | null {
   try {
@@ -201,26 +195,20 @@ function formatFileSize(file: File) {
   return `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const statuses = [
-  { value: "backlog", label: "Backlog", color: issueStatusText.backlog ?? issueStatusTextDefault },
-  { value: "todo", label: "Todo", color: issueStatusText.todo ?? issueStatusTextDefault },
-  { value: "in_progress", label: "In Progress", color: issueStatusText.in_progress ?? issueStatusTextDefault },
-  { value: "in_review", label: "In Review", color: issueStatusText.in_review ?? issueStatusTextDefault },
-  { value: "done", label: "Done", color: issueStatusText.done ?? issueStatusTextDefault },
+const ISSUE_STATUS_META = [
+  { value: "backlog", color: issueStatusText.backlog ?? issueStatusTextDefault },
+  { value: "todo", color: issueStatusText.todo ?? issueStatusTextDefault },
+  { value: "in_progress", color: issueStatusText.in_progress ?? issueStatusTextDefault },
+  { value: "in_review", color: issueStatusText.in_review ?? issueStatusTextDefault },
+  { value: "done", color: issueStatusText.done ?? issueStatusTextDefault },
 ];
 
-const priorities = [
-  { value: "critical", label: "Critical", icon: AlertTriangle, color: priorityColor.critical ?? priorityColorDefault },
-  { value: "high", label: "High", icon: ArrowUp, color: priorityColor.high ?? priorityColorDefault },
-  { value: "medium", label: "Medium", icon: Minus, color: priorityColor.medium ?? priorityColorDefault },
-  { value: "low", label: "Low", icon: ArrowDown, color: priorityColor.low ?? priorityColorDefault },
+const ISSUE_PRIORITY_META = [
+  { value: "critical", icon: AlertTriangle, color: priorityColor.critical ?? priorityColorDefault },
+  { value: "high", icon: ArrowUp, color: priorityColor.high ?? priorityColorDefault },
+  { value: "medium", icon: Minus, color: priorityColor.medium ?? priorityColorDefault },
+  { value: "low", icon: ArrowDown, color: priorityColor.low ?? priorityColorDefault },
 ];
-
-const EXECUTION_WORKSPACE_MODES = [
-  { value: "shared_workspace", label: "Project default" },
-  { value: "isolated_workspace", label: "New isolated workspace" },
-  { value: "reuse_existing", label: "Reuse existing workspace" },
-] as const;
 
 function defaultProjectWorkspaceIdForProject(project: { workspaces?: Array<{ id: string; isPrimary: boolean }>; executionWorkspacePolicy?: { defaultProjectWorkspaceId?: string | null } | null } | null | undefined) {
   if (!project) return "";
@@ -250,6 +238,7 @@ const IssueTitleTextarea = memo(function IssueTitleTextarea({
   descriptionEditorRef,
   assigneeSelectorRef,
   projectSelectorRef,
+  titlePlaceholder,
   onChange,
 }: {
   value: string;
@@ -259,6 +248,7 @@ const IssueTitleTextarea = memo(function IssueTitleTextarea({
   descriptionEditorRef: RefObject<MarkdownEditorRef | null>;
   assigneeSelectorRef: RefObject<HTMLButtonElement | null>;
   projectSelectorRef: RefObject<HTMLButtonElement | null>;
+  titlePlaceholder: string;
   onChange: (value: string) => void;
 }) {
   const [draftValue, setDraftValue] = useState(value);
@@ -270,7 +260,7 @@ const IssueTitleTextarea = memo(function IssueTitleTextarea({
   return (
     <textarea
       className="w-full text-lg font-semibold bg-transparent outline-none resize-none overflow-hidden placeholder:text-muted-foreground/50"
-      placeholder="Issue title"
+      placeholder={titlePlaceholder}
       rows={1}
       value={draftValue}
       onChange={(e) => {
@@ -315,6 +305,7 @@ const IssueDescriptionEditor = memo(function IssueDescriptionEditor({
   mentions,
   descriptionEditorRef,
   imageUploadHandler,
+  descriptionPlaceholder,
   onChange,
 }: {
   value: string;
@@ -322,6 +313,7 @@ const IssueDescriptionEditor = memo(function IssueDescriptionEditor({
   mentions: MentionOption[];
   descriptionEditorRef: RefObject<MarkdownEditorRef | null>;
   imageUploadHandler: (file: File) => Promise<string>;
+  descriptionPlaceholder: string;
   onChange: (value: string) => void;
 }) {
   const [draftValue, setDraftValue] = useState(value);
@@ -338,7 +330,7 @@ const IssueDescriptionEditor = memo(function IssueDescriptionEditor({
         setDraftValue(nextValue);
         onChange(nextValue);
       }}
-      placeholder="Add description..."
+      placeholder={descriptionPlaceholder}
       bordered={false}
       mentions={mentions}
       contentClassName={cn("text-sm text-muted-foreground pb-12", expanded ? "min-h-[220px]" : "min-h-[120px]")}
@@ -358,6 +350,23 @@ function issueExecutionWorkspaceModeForExistingWorkspace(mode: string | null | u
 }
 
 export function NewIssueDialog() {
+  const { t } = useTranslation();
+  const statuses = useMemo(
+    () => ISSUE_STATUS_META.map((s) => ({ ...s, label: t(`paperclip.issueStatus.${s.value}`) })),
+    [t],
+  );
+  const priorities = useMemo(
+    () => ISSUE_PRIORITY_META.map((p) => ({ ...p, label: t(`paperclip.issuePriority.${p.value}`) })),
+    [t],
+  );
+  const executionWorkspaceModes = useMemo(
+    () => [
+      { value: "shared_workspace", label: t("paperclip.newIssueDialog.workspaceProjectDefault") },
+      { value: "isolated_workspace", label: t("paperclip.newIssueDialog.workspaceIsolated") },
+      { value: "reuse_existing", label: t("paperclip.newIssueDialog.workspaceReuse") },
+    ],
+    [t],
+  );
   const { newIssueOpen, newIssueDefaults, closeNewIssue } = useDialog();
   const { companies, selectedCompanyId, selectedCompany } = useCompany();
   const queryClient = useQueryClient();
@@ -546,11 +555,11 @@ export function NewIssueDialog() {
         const prefix = (companies.find((company) => company.id === companyId)?.issuePrefix ?? "").trim();
         const issueRef = issue.identifier ?? issue.id;
         pushToast({
-          title: `Created ${issueRef} with upload warnings`,
-          body: `${failures.length} staged ${failures.length === 1 ? "file" : "files"} could not be added.`,
+          title: t("paperclip.toasts.newIssue.createdWithWarnings", { issueRef }),
+          body: t("paperclip.toasts.newIssue.uploadWarningsBody", { count: failures.length }),
           tone: "warn",
           action: prefix
-            ? { label: `Open ${issueRef}`, href: `/${prefix}/issues/${issueRef}` }
+            ? { label: t("paperclip.toasts.newIssue.openIssue", { issueRef }), href: `/${prefix}/issues/${issueRef}` }
             : undefined,
         });
       }
@@ -789,11 +798,11 @@ export function NewIssueDialog() {
 
     const validThinkingValues =
       assigneeAdapterType === "codex_local"
-        ? ISSUE_THINKING_EFFORT_OPTIONS.codex_local
+        ? THINKING_EFFORT_VALUES_BY_ADAPTER.codex_local
         : assigneeAdapterType === "opencode_local"
-          ? ISSUE_THINKING_EFFORT_OPTIONS.opencode_local
-          : ISSUE_THINKING_EFFORT_OPTIONS.claude_local;
-    if (!validThinkingValues.some((option) => option.value === assigneeThinkingEffort)) {
+          ? THINKING_EFFORT_VALUES_BY_ADAPTER.opencode_local
+          : THINKING_EFFORT_VALUES_BY_ADAPTER.claude_local;
+    if (!validThinkingValues.some((value) => value === assigneeThinkingEffort)) {
       setAssigneeThinkingEffort("");
     }
   }, [
@@ -1016,20 +1025,25 @@ export function NewIssueDialog() {
     && currentProjectSupportsExecutionWorkspace
     && Boolean(parentExecutionWorkspaceId)
     && !isUsingParentExecutionWorkspace;
-  const assigneeOptionsTitle =
-    assigneeAdapterType === "claude_local"
-      ? "Claude options"
-      : assigneeAdapterType === "codex_local"
-        ? "Codex options"
+  const assigneeOptionsTitle = useMemo(() => {
+    if (assigneeAdapterType === "claude_local") return t("paperclip.newIssueDialog.agentOptionsClaude");
+    if (assigneeAdapterType === "codex_local") return t("paperclip.newIssueDialog.agentOptionsCodex");
+    if (assigneeAdapterType === "opencode_local") return t("paperclip.newIssueDialog.agentOptionsOpenCode");
+    return t("paperclip.newIssueDialog.agentOptionsGeneric");
+  }, [assigneeAdapterType, t]);
+
+  const thinkingEffortOptions = useMemo(() => {
+    const values =
+      assigneeAdapterType === "codex_local"
+        ? THINKING_EFFORT_VALUES_BY_ADAPTER.codex_local
         : assigneeAdapterType === "opencode_local"
-          ? "OpenCode options"
-        : "Agent options";
-  const thinkingEffortOptions =
-    assigneeAdapterType === "codex_local"
-      ? ISSUE_THINKING_EFFORT_OPTIONS.codex_local
-      : assigneeAdapterType === "opencode_local"
-        ? ISSUE_THINKING_EFFORT_OPTIONS.opencode_local
-      : ISSUE_THINKING_EFFORT_OPTIONS.claude_local;
+          ? THINKING_EFFORT_VALUES_BY_ADAPTER.opencode_local
+          : THINKING_EFFORT_VALUES_BY_ADAPTER.claude_local;
+    return values.map((value) => ({
+      value,
+      label: t(`paperclip.newIssueDialog.${thinkingEffortI18nKey(value)}`),
+    }));
+  }, [assigneeAdapterType, t]);
   const recentAssigneeIds = useMemo(() => getRecentAssigneeIds(), [newIssueOpen]);
   const recentAssigneeOptionIds = useMemo(
     () => recentAssigneeIds.map((id) => assigneeValueFromSelection({ assigneeAgentId: id })),
@@ -1063,8 +1077,13 @@ export function NewIssueDialog() {
   const savedDraft = useMemo(() => newIssueOpen ? loadDraft() : null, [newIssueOpen]);
   const hasSavedDraft = Boolean(savedDraft?.title.trim() || savedDraft?.description.trim());
   const canDiscardDraft = hasDraft || hasSavedDraft;
-  const createIssueErrorMessage =
-    createIssue.error instanceof Error ? createIssue.error.message : "Failed to create issue. Try again.";
+  const createIssueErrorMessage = useMemo(
+    () =>
+      createIssue.error instanceof Error
+        ? createIssue.error.message
+        : t("paperclip.newIssueDialog.errorCreateFailed"),
+    [createIssue.error, t],
+  );
   const stagedDocuments = stagedFiles.filter((file) => file.kind === "document");
   const stagedAttachments = stagedFiles.filter((file) => file.kind === "attachment");
 
@@ -1210,7 +1229,11 @@ export function NewIssueDialog() {
               </PopoverContent>
             </Popover>
             <span className="text-muted-foreground/60">&rsaquo;</span>
-            <span>{isSubIssueMode ? "New sub-issue" : "New issue"}</span>
+            <span>
+              {isSubIssueMode
+                ? t("paperclip.newIssueDialog.newSubIssue")
+                : t("paperclip.newIssueDialog.newIssue")}
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <Button
@@ -1245,6 +1268,7 @@ export function NewIssueDialog() {
               descriptionEditorRef={descriptionEditorRef}
               assigneeSelectorRef={assigneeSelectorRef}
               projectSelectorRef={projectSelectorRef}
+              titlePlaceholder={t("paperclip.newIssueDialog.issueTitlePlaceholder")}
               onChange={handleTitleChange}
             />
           </div>
@@ -1252,17 +1276,17 @@ export function NewIssueDialog() {
           <div className="px-4 pb-2">
             <div className="overflow-x-auto overscroll-x-contain">
               <div className="inline-flex items-center gap-2 text-sm text-muted-foreground flex-wrap sm:flex-nowrap sm:min-w-max">
-              <span className="w-6 shrink-0 text-center">For</span>
+              <span className="w-6 shrink-0 text-center">{t("paperclip.newIssueDialog.for")}</span>
               <InlineEntitySelector
                 ref={assigneeSelectorRef}
                 value={assigneeValue}
                 options={assigneeOptions}
                 recentOptionIds={recentAssigneeOptionIds}
-                placeholder="Assignee"
+                placeholder={t("paperclip.newIssueDialog.assigneePlaceholder")}
                 disablePortal
-                noneLabel="No assignee"
-                searchPlaceholder="Search assignees..."
-                emptyMessage="No assignees found."
+                noneLabel={t("paperclip.newIssueDialog.assigneeEmpty")}
+                searchPlaceholder={t("paperclip.newIssueDialog.searchAssignees")}
+                emptyMessage={t("paperclip.newIssueDialog.noAssigneesFound")}
                 onChange={(value) => {
                   const nextAssignee = parseAssigneeValue(value);
                   if (nextAssignee.assigneeAgentId) {
@@ -1288,7 +1312,7 @@ export function NewIssueDialog() {
                       <span className="truncate">{option.label}</span>
                     )
                   ) : (
-                    <span className="text-muted-foreground">Assignee</span>
+                    <span className="text-muted-foreground">{t("paperclip.newIssueDialog.assigneeLabel")}</span>
                   )
                 }
                 renderOption={(option) => {
@@ -1304,17 +1328,17 @@ export function NewIssueDialog() {
                   );
                 }}
               />
-              <span>in</span>
+              <span>{t("paperclip.newIssueDialog.in")}</span>
               <InlineEntitySelector
                 ref={projectSelectorRef}
                 value={projectId}
                 options={projectOptions}
                 recentOptionIds={recentProjectIds}
-                placeholder="Project"
+                placeholder={t("paperclip.newIssueDialog.projectPlaceholder")}
                 disablePortal
-                noneLabel="No project"
-                searchPlaceholder="Search projects..."
-                emptyMessage="No projects found."
+                noneLabel={t("paperclip.newIssueDialog.projectEmpty")}
+                searchPlaceholder={t("paperclip.newIssueDialog.searchProjects")}
+                emptyMessage={t("paperclip.newIssueDialog.noProjectsFound")}
                 onChange={handleProjectChange}
                 onConfirm={() => {
                   descriptionEditorRef.current?.focus();
@@ -1329,7 +1353,7 @@ export function NewIssueDialog() {
                       <span className="truncate">{option.label}</span>
                     </>
                   ) : (
-                    <span className="text-muted-foreground">Project</span>
+                    <span className="text-muted-foreground">{t("paperclip.newIssueDialog.projectLabel")}</span>
                   )
                 }
                 renderOption={(option) => {
@@ -1353,7 +1377,7 @@ export function NewIssueDialog() {
                   <button
                     type="button"
                     className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-accent/50 transition-colors"
-                    title="Add reviewer or approver"
+                    title={t("paperclip.newIssueDialog.addParticipantMenuTitle")}
                   >
                     <MoreHorizontal className="h-4 w-4" />
                   </button>
@@ -1371,7 +1395,7 @@ export function NewIssueDialog() {
                     }}
                   >
                     <Eye className="h-3 w-3" />
-                    Reviewer
+                    {t("paperclip.newIssueDialog.reviewerMenu")}
                   </button>
                   <button
                     className={cn(
@@ -1385,7 +1409,7 @@ export function NewIssueDialog() {
                     }}
                   >
                     <ShieldCheck className="h-3 w-3" />
-                    Approver
+                    {t("paperclip.newIssueDialog.approverMenu")}
                   </button>
                 </PopoverContent>
               </Popover>
@@ -1400,11 +1424,11 @@ export function NewIssueDialog() {
                 value={reviewerValue}
                 options={assigneeOptions}
                 recentOptionIds={recentAssigneeOptionIds}
-                placeholder="Reviewer"
+                placeholder={t("paperclip.newIssueDialog.reviewerPlaceholder")}
                 disablePortal
-                noneLabel="No reviewer"
-                searchPlaceholder="Search reviewers..."
-                emptyMessage="No reviewers found."
+                noneLabel={t("paperclip.newIssueDialog.reviewerEmpty")}
+                searchPlaceholder={t("paperclip.newIssueDialog.searchReviewers")}
+                emptyMessage={t("paperclip.newIssueDialog.noReviewersFound")}
                 onChange={setReviewerValue}
                 renderTriggerValue={(option) =>
                   option ? (
@@ -1418,7 +1442,7 @@ export function NewIssueDialog() {
                       <span className="truncate">{option.label}</span>
                     </>
                   ) : (
-                    <span className="text-muted-foreground">Reviewer</span>
+                    <span className="text-muted-foreground">{t("paperclip.newIssueDialog.reviewerMenu")}</span>
                   )
                 }
                 renderOption={(option) => {
@@ -1445,11 +1469,11 @@ export function NewIssueDialog() {
                 value={approverValue}
                 options={assigneeOptions}
                 recentOptionIds={recentAssigneeOptionIds}
-                placeholder="Approver"
+                placeholder={t("paperclip.newIssueDialog.approverPlaceholder")}
                 disablePortal
-                noneLabel="No approver"
-                searchPlaceholder="Search approvers..."
-                emptyMessage="No approvers found."
+                noneLabel={t("paperclip.newIssueDialog.approverEmpty")}
+                searchPlaceholder={t("paperclip.newIssueDialog.searchApprovers")}
+                emptyMessage={t("paperclip.newIssueDialog.noApproversFound")}
                 onChange={setApproverValue}
                 renderTriggerValue={(option) =>
                   option ? (
@@ -1463,7 +1487,7 @@ export function NewIssueDialog() {
                       <span className="truncate">{option.label}</span>
                     </>
                   ) : (
-                    <span className="text-muted-foreground">Approver</span>
+                    <span className="text-muted-foreground">{t("paperclip.newIssueDialog.approverMenu")}</span>
                   )
                 }
                 renderOption={(option) => {
@@ -1488,7 +1512,7 @@ export function NewIssueDialog() {
             <div className="max-w-full rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <ListTree className="h-3.5 w-3.5 shrink-0" />
-                <span className="shrink-0">Sub-issue of</span>
+                <span className="shrink-0">{t("paperclip.newIssueDialog.subIssueOf")}</span>
                 <span className="font-medium text-foreground">{parentIssueLabel}</span>
               </div>
               {newIssueDefaults.parentTitle ? (
@@ -1503,9 +1527,9 @@ export function NewIssueDialog() {
           {currentProject && currentProjectSupportsExecutionWorkspace && (
             <div className="px-4 py-3 space-y-2">
             <div className="space-y-1.5">
-              <div className="text-xs font-medium">Execution workspace</div>
+              <div className="text-xs font-medium">{t("paperclip.newIssueDialog.executionWorkspaceTitle")}</div>
               <div className="text-[11px] text-muted-foreground">
-                Control whether this issue runs in the shared workspace, a new isolated workspace, or an existing one.
+                {t("paperclip.newIssueDialog.executionWorkspaceDescription")}
               </div>
               <select
                 className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-xs outline-none"
@@ -1517,7 +1541,7 @@ export function NewIssueDialog() {
                   }
                 }}
               >
-                {EXECUTION_WORKSPACE_MODES.map((option) => (
+                {executionWorkspaceModes.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -1529,7 +1553,7 @@ export function NewIssueDialog() {
                   value={selectedExecutionWorkspaceId}
                   onChange={(e) => setSelectedExecutionWorkspaceId(e.target.value)}
                 >
-                  <option value="">Choose an existing workspace</option>
+                  <option value="">{t("paperclip.newIssueDialog.chooseExistingWorkspace")}</option>
                   {deduplicatedReusableWorkspaces.map((workspace) => (
                     <option key={workspace.id} value={workspace.id}>
                       {workspace.name} · {workspace.status} · {workspace.branchName ?? workspace.cwd ?? workspace.id.slice(0, 8)}
@@ -1539,12 +1563,20 @@ export function NewIssueDialog() {
               )}
               {executionWorkspaceMode === "reuse_existing" && selectedReusableExecutionWorkspace && (
                 <div className="text-[11px] text-muted-foreground">
-                  Reusing {selectedReusableExecutionWorkspace.name} from {selectedReusableExecutionWorkspace.branchName ?? selectedReusableExecutionWorkspace.cwd ?? "existing execution workspace"}.
+                  {t("paperclip.newIssueDialog.reusingWorkspaceLine", {
+                    name: selectedReusableExecutionWorkspace.name,
+                    from:
+                      selectedReusableExecutionWorkspace.branchName
+                      ?? selectedReusableExecutionWorkspace.cwd
+                      ?? t("paperclip.newIssueDialog.existingExecutionWorkspaceFallback"),
+                  })}
                 </div>
               )}
               {showParentWorkspaceWarning ? (
                 <div className="rounded-md border border-amber-300/60 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-900 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-100">
-                  Warning: this sub-issue will no longer use the parent issue workspace{parentExecutionWorkspaceLabel ? ` (${parentExecutionWorkspaceLabel})` : ""}.
+                  {t("paperclip.newIssueDialog.parentWorkspaceWarning", {
+                    suffix: parentExecutionWorkspaceLabel ? ` (${parentExecutionWorkspaceLabel})` : "",
+                  })}
                 </div>
               ) : null}
             </div>
@@ -1563,11 +1595,11 @@ export function NewIssueDialog() {
             {assigneeOptionsOpen && (
               <div className="mt-2 rounded-md border border-border p-3 bg-muted/20 space-y-3">
                 <div className="space-y-1.5">
-                  <div className="text-xs text-muted-foreground">Model lane</div>
+                  <div className="text-xs text-muted-foreground">{t("paperclip.newIssueDialog.modelLane")}</div>
                   <div
                     className="flex w-full overflow-hidden rounded-md border border-border"
                     role="radiogroup"
-                    aria-label="Model lane"
+                    aria-label={t("paperclip.newIssueDialog.modelLaneAria")}
                   >
                     {(["primary", ...(assigneeSupportsCheapLane ? (["cheap"] as const) : ([] as const)), "custom"] as const).map((lane) => (
                       <button
@@ -1582,48 +1614,49 @@ export function NewIssueDialog() {
                         onClick={() => setAssigneeModelLane(lane)}
                       >
                         {lane === "primary"
-                          ? "Primary"
+                          ? t("paperclip.newIssueDialog.lanePrimary")
                           : lane === "cheap"
-                            ? "Cheap"
-                            : "Custom"}
+                            ? t("paperclip.newIssueDialog.laneCheap")
+                            : t("paperclip.newIssueDialog.laneCustom")}
                       </button>
                     ))}
                   </div>
                   {assigneeModelLane === "cheap" && (
                     <p className="text-[11px] text-muted-foreground">
-                      Sends <code>modelProfile: "cheap"</code>{" "}
                       {assigneeCheapProfile?.adapterConfig && typeof (assigneeCheapProfile.adapterConfig as Record<string, unknown>).model === "string"
-                        ? <>· adapter default <code>{String((assigneeCheapProfile.adapterConfig as Record<string, unknown>).model)}</code></>
+                        ? t("paperclip.newIssueDialog.cheapLaneHintWithModel", {
+                            model: String((assigneeCheapProfile.adapterConfig as Record<string, unknown>).model),
+                          })
                         : assigneeCheapProfile
-                          ? <>· uses the agent's configured cheap profile</>
-                          : <>· falls back to the primary model if no cheap profile is configured</>}
+                          ? t("paperclip.newIssueDialog.cheapLaneHintWithProfile")
+                          : t("paperclip.newIssueDialog.cheapLaneHintFallback")}
                     </p>
                   )}
                   {assigneeModelLane === "primary" && (
-                    <p className="text-[11px] text-muted-foreground">Runs on the agent's primary model.</p>
+                    <p className="text-[11px] text-muted-foreground">{t("paperclip.newIssueDialog.primaryLaneHint")}</p>
                   )}
                   {assigneeModelLane === "custom" && (
-                    <p className="text-[11px] text-muted-foreground">Override the model and effort for this issue only.</p>
+                    <p className="text-[11px] text-muted-foreground">{t("paperclip.newIssueDialog.customLaneHint")}</p>
                   )}
                 </div>
                 {assigneeModelLane === "custom" && (
                   <div className="space-y-1.5">
-                    <div className="text-xs text-muted-foreground">Model</div>
+                    <div className="text-xs text-muted-foreground">{t("paperclip.newIssueDialog.modelLabel")}</div>
                     <InlineEntitySelector
                       value={assigneeModelOverride}
                       options={modelOverrideOptions}
-                      placeholder="Default model"
+                      placeholder={t("paperclip.newIssueDialog.defaultModelPlaceholder")}
                       disablePortal
-                      noneLabel="Default model"
-                      searchPlaceholder="Search models..."
-                      emptyMessage="No models found."
+                      noneLabel={t("paperclip.newIssueDialog.defaultModelPlaceholder")}
+                      searchPlaceholder={t("paperclip.newIssueDialog.searchModels")}
+                      emptyMessage={t("paperclip.newIssueDialog.noModelsFound")}
                       onChange={setAssigneeModelOverride}
                     />
                   </div>
                 )}
                 {assigneeModelLane === "custom" && (
                   <div className="space-y-1.5">
-                    <div className="text-xs text-muted-foreground">Thinking effort</div>
+                    <div className="text-xs text-muted-foreground">{t("paperclip.newIssueDialog.thinkingEffort")}</div>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {thinkingEffortOptions.map((option) => (
                         <button
@@ -1642,7 +1675,7 @@ export function NewIssueDialog() {
                 )}
                 {assigneeAdapterType === "claude_local" && assigneeModelLane === "custom" && (
                   <div className="flex items-center justify-between rounded-md border border-border px-2 py-1.5">
-                    <div className="text-xs text-muted-foreground">Enable Chrome (--chrome)</div>
+                    <div className="text-xs text-muted-foreground">{t("paperclip.newIssueDialog.enableChrome")}</div>
                     <ToggleSwitch
                       checked={assigneeChrome}
                       onCheckedChange={() => setAssigneeChrome((value) => !value)}
@@ -1674,6 +1707,7 @@ export function NewIssueDialog() {
                 mentions={mentionOptions}
                 descriptionEditorRef={descriptionEditorRef}
                 imageUploadHandler={uploadDescriptionImageHandler}
+                descriptionPlaceholder={t("paperclip.newIssueDialog.descriptionPlaceholder")}
                 onChange={handleDescriptionChange}
               />
             </div>
@@ -1681,7 +1715,7 @@ export function NewIssueDialog() {
               <div className="mt-4 space-y-3 rounded-lg border border-border/70 p-3">
               {stagedDocuments.length > 0 ? (
                 <div className="space-y-2">
-                  <div className="text-xs font-medium text-muted-foreground">Documents</div>
+                  <div className="text-xs font-medium text-muted-foreground">{t("paperclip.newIssueDialog.documents")}</div>
                   <div className="space-y-2">
                     {stagedDocuments.map((file) => (
                       <div key={file.id} className="flex items-start justify-between gap-3 rounded-md border border-border/70 px-3 py-2">
@@ -1705,7 +1739,7 @@ export function NewIssueDialog() {
                           className="shrink-0 text-muted-foreground"
                           onClick={() => removeStagedFile(file.id)}
                           disabled={createIssue.isPending}
-                          title="Remove document"
+                          title={t("paperclip.newIssueDialog.removeDocument")}
                         >
                           <X className="h-3.5 w-3.5" />
                         </Button>
@@ -1717,7 +1751,7 @@ export function NewIssueDialog() {
 
               {stagedAttachments.length > 0 ? (
                 <div className="space-y-2">
-                  <div className="text-xs font-medium text-muted-foreground">Attachments</div>
+                  <div className="text-xs font-medium text-muted-foreground">{t("paperclip.newIssueDialog.attachments")}</div>
                   <div className="space-y-2">
                     {stagedAttachments.map((file) => (
                       <div key={file.id} className="flex items-start justify-between gap-3 rounded-md border border-border/70 px-3 py-2">
@@ -1736,7 +1770,7 @@ export function NewIssueDialog() {
                           className="shrink-0 text-muted-foreground"
                           onClick={() => removeStagedFile(file.id)}
                           disabled={createIssue.isPending}
-                          title="Remove attachment"
+                          title={t("paperclip.newIssueDialog.removeAttachment")}
                         >
                           <X className="h-3.5 w-3.5" />
                         </Button>
@@ -1789,7 +1823,7 @@ export function NewIssueDialog() {
                 ) : (
                   <>
                     <Minus className="h-3 w-3 text-muted-foreground" />
-                    Priority
+                    {t("paperclip.newIssueDialog.priorityChip")}
                   </>
                 )}
               </button>
@@ -1831,7 +1865,7 @@ export function NewIssueDialog() {
             disabled={createIssue.isPending}
           >
             <Paperclip className="h-3 w-3" />
-            Upload
+            {t("paperclip.newIssueDialog.upload")}
           </button>
 
           {/* More (dates) */}
@@ -1844,11 +1878,11 @@ export function NewIssueDialog() {
             <PopoverContent className="w-44 p-1" align="start">
               <button className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 text-muted-foreground">
                 <Calendar className="h-3 w-3" />
-                Start date
+                {t("paperclip.newIssueDialog.startDate")}
               </button>
               <button className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 text-muted-foreground">
                 <Calendar className="h-3 w-3" />
-                Due date
+                {t("paperclip.newIssueDialog.dueDate")}
               </button>
             </PopoverContent>
           </Popover>
@@ -1863,14 +1897,14 @@ export function NewIssueDialog() {
             onClick={discardDraft}
             disabled={createIssue.isPending || !canDiscardDraft}
           >
-            Discard Draft
+            {t("paperclip.newIssueDialog.discardDraft")}
           </Button>
           <div className="flex items-center gap-3">
             <div className="min-h-5 text-right">
               {createIssue.isPending ? (
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Creating issue...
+                  {t("paperclip.newIssueDialog.creatingIssue")}
                 </span>
               ) : createIssue.isError ? (
                 <span className="text-xs text-destructive">{createIssueErrorMessage}</span>
@@ -1885,7 +1919,13 @@ export function NewIssueDialog() {
             >
               <span className="inline-flex items-center justify-center gap-1.5">
                 {createIssue.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                <span>{createIssue.isPending ? "Creating..." : isSubIssueMode ? "Create Sub-Issue" : "Create Issue"}</span>
+                <span>
+                  {createIssue.isPending
+                    ? t("paperclip.newIssueDialog.creating")
+                    : isSubIssueMode
+                      ? t("paperclip.newIssueDialog.createSubIssue")
+                      : t("paperclip.newIssueDialog.createIssue")}
+                </span>
               </span>
             </Button>
           </div>

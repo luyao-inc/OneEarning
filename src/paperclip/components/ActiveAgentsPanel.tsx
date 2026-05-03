@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import type { Issue } from "@paperclipai/shared";
@@ -38,16 +39,19 @@ interface ActiveAgentsPanelProps {
 
 export function ActiveAgentsPanel({
   companyId,
-  title = "Agents",
+  title: titleProp,
   minRunCount = MIN_DASHBOARD_RUNS,
   fetchLimit,
   cardLimit = DASHBOARD_RUN_CARD_LIMIT,
   gridClassName,
   cardClassName,
-  emptyMessage = "No recent agent runs.",
+  emptyMessage: emptyMessageProp,
   queryScope = "dashboard",
   showMoreLink = true,
 }: ActiveAgentsPanelProps) {
+  const { t } = useTranslation();
+  const title = titleProp ?? t("paperclip.activeAgents.title");
+  const emptyMessage = emptyMessageProp ?? t("paperclip.activeAgents.empty");
   const { data: liveRuns } = useQuery({
     queryKey: [...queryKeys.liveRuns(companyId), queryScope, { minRunCount, fetchLimit }],
     queryFn: () => heartbeatsApi.liveRunsForCompany(companyId, { minCount: minRunCount, limit: fetchLimit }),
@@ -100,6 +104,9 @@ export function ActiveAgentsPanel({
               hasOutput={hasOutputForRun(run.id)}
               isActive={isRunActive(run)}
               className={cardClassName}
+              liveNowLabel={t("paperclip.activeAgents.liveNow")}
+              finishedLabel={(time) => t("paperclip.activeAgents.finished", { time })}
+              startedLabel={(time) => t("paperclip.activeAgents.started", { time })}
             />
           ))}
         </div>
@@ -107,7 +114,7 @@ export function ActiveAgentsPanel({
       {showMoreLink && hiddenRunCount > 0 && (
         <div className="mt-3 flex justify-end text-xs text-muted-foreground">
           <Link to="/dashboard/live" className="hover:text-foreground hover:underline">
-            {hiddenRunCount} more active/recent run{hiddenRunCount === 1 ? "" : "s"}
+            {t("paperclip.activeAgents.moreRuns", { count: hiddenRunCount })}
           </Link>
         </div>
       )}
@@ -123,6 +130,9 @@ const AgentRunCard = memo(function AgentRunCard({
   hasOutput,
   isActive,
   className,
+  liveNowLabel,
+  finishedLabel,
+  startedLabel,
 }: {
   companyId: string;
   run: LiveRunForIssue;
@@ -131,6 +141,9 @@ const AgentRunCard = memo(function AgentRunCard({
   hasOutput: boolean;
   isActive: boolean;
   className?: string;
+  liveNowLabel: string;
+  finishedLabel: (time: string) => string;
+  startedLabel: (time: string) => string;
 }) {
   return (
     <div className={cn(
@@ -155,7 +168,13 @@ const AgentRunCard = memo(function AgentRunCard({
               <Identity name={run.agentName} size="sm" className="[&>span:last-child]:!text-[11px]" />
             </div>
             <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-              <span>{isActive ? "Live now" : run.finishedAt ? `Finished ${relativeTime(run.finishedAt)}` : `Started ${relativeTime(run.createdAt)}`}</span>
+              <span>
+                {isActive
+                  ? liveNowLabel
+                  : run.finishedAt
+                    ? finishedLabel(relativeTime(run.finishedAt))
+                    : startedLabel(relativeTime(run.createdAt))}
+              </span>
             </div>
           </div>
 

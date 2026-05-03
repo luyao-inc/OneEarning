@@ -17,7 +17,7 @@ export async function paperclipProxyFetch(
   req: PaperclipFetchRequest,
 ): Promise<PaperclipFetchResult> {
   if (!isAllowedPaperclipProxyPath(req.path)) {
-    return { ok: false, error: 'Path not allowed for Paperclip proxy' };
+    return { ok: false, error: 'Path not allowed for OneEarning proxy' };
   }
 
   let parsed: URL;
@@ -50,11 +50,16 @@ export async function paperclipProxyFetch(
       const fd = new FormData();
       for (const p of req.formParts) {
         const buf = Buffer.from(p.dataBase64, 'base64');
-        const blob = new Blob([buf], { type: p.type || 'application/octet-stream' });
-        if (p.filename) {
-          fd.append(p.name, blob, p.filename);
+        // Renderer `formDataToParts` only sets `filename` for File entries. Plain
+        // fields (e.g. asset upload `namespace`) must be re-appended as strings;
+        // `fd.append(name, blob)` without a filename is still encoded as a file
+        // part in Node/undici, which makes multer reject the extra file field.
+        if ('filename' in p && p.filename !== undefined) {
+          const blob = new Blob([buf], { type: p.type || 'application/octet-stream' });
+          const fn = p.filename.length > 0 ? p.filename : 'upload.bin';
+          fd.append(p.name, blob, fn);
         } else {
-          fd.append(p.name, blob);
+          fd.append(p.name, buf.toString('utf8'));
         }
       }
       body = method === 'GET' || method === 'HEAD' ? undefined : fd;
