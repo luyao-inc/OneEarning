@@ -1,15 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  BookOpen,
-  LogOut,
-  type LucideIcon,
-  Moon,
-  Settings,
-  UserRound,
-  Sun,
-  UserRoundPen,
-} from "lucide-react";
+import { LogOut, type LucideIcon, Moon, Settings, Sun } from "lucide-react";
 import type { DeploymentMode } from "@paperclipai/shared";
 import { Link } from "@/lib/router";
 import { authApi } from "@/api/auth";
@@ -19,9 +10,6 @@ import { useTheme } from "../context/ThemeContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "../lib/utils";
-
-const PROFILE_SETTINGS_PATH = "/instance/settings/profile";
-const DOCS_URL = "https://docs.paperclip.ing/";
 
 interface SidebarAccountMenuProps {
   deploymentMode?: DeploymentMode;
@@ -46,20 +34,6 @@ function deriveInitials(name: string) {
     return `${parts[0]?.[0] ?? ""}${parts[parts.length - 1]?.[0] ?? ""}`.toUpperCase();
   }
   return name.slice(0, 2).toUpperCase();
-}
-
-function deriveUserSlug(name: string | null | undefined, email: string | null | undefined, id: string | null | undefined) {
-  const candidates = [name, email?.split("@")[0], email, id];
-  for (const candidate of candidates) {
-    const slug = candidate
-      ?.trim()
-      .toLowerCase()
-      .replace(/['"]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-    if (slug) return slug;
-  }
-  return "me";
 }
 
 function MenuAction({ label, description, icon: Icon, onClick, href, external = false }: MenuActionProps) {
@@ -133,7 +107,6 @@ export function SidebarAccountMenu({
     session?.user.email?.trim() || (deploymentMode === "authenticated" ? "Signed in" : "Local workspace board");
   const accountBadge = deploymentMode === "authenticated" ? "Account" : "Local";
   const initials = deriveInitials(displayName);
-  const profileHref = `/u/${deriveUserSlug(session?.user.name, session?.user.email, session?.user.id)}`;
 
   function closeNavigationChrome() {
     setOpen(false);
@@ -147,13 +120,12 @@ export function SidebarAccountMenu({
           <button
             type="button"
             className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-foreground/80 transition-colors hover:bg-accent/50 hover:text-foreground"
-            aria-label="Open account menu"
+            aria-label="打开设置"
           >
-            <Avatar size="sm">
-              {session?.user.image ? <AvatarImage src={session.user.image} alt={displayName} /> : null}
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-            <span className="min-w-0 flex-1 truncate">{displayName}</span>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted/40 text-muted-foreground">
+              <Settings className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1 truncate">设置</span>
           </button>
         </PopoverTrigger>
         <PopoverContent
@@ -187,33 +159,11 @@ export function SidebarAccountMenu({
 
             <div className="mt-4 space-y-1">
               <MenuAction
-                label="View profile"
-                description="Open your activity, task, and usage ledger."
-                icon={UserRound}
-                href={profileHref}
-                onClick={closeNavigationChrome}
-              />
-              <MenuAction
-                label="Edit profile"
-                description="Update your display name and avatar."
-                icon={UserRoundPen}
-                href={PROFILE_SETTINGS_PATH}
-                onClick={closeNavigationChrome}
-              />
-              <MenuAction
                 label="Instance settings"
                 description="Jump back to the last settings page you opened."
                 icon={Settings}
                 href={instanceSettingsTarget}
                 onClick={closeNavigationChrome}
-              />
-              <MenuAction
-                label="Documentation"
-                description="Open Paperclip docs in a new tab."
-                icon={BookOpen}
-                href={DOCS_URL}
-                external
-                onClick={() => setOpen(false)}
               />
               <MenuAction
                 label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}

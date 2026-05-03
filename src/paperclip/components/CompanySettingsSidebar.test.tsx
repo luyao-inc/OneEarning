@@ -2,14 +2,10 @@
 
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CompanySettingsSidebar } from "./CompanySettingsSidebar";
 
 const sidebarNavItemMock = vi.hoisted(() => vi.fn());
-const mockSidebarBadgesApi = vi.hoisted(() => ({
-  get: vi.fn(),
-}));
 
 vi.mock("@/lib/router", () => ({
   Link: ({
@@ -29,7 +25,6 @@ vi.mock("@/lib/router", () => ({
 
 vi.mock("@/context/CompanyContext", () => ({
   useCompany: () => ({
-    selectedCompanyId: "company-1",
     selectedCompany: { id: "company-1", name: "Paperclip" },
   }),
 }));
@@ -57,10 +52,6 @@ vi.mock("./SidebarCompanyMenu", () => ({
   SidebarCompanyMenu: () => <div>Workspace switcher</div>,
 }));
 
-vi.mock("@/api/sidebarBadges", () => ({
-  sidebarBadgesApi: mockSidebarBadgesApi,
-}));
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -77,12 +68,6 @@ describe("CompanySettingsSidebar", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    mockSidebarBadgesApi.get.mockResolvedValue({
-      inbox: 0,
-      approvals: 0,
-      failedRuns: 0,
-      joinRequests: 2,
-    });
   });
 
   afterEach(() => {
@@ -91,27 +76,20 @@ describe("CompanySettingsSidebar", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the company back link and the settings sections in the sidebar", async () => {
+  it("renders the company back link and General in the sidebar", async () => {
     const root = createRoot(container);
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
 
     await act(async () => {
-      root.render(
-        <QueryClientProvider client={queryClient}>
-          <CompanySettingsSidebar />
-        </QueryClientProvider>,
-      );
+      root.render(<CompanySettingsSidebar />);
     });
     await flushReact();
 
     expect(container.textContent).toContain("Paperclip");
     expect(container.textContent).toContain("Company Settings");
     expect(container.textContent).toContain("General");
-    expect(container.textContent).toContain("Environments");
-    expect(container.textContent).toContain("Access");
-    expect(container.textContent).toContain("Invites");
+    expect(container.textContent).not.toContain("Environments");
+    expect(container.textContent).not.toContain("Access");
+    expect(container.textContent).not.toContain("Invites");
     expect(sidebarNavItemMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "/company/settings",
@@ -119,28 +97,7 @@ describe("CompanySettingsSidebar", () => {
         end: true,
       }),
     );
-    expect(sidebarNavItemMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: "/company/settings/environments",
-        label: "Environments",
-        end: true,
-      }),
-    );
-    expect(sidebarNavItemMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: "/company/settings/access",
-        label: "Access",
-        badge: 2,
-        end: true,
-      }),
-    );
-    expect(sidebarNavItemMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: "/company/settings/invites",
-        label: "Invites",
-        end: true,
-      }),
-    );
+    expect(sidebarNavItemMock).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       root.unmount();

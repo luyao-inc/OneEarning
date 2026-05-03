@@ -1,36 +1,21 @@
 import { PageTabBar } from "@/components/PageTabBar";
 import { Tabs } from "@/components/ui/tabs";
-import { useLocation, useNavigate } from "@/lib/router";
+import { useNavigate } from "@/lib/router";
 
 const items = [
   { value: "general", label: "General", href: "/company/settings" },
-  { value: "environments", label: "Environments", href: "/company/settings/environments" },
-  { value: "access", label: "Access", href: "/company/settings/access" },
-  { value: "invites", label: "Invites", href: "/company/settings/invites" },
 ] as const;
 
 type CompanySettingsTab = (typeof items)[number]["value"];
 
-export function getCompanySettingsTab(pathname: string): CompanySettingsTab {
-  if (pathname.includes("/company/settings/environments")) {
-    return "environments";
-  }
-
-  if (pathname.includes("/company/settings/access")) {
-    return "access";
-  }
-
-  if (pathname.includes("/company/settings/invites")) {
-    return "invites";
-  }
-
+/** OneEarning: company settings tabs other than General are hidden in the shell. */
+export function getCompanySettingsTab(_pathname: string): CompanySettingsTab {
   return "general";
 }
 
 export function CompanySettingsNav() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const activeTab = getCompanySettingsTab(location.pathname);
+  const activeTab: CompanySettingsTab = "general";
 
   function handleTabChange(value: string) {
     const nextTab = items.find((item) => item.value === value);

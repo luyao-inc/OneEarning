@@ -1,4 +1,4 @@
-export const DEFAULT_INSTANCE_SETTINGS_PATH = "/instance/settings/general";
+export const DEFAULT_INSTANCE_SETTINGS_PATH = "/instance/settings/heartbeats";
 
 export function normalizeRememberedInstanceSettingsPath(rawPath: string | null): string {
   if (!rawPath) return DEFAULT_INSTANCE_SETTINGS_PATH;
@@ -8,16 +8,7 @@ export function normalizeRememberedInstanceSettingsPath(rawPath: string | null):
   const search = match?.[2] ?? "";
   const hash = match?.[3] ?? "";
 
-  if (
-    pathname === "/instance/settings/general" ||
-    pathname === "/instance/settings/heartbeats" ||
-    pathname === "/instance/settings/plugins" ||
-    pathname === "/instance/settings/experimental"
-  ) {
-    return `${pathname}${search}${hash}`;
-  }
-
-  if (/^\/instance\/settings\/plugins\/[^/?#]+$/.test(pathname)) {
+  if (pathname === "/instance/settings/heartbeats") {
     return `${pathname}${search}${hash}`;
   }
 

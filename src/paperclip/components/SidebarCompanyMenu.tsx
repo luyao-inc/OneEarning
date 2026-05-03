@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronsUpDown, LogOut, Plus, Settings, UserPlus } from "lucide-react";
+import { Check, ChevronsUpDown, LogOut, Plus, Settings } from "lucide-react";
 import type { Company } from "@paperclipai/shared";
 import { Link, useLocation, useNavigate } from "@/lib/router";
 import { authApi } from "@/api/auth";
+import { healthApi } from "@/api/health";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -50,6 +51,11 @@ export function SidebarCompanyMenu({ open: controlledOpen, onOpenChange }: Sideb
   const { data: session } = useQuery({
     queryKey: queryKeys.auth.session,
     queryFn: () => authApi.getSession(),
+    retry: false,
+  });
+  const { data: health } = useQuery({
+    queryKey: queryKeys.health,
+    queryFn: () => healthApi.get(),
     retry: false,
   });
 
@@ -137,22 +143,13 @@ export function SidebarCompanyMenu({ open: controlledOpen, onOpenChange }: Sideb
           <Plus className="size-4" />
           <span>Add company...</span>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/company/settings/invites" onClick={closeNavigationChrome}>
-            <UserPlus className="size-4" />
-            <span className="truncate">
-              {selectedCompany ? `Invite people to ${selectedCompany.name}` : "Invite people"}
-            </span>
-          </Link>
-        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to="/company/settings" onClick={closeNavigationChrome}>
             <Settings className="size-4" />
             <span>Company settings</span>
           </Link>
         </DropdownMenuItem>
-        {session?.session ? (
+        {session?.session && health?.deploymentMode === "authenticated" ? (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem

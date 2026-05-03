@@ -14,6 +14,12 @@ const mockAuthApi = vi.hoisted(() => ({
   updateProfile: vi.fn(),
   signOut: vi.fn(),
 }));
+const mockHealthGet = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({
+    status: "ok" as const,
+    deploymentMode: "authenticated" as const,
+  }),
+);
 const mockNavigate = vi.hoisted(() => vi.fn());
 const mockOpenOnboarding = vi.hoisted(() => vi.fn());
 const mockSetSelectedCompanyId = vi.hoisted(() => vi.fn());
@@ -22,6 +28,12 @@ const mockLocation = vi.hoisted(() => ({ pathname: "/PAP/dashboard" }));
 
 vi.mock("@/api/auth", () => ({
   authApi: mockAuthApi,
+}));
+
+vi.mock("@/api/health", () => ({
+  healthApi: {
+    get: () => mockHealthGet(),
+  },
 }));
 
 vi.mock("@/lib/router", () => ({
@@ -96,6 +108,10 @@ describe("SidebarCompanyMenu", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
+    mockHealthGet.mockResolvedValue({
+      status: "ok",
+      deploymentMode: "authenticated",
+    });
     mockAuthApi.getSession.mockResolvedValue({
       session: { id: "session-1", userId: "user-1" },
       user: {
@@ -144,7 +160,8 @@ describe("SidebarCompanyMenu", () => {
     expect(document.body.textContent).toContain("Switch workspace");
     expect(document.body.textContent).toContain("Strata");
     expect(document.body.textContent).toContain("Add company...");
-    expect(document.body.textContent).toContain("Invite people to Acme Labs");
+    expect(document.body.textContent).not.toContain("Invite people to Acme Labs");
+    expect(document.body.textContent).not.toContain("Invite people");
     expect(document.body.textContent).toContain("Company settings");
     expect(document.body.textContent).toContain("Sign out");
 
@@ -158,6 +175,42 @@ describe("SidebarCompanyMenu", () => {
     await flushReact();
 
     expect(mockAuthApi.signOut).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("hides Sign out in local_trusted mode", async () => {
+    mockHealthGet.mockResolvedValue({
+      status: "ok",
+      deploymentMode: "local_trusted",
+    });
+    const root = createRoot(container);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <SidebarCompanyMenu />
+        </QueryClientProvider>,
+      );
+    });
+    await flushReact();
+    await flushReact();
+
+    const trigger = container.querySelector('button[aria-label="Open Acme Labs workspace switcher"]');
+    expect(trigger).not.toBeNull();
+
+    await act(async () => {
+      trigger?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushReact();
+
+    expect(document.body.textContent).not.toContain("Sign out");
 
     await act(async () => {
       root.unmount();

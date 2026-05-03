@@ -153,9 +153,9 @@ vi.mock("../lib/company-selection", () => ({
 }));
 
 vi.mock("../lib/instance-settings", () => ({
-  DEFAULT_INSTANCE_SETTINGS_PATH: "/instance/settings/general",
+  DEFAULT_INSTANCE_SETTINGS_PATH: "/instance/settings/heartbeats",
   normalizeRememberedInstanceSettingsPath: (value: string | null | undefined) =>
-    value ?? "/instance/settings/general",
+    value ?? "/instance/settings/heartbeats",
 }));
 
 vi.mock("../lib/main-content-focus", () => ({

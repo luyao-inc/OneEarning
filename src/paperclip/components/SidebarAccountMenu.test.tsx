@@ -85,7 +85,7 @@ describe("SidebarAccountMenu", () => {
         <QueryClientProvider client={queryClient}>
           <SidebarAccountMenu
             deploymentMode="authenticated"
-            instanceSettingsTarget="/instance/settings/general"
+            instanceSettingsTarget="/instance/settings/heartbeats"
             version="1.2.3"
           />
         </QueryClientProvider>,
@@ -94,10 +94,11 @@ describe("SidebarAccountMenu", () => {
     await flushReact();
     await flushReact();
 
-    expect(container.textContent).toContain("Jane Example");
+    expect(container.textContent).toContain("设置");
+    expect(container.textContent).not.toContain("Jane Example");
     expect(container.textContent).not.toContain("jane@example.com");
 
-    const trigger = container.querySelector('button[aria-label="Open account menu"]');
+    const trigger = container.querySelector('button[aria-label="打开设置"]');
     expect(trigger).not.toBeNull();
 
     await act(async () => {
@@ -105,8 +106,10 @@ describe("SidebarAccountMenu", () => {
     });
     await flushReact();
 
-    expect(document.body.textContent).toContain("Edit profile");
-    expect(document.body.textContent).toContain("Documentation");
+    expect(document.body.textContent).toContain("Instance settings");
+    expect(document.body.textContent).not.toContain("View profile");
+    expect(document.body.textContent).not.toContain("Edit profile");
+    expect(document.body.textContent).not.toContain("Documentation");
     expect(document.body.textContent).toContain("Paperclip v1.2.3");
     expect(document.body.textContent).toContain("jane@example.com");
 

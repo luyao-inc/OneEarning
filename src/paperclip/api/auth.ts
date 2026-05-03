@@ -28,12 +28,38 @@ export class AuthApiError extends Error {
   }
 }
 
+/** Coerce API quirks (missing keys, wrong types, "") so client Zod matches server intent. */
+function normalizeAuthSessionPayload(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const root = value as Record<string, unknown>;
+  if (!root.user || typeof root.user !== "object") return value;
+  const u = { ...(root.user as Record<string, unknown>) };
+  const img = u.image;
+  if (img === undefined || img === null || img === "" || typeof img !== "string") {
+    u.image = null;
+  }
+  const nm = u.name;
+  if (nm === undefined || nm === null || typeof nm !== "string") {
+    u.name = null;
+  } else {
+    const t = nm.trim();
+    u.name = t.length === 0 ? null : t;
+  }
+  const em = u.email;
+  if (em !== undefined && em !== null && typeof em !== "string") {
+    u.email = null;
+  }
+  return { ...root, user: u };
+}
+
 function toSession(value: unknown): AuthSession | null {
-  const direct = authSessionSchema.safeParse(value);
+  const normalized = normalizeAuthSessionPayload(value);
+  const direct = authSessionSchema.safeParse(normalized);
   if (direct.success) return direct.data;
 
   if (!value || typeof value !== "object") return null;
-  const nested = authSessionSchema.safeParse((value as Record<string, unknown>).data);
+  const inner = (value as Record<string, unknown>).data;
+  const nested = authSessionSchema.safeParse(normalizeAuthSessionPayload(inner));
   return nested.success ? nested.data : null;
 }
 
