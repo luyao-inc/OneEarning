@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-electron
+release
+build
+temp_node_extract
+*.zip
+.env
+.DS_Store
+*.log

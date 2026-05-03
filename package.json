@@ -1,0 +1,51 @@
+{
+  "name": "oneearning",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OneEarning — Paperclip 桌面端封装（中文界面）",
+  "main": "dist-electron/main/index.js",
+  "author": "OneEarning",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@9.15.4+sha512.e3927388bfaa8078ceb79b748ffc1e8274e84d75163e67bc22e06c0d3aed43dd153151cbf11d7f8301ff4acb98c68bdc5cadf6989532801ffafe3b3e4a63c268",
+  "pnpm": {
+    "supportedArchitectures": {
+      "os": ["current"],
+      "cpu": ["x64", "arm64"]
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build:vite": "vite build",
+    "bundle:paperclip": "zx scripts/prepare-server-bundle.mjs",
+    "bundle:postgres": "zx scripts/prepare-postgres.mjs",
+    "package": "pnpm run build:vite && pnpm run bundle:paperclip && pnpm run bundle:postgres",
+    "build": "pnpm run package && electron-builder",
+    "build:win": "pnpm run package && electron-builder --win --publish never",
+    "build:mac": "pnpm run package && electron-builder --mac --publish never",
+    "build:linux": "pnpm run package && electron-builder --linux --publish never",
+    "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
+    "prep:node:win": "zx scripts/download-bundled-node.mjs --platform=win"
+  },
+  "dependencies": {
+    "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.3",
+    "get-port": "^7.1.0",
+    "paperclipai": "0.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "zx": "^8.3.0"
+  }
+}

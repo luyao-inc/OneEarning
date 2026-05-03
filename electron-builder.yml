@@ -1,0 +1,60 @@
+appId: app.oneearning.desktop
+productName: OneEarning
+copyright: Copyright © 2026 OneEarning
+compression: maximum
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+
+directories:
+  output: release
+  buildResources: resources
+
+files:
+  - dist
+  - dist-electron
+  - package.json
+  - locales
+
+extraResources:
+  - from: build/paperclip
+    to: paperclip
+  - from: resources/postgres
+    to: postgres
+  - from: locales/zh-CN
+    to: locales/zh-CN
+  - from: resources/icons
+    to: icons
+
+asar: true
+asarUnpack:
+  - "**/*.node"
+
+npmRebuild: false
+
+publish:
+  - provider: generic
+    url: https://example.invalid/oneearning-updates
+
+win:
+  icon: resources/icons/icon.png
+  verifyUpdateCodeSignature: false
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+  category: Utility

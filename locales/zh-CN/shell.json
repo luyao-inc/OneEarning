@@ -1,0 +1,21 @@
+{
+  "appName": "OneEarning",
+  "menuFile": "文件",
+  "menuEdit": "编辑",
+  "menuView": "视图",
+  "menuWindow": "窗口",
+  "menuHelp": "帮助",
+  "menuQuit": "退出",
+  "menuReload": "重新加载",
+  "menuDevTools": "开发者工具",
+  "menuMinimize": "最小化",
+  "menuClose": "关闭",
+  "menuAbout": "关于 OneEarning",
+  "menuService": "服务状态",
+  "menuSettings": "数据与存储",
+  "menuCheckUpdates": "检查更新",
+  "trayShow": "显示主窗口",
+  "trayQuit": "退出",
+  "dialogUpdateTitle": "更新",
+  "dialogUpdateBody": "检查完成。"
+}
