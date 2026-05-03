@@ -1,0 +1,61 @@
+{
+  "splash": {
+    "title": "正在启动 OneEarning 服务…",
+    "hint": "请稍候，正在拉起本地服务；首次启动可能需要初始化数据库。"
+  },
+  "nav": {
+    "dashboard": "概览",
+    "issues": "任务",
+    "openFullWeb": "在浏览器中打开完整 Paperclip",
+    "home": "公司"
+  },
+  "home": {
+    "title": "选择工作区",
+    "empty": "暂无公司。可在下方创建，或使用完整 Web 界面。",
+    "create": "创建公司",
+    "nameLabel": "名称"
+  },
+  "dashboard": {
+    "title": "概览",
+    "agents": "智能体",
+    "tasks": "任务",
+    "costs": "本月消费",
+    "approvals": "待审批",
+    "runActivity": "最近运行"
+  },
+  "issues": {
+    "title": "任务",
+    "empty": "暂无任务",
+    "open": "打开"
+  },
+  "issue": {
+    "title": "任务详情",
+    "back": "返回列表"
+  },
+  "errors": {
+    "unknownCompany": "未找到该公司前缀对应的工作区"
+  },
+  "about": {
+    "title": "关于 OneEarning",
+    "body": "基于 Paperclip 的桌面壳，通过本地 HTTP API 驱动原生界面；默认中文，可在设置中切换语言。"
+  },
+  "service": {
+    "title": "服务状态",
+    "restart": "重启服务",
+    "openData": "打开数据目录",
+    "checkUpdates": "检查更新",
+    "loading": "加载中…",
+    "logError": "无法读取日志"
+  },
+  "settings": {
+    "title": "数据与存储",
+    "pathHint": "Paperclip 数据目录（--data-dir）：",
+    "openExplorer": "在资源管理器中打开",
+    "language": "界面语言",
+    "zh": "中文",
+    "en": "English"
+  },
+  "escape": {
+    "hint": "若某项功能尚未在壳中实现，可使用完整 Paperclip Web。"
+  }
+}

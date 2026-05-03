@@ -1,6 +1,6 @@
 # OneEarning
 
-Paperclip 的 **Electron 桌面封装**：子进程运行上游 `paperclipai`，主窗口加载本地 `http://127.0.0.1:<port>/`。**不修改** `paperclip` 源码；中文界面通过 preload 注入词典实现。
+Paperclip 的 **Electron 桌面封装**：子进程运行上游 `paperclipai`；**主窗口为 OneEarning 自带 React 壳**，通过主进程 **IPC 代理** 调用本机 `http://127.0.0.1:<port>/api/...`。**不修改** `paperclip` 源码。界面默认中文，可在「数据与存储」窗口切换英文。
 
 ## 开发
 
@@ -33,7 +33,7 @@ pnpm run build:win
 
 ## 文档
 
-- [中文字典维护](docs/i18n-maintenance.md)
+- [完整 Web 逃生舱](docs/escape-hatch.md)
 
 ## 许可
 

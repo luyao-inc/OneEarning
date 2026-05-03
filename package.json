@@ -28,10 +28,14 @@
     "prep:node:win": "zx scripts/download-bundled-node.mjs --platform=win"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.62.11",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.3",
     "get-port": "^7.1.0",
-    "paperclipai": "0.3.1"
+    "i18next": "^24.2.0",
+    "paperclipai": "0.3.1",
+    "react-i18next": "^15.4.0",
+    "react-router-dom": "^7.1.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -45,7 +49,6 @@
     "typescript": "^5.7.3",
     "vite": "^6.1.0",
     "vite-plugin-electron": "^0.29.0",
-    "vite-plugin-electron-renderer": "^0.14.6",
     "zx": "^8.3.0"
   }
 }

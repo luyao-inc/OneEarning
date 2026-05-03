@@ -1,0 +1,61 @@
+{
+  "splash": {
+    "title": "Starting OneEarning…",
+    "hint": "Please wait; first launch may initialize the local database."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "issues": "Issues",
+    "openFullWeb": "Open full Paperclip in browser",
+    "home": "Companies"
+  },
+  "home": {
+    "title": "Choose workspace",
+    "empty": "No companies yet. Create one below or use the full web UI.",
+    "create": "Create company",
+    "nameLabel": "Name"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "agents": "Agents",
+    "tasks": "Tasks",
+    "costs": "Spend this month",
+    "approvals": "Pending approvals",
+    "runActivity": "Recent runs"
+  },
+  "issues": {
+    "title": "Issues",
+    "empty": "No issues",
+    "open": "Open"
+  },
+  "issue": {
+    "title": "Issue",
+    "back": "Back to list"
+  },
+  "errors": {
+    "unknownCompany": "No workspace matches this company prefix"
+  },
+  "about": {
+    "title": "About OneEarning",
+    "body": "Paperclip desktop shell using the local HTTP API; Chinese by default — change language in Settings."
+  },
+  "service": {
+    "title": "Service",
+    "restart": "Restart service",
+    "openData": "Open data folder",
+    "checkUpdates": "Check for updates",
+    "loading": "Loading…",
+    "logError": "Could not read log"
+  },
+  "settings": {
+    "title": "Data & storage",
+    "pathHint": "Paperclip data directory:",
+    "openExplorer": "Open in Explorer",
+    "language": "Language",
+    "zh": "中文",
+    "en": "English"
+  },
+  "escape": {
+    "hint": "Use full Paperclip Web for features not yet in the shell."
+  }
+}

@@ -5,12 +5,16 @@ import type { App } from 'electron';
 import { getPaperclipDataDir, getPaperclipRoot } from '../utils/data-dir.js';
 import { ensurePaperclipConfig } from '../utils/ensure-paperclip-config.js';
 import { resolveNodeExecutable } from '../utils/node-resolve.js';
+import { cleanupStaleEmbeddedPostgres } from '../utils/cleanup-embedded-postgres-stale.js';
 
 const LOG_LINES = 400;
 
-/** 去掉 pino-pretty 等写入终端的 ANSI 序列，便于用正则解析端口 */
+/** 去掉 pino / picocolors 等 ANSI 序列，便于解析端口与展示错误 */
 function stripAnsi(line: string): string {
-  return line.replace(/\u001b\[[\d;?]*[ -/]*[@-~]/g, '');
+  return line
+    .replace(/\u001b\[[\d;?]*[ -/]*[@-~]/g, '')
+    .replace(/\u001b\][\d;]*\\/g, '')
+    .replace(/\u001b[@-_]/g, '');
 }
 
 export class PaperclipServerManager {
@@ -49,7 +53,11 @@ export class PaperclipServerManager {
     if (this.stopping) return null;
     if (this.childExitCode === undefined) return null;
     if (this.childExitCode === 0 || this.childExitCode === null) return null;
-    return `paperclip 进程已退出（exit code=${this.childExitCode}）。\n\n最近日志：\n${this.getLogTail().slice(-4000)}`;
+    const tail = this.getLogTail().slice(-4000);
+    const hint = /shared memory block is still in use|pre-existing shared memory/i.test(tail)
+      ? '\n\n嵌入式 PostgreSQL 未完全释放（常见于上次异常退出）。已尝试清理 postmaster.pid；若仍失败请重启 Windows，或在任务管理器中结束仍占用数据目录下数据库的 postgres 进程。'
+      : '';
+    return `paperclip 进程已退出（exit code=${this.childExitCode}）。${hint}\n\n最近日志：\n${tail}`;
   }
 
   private tryCaptureListenPort(line: string): void {
@@ -93,9 +101,12 @@ export class PaperclipServerManager {
       PAPERCLIP_OPEN_ON_LISTEN: 'false',
       NODE_PATH: existsSync(nodePath) ? nodePath : process.env.NODE_PATH ?? '',
       FORCE_COLOR: '0',
+      NO_COLOR: '1',
+      CI: '1',
     };
 
     ensurePaperclipConfig(dataDir);
+    cleanupStaleEmbeddedPostgres(dataDir, root);
 
     if (!opts?.skipDoctor) {
       const doctor = spawnSync(
@@ -103,8 +114,16 @@ export class PaperclipServerManager {
         [entry, 'doctor', '--data-dir', dataDir, '--repair', '-y'],
         { cwd: root, env, windowsHide: true, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 },
       );
-      if (doctor.stdout) onLine(doctor.stdout);
-      if (doctor.stderr) onLine(doctor.stderr);
+      if (doctor.stdout) {
+        for (const raw of doctor.stdout.split(/\r?\n/)) {
+          if (raw) onLine(stripAnsi(raw));
+        }
+      }
+      if (doctor.stderr) {
+        for (const raw of doctor.stderr.split(/\r?\n/)) {
+          if (raw) onLine(stripAnsi(raw));
+        }
+      }
       if (doctor.status !== 0) {
         throw new Error(`paperclipai doctor 失败（退出码 ${doctor.status}）。请查看日志。`);
       }
@@ -123,8 +142,9 @@ export class PaperclipServerManager {
 
     const push = (chunk: Buffer) => {
       const text = chunk.toString('utf8');
-      for (const line of text.split(/\r?\n/)) {
-        if (!line) continue;
+      for (const raw of text.split(/\r?\n/)) {
+        if (!raw) continue;
+        const line = stripAnsi(raw);
         this.appendLog(line);
         onLine(line);
       }
