@@ -1,0 +1,133 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family:
+    'Segoe UI',
+    'PingFang SC',
+    'Microsoft YaHei',
+    system-ui,
+    sans-serif;
+  background: #0f1419;
+  color: #e6edf3;
+}
+
+#root {
+  margin: 0;
+  min-height: 100dvh;
+  font-family:
+    'Segoe UI',
+    'PingFang SC',
+    'Microsoft YaHei',
+    system-ui,
+    sans-serif;
+  background: #0f1419;
+  color: #e6edf3;
+}
+
+.page-pad {
+  padding: 24px;
+}
+.page-fill {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.page-title {
+  margin: 0 0 16px;
+  font-size: 22px;
+  font-weight: 600;
+}
+.muted {
+  opacity: 0.78;
+  font-size: 14px;
+}
+
+.splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+}
+.splash-title {
+  font-size: 22px;
+  font-weight: 600;
+}
+.splash-hint {
+  max-width: 360px;
+  opacity: 0.8;
+  font-size: 14px;
+}
+.splash-dev-warn {
+  max-width: 420px;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #f0ad4e;
+  background: rgba(240, 173, 78, 0.12);
+  border: 1px solid rgba(240, 173, 78, 0.35);
+  text-align: left;
+}
+.splash-dev-warn-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.splash-dev-warn p {
+  margin: 0;
+}
+
+.btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: #21262d;
+  color: #e6edf3;
+  cursor: pointer;
+}
+.btn:hover {
+  background: #30363d;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-ghost {
+  background: transparent;
+}
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.log-pre {
+  flex: 1;
+  overflow: auto;
+  background: #161b22;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin: 12px 0 0;
+  min-height: 200px;
+}
+
+.path-code {
+  display: block;
+  word-break: break-all;
+  background: #161b22;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0 16px;
+}
+.field-block {
+  margin-bottom: 20px;
+}

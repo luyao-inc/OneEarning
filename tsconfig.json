@@ -15,9 +15,17 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["src/paperclip/*"],
+      "@shell/*": ["src/shell/*"],
       "@electron/*": ["electron/*"]
     }
   },
-  "include": ["src", "electron/**/*.ts", "electron/**/*.tsx", "vite.config.ts"]
+  "include": ["src", "electron/**/*.ts", "electron/**/*.tsx", "vite.config.ts"],
+  "exclude": [
+    "node_modules",
+    "src/paperclip/**/*.test.ts",
+    "src/paperclip/**/*.test.tsx",
+    "src/paperclip/**/*.spec.ts",
+    "src/paperclip/**/*.spec.tsx"
+  ]
 }

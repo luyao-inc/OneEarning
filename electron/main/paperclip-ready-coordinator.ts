@@ -15,7 +15,8 @@ export function resetPaperclipReadyCoordinator(): void {
 /**
  * 渲染进程在注册好 `onPaperclipReady` 后发送，主进程再发 `paperclip-ready`，避免早于 React 订阅。
  */
-export function onRendererShellReady(win: BrowserWindow): void {
+export function onRendererShellReady(_win: BrowserWindow): void {
+  void _win;
   shellSignaled = true;
   tryFlushPaperclipReady();
 }

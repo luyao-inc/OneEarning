@@ -164,7 +164,7 @@ export function cleanupStaleEmbeddedPostgres(dataDir: string, paperclipRoot: str
   const pgCtl = resolvePgCtlExe(paperclipRoot);
 
   if (pgCtl) {
-    const r = spawnSync(pgCtl, ['stop', '-D', clusterDir, '-m', 'fast', '-w'], {
+    spawnSync(pgCtl, ['stop', '-D', clusterDir, '-m', 'fast', '-w'], {
       windowsHide: true,
       encoding: 'utf8',
       timeout: 30_000,

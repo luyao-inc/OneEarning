@@ -1,6 +1,7 @@
 /**
  * 将渲染进程的 Paperclip API 请求代理到本机 paperclip 进程（避免跨域）。
  */
+import { Buffer } from 'node:buffer';
 import type { PaperclipFetchRequest, PaperclipFetchResult } from '../shared/paperclip-ipc.js';
 
 export type { PaperclipFetchRequest, PaperclipFetchResult };
@@ -43,9 +44,27 @@ export async function paperclipProxyFetch(
 
   try {
     const headers = new Headers({ ...(req.headers ?? {}) });
-    const body = req.body === undefined || req.body === null ? undefined : req.body;
-    if (body !== undefined && !headers.has('Content-Type') && !headers.has('content-type')) {
-      headers.set('Content-Type', 'application/json');
+    let body: BodyInit | undefined;
+
+    if (req.formParts && req.formParts.length > 0) {
+      const fd = new FormData();
+      for (const p of req.formParts) {
+        const buf = Buffer.from(p.dataBase64, 'base64');
+        const blob = new Blob([buf], { type: p.type || 'application/octet-stream' });
+        if (p.filename) {
+          fd.append(p.name, blob, p.filename);
+        } else {
+          fd.append(p.name, blob);
+        }
+      }
+      body = method === 'GET' || method === 'HEAD' ? undefined : fd;
+      headers.delete('Content-Type');
+      headers.delete('content-type');
+    } else {
+      body = req.body === undefined || req.body === null ? undefined : req.body;
+      if (body !== undefined && !headers.has('Content-Type') && !headers.has('content-type')) {
+        headers.set('Content-Type', 'application/json');
+      }
     }
 
     const response = await fetch(parsed.toString(), {
