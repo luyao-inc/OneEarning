@@ -2,7 +2,7 @@ import * as React from "react";
 import { StrictMode } from "react";
 import * as ReactDOM from "react-dom";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "@/lib/router";
+import { AppRouter } from "@/lib/router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./App";
 import { CompanyProvider } from "./context/CompanyContext";
@@ -42,7 +42,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <BrowserRouter>
+        <AppRouter>
           <CompanyProvider>
             <EditorAutocompleteProvider>
               <ToastProvider>
@@ -64,7 +64,7 @@ createRoot(document.getElementById("root")!).render(
               </ToastProvider>
             </EditorAutocompleteProvider>
           </CompanyProvider>
-        </BrowserRouter>
+        </AppRouter>
       </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>

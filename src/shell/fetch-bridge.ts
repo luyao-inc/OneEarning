@@ -57,18 +57,36 @@ function paperclipResultToResponse(r: PaperclipFetchResult): Response {
   });
 }
 
+/**
+ * 从当前页面的 URL 解析出应对 Paperclip 转发的「公开」路径 `/api/...`（含 query）。
+ *
+ * 开发态为 `http://127.0.0.1:5174`，pathname 直接为 `/api/...`。
+ * 生产态为 `file:///E:/.../dist/index.html` 时，`fetch('/api/x')` 在 Windows 上会解析为
+ * `file:///E:/api/x`，pathname 为 `/E:/api/x`（不以 `/api/` 开头），必须截取 `/api/` 之后
+ * 才能命中 IPC 代理；否则走原生 fetch 会报 Failed to fetch。
+ */
+function paperclipApiPublicPath(url: URL): string | null {
+  const { pathname, search } = url;
+  if (pathname.startsWith('/api/')) {
+    return `${pathname}${search}`;
+  }
+  const idx = pathname.indexOf('/api/');
+  if (idx === -1) return null;
+  return `${pathname.slice(idx)}${search}`;
+}
+
 function shouldProxyApi(url: URL): boolean {
-  if (!url.pathname.startsWith('/api/')) return false;
-  const h = url.hostname;
   if (url.protocol === 'about:') return false;
+  if (!paperclipApiPublicPath(url)) return false;
   if (url.protocol === 'file:') return true;
+  const h = url.hostname;
   if (h === 'localhost' || h === '127.0.0.1') return true;
   if (h === window.location.hostname) return true;
   return false;
 }
 
 function toApiPath(url: URL): string {
-  return `${url.pathname}${url.search}`;
+  return paperclipApiPublicPath(url)!;
 }
 
 function headersFromRequest(req: Request): Record<string, string> {

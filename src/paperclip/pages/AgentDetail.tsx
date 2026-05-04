@@ -24,6 +24,7 @@ import { useToastActions } from "../context/ToastContext";
 import { useDialogActions } from "../context/DialogContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { queryKeys } from "../lib/queryKeys";
+import { resolveLiveEventsWsBase } from "../lib/live-events-ws-origin";
 import { AgentConfigForm } from "../components/AgentConfigForm";
 import { PageTabBar } from "../components/PageTabBar";
 import { adapterLabels, roleLabels, help } from "../components/agent-config-primitives";
@@ -3776,85 +3777,92 @@ function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType: strin
 
     const connect = () => {
       if (closed) return;
-      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-      const url = `${protocol}://${window.location.host}/api/companies/${encodeURIComponent(run.companyId)}/events/ws`;
-      socket = new WebSocket(url);
-
-      socket.onopen = () => {
-        setIsStreamingConnected(true);
-      };
-
-      socket.onmessage = (message) => {
-        const rawMessage = typeof message.data === "string" ? message.data : "";
-        if (!rawMessage) return;
-
-        let event: LiveEvent;
-        try {
-          event = JSON.parse(rawMessage) as LiveEvent;
-        } catch {
+      void (async () => {
+        const base = await resolveLiveEventsWsBase();
+        if (closed) return;
+        if (!base) {
+          scheduleReconnect();
           return;
         }
+        const url = `${base}/api/companies/${encodeURIComponent(run.companyId)}/events/ws`;
+        socket = new WebSocket(url);
 
-        if (event.companyId !== run.companyId) return;
-        const payload = asRecord(event.payload);
-        const eventRunId = asNonEmptyString(payload?.runId);
-        if (!payload || eventRunId !== run.id) return;
-
-        if (event.type === "heartbeat.run.log") {
-          const chunk = typeof payload.chunk === "string" ? payload.chunk : "";
-          if (!chunk) return;
-          const streamRaw = asNonEmptyString(payload.stream);
-          const stream = streamRaw === "stderr" || streamRaw === "system" ? streamRaw : "stdout";
-          const ts = asNonEmptyString((payload as Record<string, unknown>).ts) ?? event.createdAt;
-          setLogLines((prev) => [...prev, { ts, stream, chunk }]);
-          return;
-        }
-
-        if (event.type !== "heartbeat.run.event") return;
-
-        const seq = typeof payload.seq === "number" ? payload.seq : null;
-        if (seq === null || !Number.isFinite(seq)) return;
-
-        const streamRaw = asNonEmptyString(payload.stream);
-        const stream =
-          streamRaw === "stdout" || streamRaw === "stderr" || streamRaw === "system"
-            ? streamRaw
-            : null;
-        const levelRaw = asNonEmptyString(payload.level);
-        const level =
-          levelRaw === "info" || levelRaw === "warn" || levelRaw === "error"
-            ? levelRaw
-            : null;
-
-        const liveEvent: HeartbeatRunEvent = {
-          id: seq,
-          companyId: run.companyId,
-          runId: run.id,
-          agentId: run.agentId,
-          seq,
-          eventType: asNonEmptyString(payload.eventType) ?? "event",
-          stream,
-          level,
-          color: asNonEmptyString(payload.color),
-          message: asNonEmptyString(payload.message),
-          payload: asRecord(payload.payload),
-          createdAt: new Date(event.createdAt),
+        socket.onopen = () => {
+          setIsStreamingConnected(true);
         };
 
-        setEvents((prev) => {
-          if (prev.some((existing) => existing.seq === seq)) return prev;
-          return [...prev, liveEvent];
-        });
-      };
+        socket.onmessage = (message) => {
+          const rawMessage = typeof message.data === "string" ? message.data : "";
+          if (!rawMessage) return;
 
-      socket.onerror = () => {
-        socket?.close();
-      };
+          let event: LiveEvent;
+          try {
+            event = JSON.parse(rawMessage) as LiveEvent;
+          } catch {
+            return;
+          }
 
-      socket.onclose = () => {
-        setIsStreamingConnected(false);
-        scheduleReconnect();
-      };
+          if (event.companyId !== run.companyId) return;
+          const payload = asRecord(event.payload);
+          const eventRunId = asNonEmptyString(payload?.runId);
+          if (!payload || eventRunId !== run.id) return;
+
+          if (event.type === "heartbeat.run.log") {
+            const chunk = typeof payload.chunk === "string" ? payload.chunk : "";
+            if (!chunk) return;
+            const streamRaw = asNonEmptyString(payload.stream);
+            const stream = streamRaw === "stderr" || streamRaw === "system" ? streamRaw : "stdout";
+            const ts = asNonEmptyString((payload as Record<string, unknown>).ts) ?? event.createdAt;
+            setLogLines((prev) => [...prev, { ts, stream, chunk }]);
+            return;
+          }
+
+          if (event.type !== "heartbeat.run.event") return;
+
+          const seq = typeof payload.seq === "number" ? payload.seq : null;
+          if (seq === null || !Number.isFinite(seq)) return;
+
+          const streamRaw = asNonEmptyString(payload.stream);
+          const stream =
+            streamRaw === "stdout" || streamRaw === "stderr" || streamRaw === "system"
+              ? streamRaw
+              : null;
+          const levelRaw = asNonEmptyString(payload.level);
+          const level =
+            levelRaw === "info" || levelRaw === "warn" || levelRaw === "error"
+              ? levelRaw
+              : null;
+
+          const liveEvent: HeartbeatRunEvent = {
+            id: seq,
+            companyId: run.companyId,
+            runId: run.id,
+            agentId: run.agentId,
+            seq,
+            eventType: asNonEmptyString(payload.eventType) ?? "event",
+            stream,
+            level,
+            color: asNonEmptyString(payload.color),
+            message: asNonEmptyString(payload.message),
+            payload: asRecord(payload.payload),
+            createdAt: new Date(event.createdAt),
+          };
+
+          setEvents((prev) => {
+            if (prev.some((existing) => existing.seq === seq)) return prev;
+            return [...prev, liveEvent];
+          });
+        };
+
+        socket.onerror = () => {
+          socket?.close();
+        };
+
+        socket.onclose = () => {
+          setIsStreamingConnected(false);
+          scheduleReconnect();
+        };
+      })();
     };
 
     connect();

@@ -6,6 +6,7 @@ import { instanceSettingsApi } from "../../api/instanceSettings";
 import { heartbeatsApi } from "../../api/heartbeats";
 import { buildTranscript, getUIAdapter, onAdapterChange, type RunLogChunk, type TranscriptEntry } from "../../adapters";
 import { queryKeys } from "../../lib/queryKeys";
+import { resolveLiveEventsWsBase } from "../../lib/live-events-ws-origin";
 
 const LOG_POLL_INTERVAL_MS = 2000;
 const LOG_READ_LIMIT_BYTES = 256_000;
@@ -279,77 +280,84 @@ export function useLiveRunTranscripts({
 
     const connect = () => {
       if (closed) return;
-      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-      const url = `${protocol}://${window.location.host}/api/companies/${encodeURIComponent(companyId)}/events/ws`;
-      socket = new WebSocket(url);
-
-      socket.onmessage = (message) => {
-        const raw = typeof message.data === "string" ? message.data : "";
-        if (!raw) return;
-
-        let event: LiveEvent;
-        try {
-          event = JSON.parse(raw) as LiveEvent;
-        } catch {
+      void (async () => {
+        const base = await resolveLiveEventsWsBase();
+        if (closed) return;
+        if (!base) {
+          scheduleReconnect();
           return;
         }
+        const url = `${base}/api/companies/${encodeURIComponent(companyId)}/events/ws`;
+        socket = new WebSocket(url);
 
-        if (event.companyId !== companyId) return;
-        const payload = event.payload ?? {};
-        const runId = readString(payload["runId"]);
-        if (!runId || !activeRunIds.has(runId)) return;
-        if (!runById.has(runId)) return;
+        socket.onmessage = (message) => {
+          const raw = typeof message.data === "string" ? message.data : "";
+          if (!raw) return;
 
-        if (event.type === "heartbeat.run.log") {
-          const chunk = readString(payload["chunk"]);
-          if (!chunk) return;
-          const ts = readString(payload["ts"]) ?? event.createdAt;
-          const stream =
-            readString(payload["stream"]) === "stderr"
-              ? "stderr"
-              : readString(payload["stream"]) === "system"
-                ? "system"
-                : "stdout";
-          appendChunks(runId, [{
-            ts,
-            stream,
-            chunk,
-            dedupeKey: `log:${runId}:${ts}:${stream}:${chunk}`,
-          }]);
-          return;
-        }
+          let event: LiveEvent;
+          try {
+            event = JSON.parse(raw) as LiveEvent;
+          } catch {
+            return;
+          }
 
-        if (event.type === "heartbeat.run.event") {
-          const seq = typeof payload["seq"] === "number" ? payload["seq"] : null;
-          const eventType = readString(payload["eventType"]) ?? "event";
-          const messageText = readString(payload["message"]) ?? eventType;
-          appendChunks(runId, [{
-            ts: event.createdAt,
-            stream: eventType === "error" ? "stderr" : "system",
-            chunk: messageText,
-            dedupeKey: `socket:event:${runId}:${seq ?? `${eventType}:${messageText}:${event.createdAt}`}`,
-          }]);
-          return;
-        }
+          if (event.companyId !== companyId) return;
+          const payload = event.payload ?? {};
+          const runId = readString(payload["runId"]);
+          if (!runId || !activeRunIds.has(runId)) return;
+          if (!runById.has(runId)) return;
 
-        if (event.type === "heartbeat.run.status") {
-          const status = readString(payload["status"]) ?? "updated";
-          appendChunks(runId, [{
-            ts: event.createdAt,
-            stream: isTerminalStatus(status) && status !== "succeeded" ? "stderr" : "system",
-            chunk: `run ${status}`,
-            dedupeKey: `socket:status:${runId}:${status}:${readString(payload["finishedAt"]) ?? ""}`,
-          }]);
-        }
-      };
+          if (event.type === "heartbeat.run.log") {
+            const chunk = readString(payload["chunk"]);
+            if (!chunk) return;
+            const ts = readString(payload["ts"]) ?? event.createdAt;
+            const stream =
+              readString(payload["stream"]) === "stderr"
+                ? "stderr"
+                : readString(payload["stream"]) === "system"
+                  ? "system"
+                  : "stdout";
+            appendChunks(runId, [{
+              ts,
+              stream,
+              chunk,
+              dedupeKey: `log:${runId}:${ts}:${stream}:${chunk}`,
+            }]);
+            return;
+          }
 
-      socket.onerror = () => {
-        socket?.close();
-      };
+          if (event.type === "heartbeat.run.event") {
+            const seq = typeof payload["seq"] === "number" ? payload["seq"] : null;
+            const eventType = readString(payload["eventType"]) ?? "event";
+            const messageText = readString(payload["message"]) ?? eventType;
+            appendChunks(runId, [{
+              ts: event.createdAt,
+              stream: eventType === "error" ? "stderr" : "system",
+              chunk: messageText,
+              dedupeKey: `socket:event:${runId}:${seq ?? `${eventType}:${messageText}:${event.createdAt}`}`,
+            }]);
+            return;
+          }
 
-      socket.onclose = () => {
-        scheduleReconnect();
-      };
+          if (event.type === "heartbeat.run.status") {
+            const status = readString(payload["status"]) ?? "updated";
+            appendChunks(runId, [{
+              ts: event.createdAt,
+              stream: isTerminalStatus(status) && status !== "succeeded" ? "stderr" : "system",
+              chunk: `run ${status}`,
+              dedupeKey: `socket:status:${runId}:${status}:${readString(payload["finishedAt"]) ?? ""}`,
+            }]);
+          }
+        };
+
+        socket.onerror = () => {
+          socket?.close();
+        };
+
+        socket.onclose = () => {
+          scheduleReconnect();
+        };
+      })();
     };
 
     connect();

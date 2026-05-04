@@ -11,6 +11,16 @@ import {
 } from "@/lib/company-routes";
 import { parseIssuePathIdFromPath } from "@/lib/issue-reference";
 
+export type AppRouterProps = React.ComponentProps<typeof RouterDom.BrowserRouter>;
+
+/** 生产包用 `file://` 打开时 pathname 会带盘符（如 `/C:/...`），BrowserRouter 会把 `C:` 误当成公司前缀；改用 Hash。 */
+export function AppRouter(props: AppRouterProps) {
+  if (typeof window !== "undefined" && window.location.protocol === "file:") {
+    return <RouterDom.HashRouter {...props} />;
+  }
+  return <RouterDom.BrowserRouter {...props} />;
+}
+
 function resolveTo(to: To, companyPrefix: string | null): To {
   if (typeof to === "string") {
     return applyCompanyPrefix(to, companyPrefix);

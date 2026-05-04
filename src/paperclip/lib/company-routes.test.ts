@@ -19,6 +19,11 @@ describe("company routes", () => {
     );
   });
 
+  it("skips Windows drive segments when extracting company prefix (file URL style pathname)", () => {
+    expect(extractCompanyPrefixFromPath("/C:/CMP/dashboard")).toBe("CMP");
+    expect(extractCompanyPrefixFromPath("/E:/CMP/issues")).toBe("CMP");
+  });
+
   it("normalizes prefixed execution workspace paths back to company-relative paths", () => {
     expect(toCompanyRelativePath("/PAP/execution-workspaces/workspace-123")).toBe(
       "/execution-workspaces/workspace-123",

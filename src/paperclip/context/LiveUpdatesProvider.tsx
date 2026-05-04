@@ -14,6 +14,7 @@ import { upsertIssueCommentInPages } from "../lib/optimistic-issue-comments";
 import { clearIssueExecutionRun, removeLiveRunById } from "../lib/optimistic-issue-runs";
 import { queryKeys } from "../lib/queryKeys";
 import { toCompanyRelativePath } from "../lib/company-routes";
+import { resolveLiveEventsWsBase } from "../lib/live-events-ws-origin";
 import { useLocation } from "../lib/router";
 
 const TOAST_COOLDOWN_WINDOW_MS = 10_000;
@@ -972,48 +973,55 @@ export function LiveUpdatesProvider({ children }: { children: ReactNode }) {
 
     const connect = () => {
       if (closed) return;
-      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-      const url = `${protocol}://${window.location.host}/api/companies/${encodeURIComponent(liveCompanyId)}/events/ws`;
-      const nextSocket = new WebSocket(url);
-      socket = nextSocket;
-
-      nextSocket.onopen = () => {
-        if (closed || socket !== nextSocket) {
-          closeSocketQuietly(nextSocket, "stale_connection");
+      void (async () => {
+        const base = await resolveLiveEventsWsBase();
+        if (closed) return;
+        if (!base) {
+          scheduleReconnect();
           return;
         }
-        if (reconnectAttempt > 0) {
-          gateRef.current.suppressUntil = Date.now() + RECONNECT_SUPPRESS_MS;
-        }
-        reconnectAttempt = 0;
-      };
+        const url = `${base}/api/companies/${encodeURIComponent(liveCompanyId)}/events/ws`;
+        const nextSocket = new WebSocket(url);
+        socket = nextSocket;
 
-      nextSocket.onmessage = (message) => {
-        const raw = typeof message.data === "string" ? message.data : "";
-        if (!raw) return;
+        nextSocket.onopen = () => {
+          if (closed || socket !== nextSocket) {
+            closeSocketQuietly(nextSocket, "stale_connection");
+            return;
+          }
+          if (reconnectAttempt > 0) {
+            gateRef.current.suppressUntil = Date.now() + RECONNECT_SUPPRESS_MS;
+          }
+          reconnectAttempt = 0;
+        };
 
-        try {
-          const parsed = JSON.parse(raw) as LiveEvent;
-          handleLiveEvent(queryClient, liveCompanyId, pathnameRef.current, parsed, pushToast, gateRef.current, {
-            userId: currentActorRef.current.userId,
-            agentId: currentActorRef.current.agentId,
-          });
-        } catch {
-          // Ignore non-JSON payloads.
-        }
-      };
+        nextSocket.onmessage = (message) => {
+          const raw = typeof message.data === "string" ? message.data : "";
+          if (!raw) return;
 
-      nextSocket.onerror = () => {
-        // Wait for onclose to drive the reconnect. Self-closing here is what
-        // produces the "closed before connection established" browser noise.
-      };
+          try {
+            const parsed = JSON.parse(raw) as LiveEvent;
+            handleLiveEvent(queryClient, liveCompanyId, pathnameRef.current, parsed, pushToast, gateRef.current, {
+              userId: currentActorRef.current.userId,
+              agentId: currentActorRef.current.agentId,
+            });
+          } catch {
+            // Ignore non-JSON payloads.
+          }
+        };
 
-      nextSocket.onclose = () => {
-        if (socket !== nextSocket) return;
-        socket = null;
-        if (closed) return;
-        scheduleReconnect();
-      };
+        nextSocket.onerror = () => {
+          // Wait for onclose to drive the reconnect. Self-closing here is what
+          // produces the "closed before connection established" browser noise.
+        };
+
+        nextSocket.onclose = () => {
+          if (socket !== nextSocket) return;
+          socket = null;
+          if (closed) return;
+          scheduleReconnect();
+        };
+      })();
     };
 
     // Delay initial connect slightly so React StrictMode's double-invoke

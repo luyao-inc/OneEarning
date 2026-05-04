@@ -53,14 +53,22 @@ export function isBoardPathWithoutPrefix(pathname: string): boolean {
   return BOARD_ROUTE_ROOTS.has(root.toLowerCase());
 }
 
+function isWindowsDriveSegment(segment: string): boolean {
+  return /^[A-Za-z]:$/.test(segment);
+}
+
 export function extractCompanyPrefixFromPath(pathname: string): string | null {
   const segments = pathname.split("/").filter(Boolean);
-  if (segments.length === 0) return null;
-  const first = segments[0]!.toLowerCase();
+  let i = 0;
+  while (i < segments.length && isWindowsDriveSegment(segments[i]!)) {
+    i += 1;
+  }
+  if (i >= segments.length) return null;
+  const first = segments[i]!.toLowerCase();
   if (GLOBAL_ROUTE_ROOTS.has(first) || BOARD_ROUTE_ROOTS.has(first)) {
     return null;
   }
-  return normalizeCompanyPrefix(segments[0]!);
+  return normalizeCompanyPrefix(segments[i]!);
 }
 
 export function applyCompanyPrefix(path: string, companyPrefix: string | null | undefined): string {
