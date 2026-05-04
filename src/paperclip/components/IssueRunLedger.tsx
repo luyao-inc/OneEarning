@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type { ActivityEvent, Issue, Agent } from "@paperclipai/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Link } from "@/lib/router";
 import { accessApi, type CurrentBoardAccess } from "../api/access";
@@ -287,21 +288,50 @@ function isActiveRun(run: Pick<LedgerRun, "status" | "isLive">) {
   return run.isLive || ACTIVE_RUN_STATUSES.has(run.status);
 }
 
-function runSummary(run: LedgerRun, agentMap: ReadonlyMap<string, Pick<Agent, "name">>) {
+function runSummary(run: LedgerRun, agentMap: ReadonlyMap<string, Pick<Agent, "name">>, t: TFunction) {
   const agentName = compactAgentName(run, agentMap);
-  if (run.status === "running") return `Running now by ${agentName}`;
-  if (run.status === "queued") return `Queued for ${agentName}`;
-  if (run.status === "scheduled_retry") return `Automatic retry scheduled for ${agentName}`;
-  return `${statusLabel(run.status)} by ${agentName}`;
+  if (run.status === "running") return t("paperclip.issueRunLedger.summaryRunning", { agent: agentName });
+  if (run.status === "queued") return t("paperclip.issueRunLedger.summaryQueued", { agent: agentName });
+  if (run.status === "scheduled_retry") {
+    return t("paperclip.issueRunLedger.summaryRetryScheduled", { agent: agentName });
+  }
+  const statusDisplay = t(`paperclip.issueRunLedger.runStatus.${run.status}`, {
+    defaultValue: statusLabel(run.status),
+  });
+  return t("paperclip.issueRunLedger.summaryByAgent", { status: statusDisplay, agent: agentName });
 }
 
-function livenessCopyForRun(run: LedgerRun) {
-  if (run.status === "scheduled_retry") return RETRY_PENDING_LIVENESS_COPY;
-  if (run.livenessState) return LIVENESS_COPY[run.livenessState];
-  return isActiveRun(run) ? PENDING_LIVENESS_COPY : MISSING_LIVENESS_COPY;
+function livenessCopyForRun(run: LedgerRun, t: TFunction): LivenessCopy {
+  if (run.status === "scheduled_retry") {
+    return {
+      label: t("paperclip.issueRunLedger.liveness.retryPending.label"),
+      tone: RETRY_PENDING_LIVENESS_COPY.tone,
+      description: t("paperclip.issueRunLedger.liveness.retryPending.description"),
+    };
+  }
+  if (run.livenessState) {
+    const state = run.livenessState;
+    return {
+      label: t(`paperclip.issueRunLedger.liveness.${state}.label`),
+      tone: LIVENESS_COPY[state].tone,
+      description: t(`paperclip.issueRunLedger.liveness.${state}.description`),
+    };
+  }
+  if (isActiveRun(run)) {
+    return {
+      label: t("paperclip.issueRunLedger.liveness.pendingAfterFinish.label"),
+      tone: PENDING_LIVENESS_COPY.tone,
+      description: t("paperclip.issueRunLedger.liveness.pendingAfterFinish.description"),
+    };
+  }
+  return {
+    label: t("paperclip.issueRunLedger.liveness.noLivenessData.label"),
+    tone: MISSING_LIVENESS_COPY.tone,
+    description: t("paperclip.issueRunLedger.liveness.noLivenessData.description"),
+  };
 }
 
-function stopReasonLabel(run: RunForIssue) {
+function stopReasonLabel(run: RunForIssue, t: TFunction) {
   const result = asRecord(run.resultJson);
   const stopReason = readString(result?.stopReason);
   const timeoutFired = result?.timeoutFired === true;
@@ -310,41 +340,47 @@ function stopReasonLabel(run: RunForIssue) {
     effectiveTimeoutSec && effectiveTimeoutSec > 0 ? `${effectiveTimeoutSec}s timeout` : null;
 
   if (timeoutFired || stopReason === "timeout") {
-    return timeoutText ? `timeout (${timeoutText})` : "timeout";
+    return timeoutText
+      ? t("paperclip.issueRunLedger.stopReason.timeoutWithLimit", { limit: timeoutText })
+      : t("paperclip.issueRunLedger.stopReason.timeout");
   }
-  if (stopReason === "budget_paused") return "budget paused";
-  if (stopReason === "cancelled") return "cancelled";
-  if (stopReason === "paused") return "paused by board";
-  if (stopReason === "process_lost") return "process lost";
-  if (stopReason === "adapter_failed") return "adapter failed";
-  if (stopReason === "completed") return timeoutText ? `completed (${timeoutText})` : "completed";
+  if (stopReason === "budget_paused") return t("paperclip.issueRunLedger.stopReason.budget_paused");
+  if (stopReason === "cancelled") return t("paperclip.issueRunLedger.stopReason.cancelled");
+  if (stopReason === "paused") return t("paperclip.issueRunLedger.stopReason.paused_by_board");
+  if (stopReason === "process_lost") return t("paperclip.issueRunLedger.stopReason.process_lost");
+  if (stopReason === "adapter_failed") return t("paperclip.issueRunLedger.stopReason.adapter_failed");
+  if (stopReason === "completed") {
+    return timeoutText
+      ? t("paperclip.issueRunLedger.stopReason.completedWithLimit", { limit: timeoutText })
+      : t("paperclip.issueRunLedger.stopReason.completed");
+  }
   return timeoutText;
 }
 
-function stopStatusLabel(run: LedgerRun, stopReason: string | null) {
+function stopStatusLabel(run: LedgerRun, stopReason: string | null, t: TFunction) {
   if (stopReason) return stopReason;
-  if (run.status === "scheduled_retry") return "Retry pending";
-  if (run.status === "queued") return "Waiting to start";
-  if (run.status === "running") return "Still running";
-  if (!run.livenessState) return "Unavailable";
-  return "No stop reason";
+  if (run.status === "scheduled_retry") return t("paperclip.issueRunLedger.stopStatus.retryPending");
+  if (run.status === "queued") return t("paperclip.issueRunLedger.stopStatus.waitingToStart");
+  if (run.status === "running") return t("paperclip.issueRunLedger.stopStatus.stillRunning");
+  if (!run.livenessState) return t("paperclip.issueRunLedger.stopStatus.unavailable");
+  return t("paperclip.issueRunLedger.stopStatus.noStopReason");
 }
 
-function lastUsefulActionLabel(run: LedgerRun) {
-  if (run.status === "scheduled_retry") return "Waiting for next attempt";
+function lastUsefulActionLabel(run: LedgerRun, t: TFunction) {
+  if (run.status === "scheduled_retry") return t("paperclip.issueRunLedger.lastUsefulAction.waitingNextAttempt");
   if (run.lastUsefulActionAt) return relativeTime(run.lastUsefulActionAt);
-  if (isActiveRun(run)) return "No action recorded yet";
+  if (isActiveRun(run)) return t("paperclip.issueRunLedger.lastUsefulAction.noActionYet");
   if (run.livenessState === "plan_only" || run.livenessState === "needs_followup") {
-    return "No concrete action";
+    return t("paperclip.issueRunLedger.lastUsefulAction.noConcreteAction");
   }
-  if (run.livenessState === "empty_response") return "No useful output";
-  if (!run.livenessState) return "Unavailable";
-  return "None recorded";
+  if (run.livenessState === "empty_response") return t("paperclip.issueRunLedger.lastUsefulAction.noUsefulOutput");
+  if (!run.livenessState) return t("paperclip.issueRunLedger.lastUsefulAction.unavailable");
+  return t("paperclip.issueRunLedger.lastUsefulAction.noneRecorded");
 }
 
-function continuationLabel(run: LedgerRun) {
+function continuationLabel(run: LedgerRun, t: TFunction) {
   if (!run.continuationAttempt || run.continuationAttempt <= 0) return null;
-  return `Continuation attempt ${run.continuationAttempt}`;
+  return t("paperclip.issueRunLedger.runCard.continuationAttempt", { count: run.continuationAttempt });
 }
 
 function hasExhaustedContinuation(run: RunForIssue) {
@@ -490,6 +526,7 @@ export function IssueRunLedgerContent({
   watchdogDecisionError,
   onWatchdogDecision,
 }: IssueRunLedgerContentProps) {
+  const { t } = useTranslation();
   const ledgerRuns = useMemo(() => mergeRuns(runs, liveRuns, activeRun), [activeRun, liveRuns, runs]);
   const latestRun = ledgerRuns[0] ?? null;
   const latestSilentRun = useMemo(
@@ -537,13 +574,13 @@ export function IssueRunLedgerContent({
     <section className="space-y-3" aria-label="Issue run ledger">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="text-sm font-medium text-muted-foreground">Run ledger</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("paperclip.issueRunLedger.title")}</h3>
           <p className="text-xs text-muted-foreground">
             {latestRun
-              ? runSummary(latestRun, agentMap)
+              ? runSummary(latestRun, agentMap, t)
               : issueStatus === "in_progress"
-                ? "Waiting for the first run record."
-                : "No runs linked yet."}
+                ? t("paperclip.issueRunLedger.subtitleWaitingFirstRun")
+                : t("paperclip.issueRunLedger.subtitleNoRuns")}
           </p>
         </div>
         {latestRun ? (
@@ -551,7 +588,7 @@ export function IssueRunLedgerContent({
             to={`/agents/${latestRun.agentId}/runs/${latestRun.runId}`}
             className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
           >
-            Latest run
+            {t("paperclip.issueRunLedger.latestRunLink")}
           </Link>
         ) : null}
       </div>
@@ -559,11 +596,19 @@ export function IssueRunLedgerContent({
       {children.total > 0 ? (
         <div className="rounded-md border border-border/70 px-3 py-2">
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="font-medium text-foreground">Child work</span>
+            <span className="font-medium text-foreground">{t("paperclip.issueRunLedger.childWork.title")}</span>
             <span className="text-muted-foreground">
               {children.active.length > 0
-                ? `${children.active.length} active, ${children.done} done, ${children.cancelled} cancelled`
-                : `all ${children.total} terminal (${children.done} done, ${children.cancelled} cancelled)`}
+                ? t("paperclip.issueRunLedger.childWork.summaryActive", {
+                    active: children.active.length,
+                    done: children.done,
+                    cancelled: children.cancelled,
+                  })
+                : t("paperclip.issueRunLedger.childWork.summaryAllTerminal", {
+                    total: children.total,
+                    done: children.done,
+                    cancelled: children.cancelled,
+                  })}
             </span>
           </div>
           {children.active.length > 0 ? (
@@ -581,7 +626,7 @@ export function IssueRunLedgerContent({
               ))}
               {children.active.length > 4 ? (
                 <span className="rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground">
-                  +{children.active.length - 4} more
+                  {t("paperclip.issueRunLedger.childWork.more", { count: children.active.length - 4 })}
                 </span>
               ) : null}
             </div>
@@ -677,8 +722,8 @@ export function IssueRunLedgerContent({
       {feedItems.length === 0 ? (
         <div className="rounded-md border border-dashed border-border px-3 py-3 text-sm text-muted-foreground">
           {renderActivityEvent
-            ? "Runs and activity will appear here once this issue has history."
-            : "Historical runs without liveness metadata will appear here once linked to this issue."}
+            ? t("paperclip.issueRunLedger.runCard.emptyWithActivity")
+            : t("paperclip.issueRunLedger.runCard.emptyNoActivity")}
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -687,34 +732,37 @@ export function IssueRunLedgerContent({
               return <div key={`activity:${item.id}`}>{renderActivityEvent?.(item.event)}</div>;
             }
             const run = item.run;
-            const liveness = livenessCopyForRun(run);
-            const stopReason = stopReasonLabel(run);
+            const liveness = livenessCopyForRun(run, t);
+            const stopReason = stopReasonLabel(run, t);
             const duration = formatDuration(run.startedAt, run.finishedAt);
             const exhausted = hasExhaustedContinuation(run);
-            const continuation = continuationLabel(run);
-            const retryState = describeRunRetryState(run);
+            const continuation = continuationLabel(run, t);
+            const retryState = describeRunRetryState(run, t);
             const agentName = compactAgentName(run, agentMap);
+            const runStatusBadge = t(`paperclip.issueRunLedger.runStatus.${run.status}`, {
+              defaultValue: statusLabel(run.status),
+            });
             return (
               <article
                 key={`run:${run.runId}`}
                 className="space-y-1.5 rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground"
               >
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="font-medium text-foreground">Run</span>
+                  <span className="font-medium text-foreground">{t("paperclip.issueRunLedger.runCard.runLabel")}</span>
                   <Link
                     to={`/agents/${run.agentId}/runs/${run.runId}`}
                     className="min-w-0 max-w-full truncate font-mono text-foreground hover:underline"
                   >
                     {run.runId.slice(0, 8)}
                   </Link>
-                  <span>by {agentName}</span>
-                  <span className="rounded-md border border-border px-1.5 py-0.5 text-[11px] capitalize text-muted-foreground">
-                    {statusLabel(run.status)}
+                  <span>{t("paperclip.issueRunLedger.runCard.byAgent", { agent: agentName })}</span>
+                  <span className="rounded-md border border-border px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                    {runStatusBadge}
                   </span>
                   {run.isLive ? (
                     <span className="inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[11px] text-cyan-700 dark:text-cyan-300">
                       <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                      live
+                      {t("paperclip.issueRunLedger.runCard.live")}
                     </span>
                   ) : null}
                   <span
@@ -728,7 +776,7 @@ export function IssueRunLedgerContent({
                   </span>
                   {exhausted ? (
                     <span className="rounded-md border border-red-500/30 bg-red-500/10 px-1.5 py-0.5 text-[11px] font-medium text-red-700 dark:text-red-300">
-                      Exhausted
+                      {t("paperclip.issueRunLedger.runCard.exhaustedBadge")}
                     </span>
                   ) : null}
                   {continuation ? (
@@ -751,17 +799,20 @@ export function IssueRunLedgerContent({
                         RUN_OUTPUT_SILENCE_COPY[run.outputSilence.level]?.tone,
                       )}
                     >
-                      {RUN_OUTPUT_SILENCE_COPY[run.outputSilence.level]?.label}
+                      {t(`paperclip.issueRunLedger.outputSilence.${run.outputSilence.level}`)}
                     </span>
                   ) : null}
                   {(() => {
                     const profile = modelProfileForRun(run);
                     if (!profile) return null;
                     const label = profile.applied === profile.requested
-                      ? `Profile: ${profile.requested}`
+                      ? t("paperclip.issueRunLedger.runCard.profileApplied", { requested: profile.requested })
                       : profile.applied
-                        ? `Profile: ${profile.requested} → ${profile.applied}`
-                        : `Profile: ${profile.requested} (unavailable)`;
+                        ? t("paperclip.issueRunLedger.runCard.profileFallback", {
+                            requested: profile.requested,
+                            applied: profile.applied,
+                          })
+                        : t("paperclip.issueRunLedger.runCard.profileUnavailable", { requested: profile.requested });
                     return (
                       <span
                         className={cn(
@@ -779,16 +830,16 @@ export function IssueRunLedgerContent({
 
                 <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
                   <div className="min-w-0">
-                    <span className="text-foreground">Elapsed</span>{" "}
-                    {duration ?? "unknown"}
+                    <span className="text-foreground">{t("paperclip.issueRunLedger.runCard.elapsed")}</span>{" "}
+                    {duration ?? t("paperclip.issueRunLedger.runCard.elapsedUnknown")}
                   </div>
                   <div className="min-w-0">
-                    <span className="text-foreground">Last useful action</span>{" "}
-                    {lastUsefulActionLabel(run)}
+                    <span className="text-foreground">{t("paperclip.issueRunLedger.runCard.lastUsefulAction")}</span>{" "}
+                    {lastUsefulActionLabel(run, t)}
                   </div>
                   <div className="min-w-0">
-                    <span className="text-foreground">Stop</span>{" "}
-                    {stopStatusLabel(run, stopReason)}
+                    <span className="text-foreground">{t("paperclip.issueRunLedger.runCard.stop")}</span>{" "}
+                    {stopStatusLabel(run, stopReason, t)}
                   </div>
                 </div>
 
@@ -798,7 +849,7 @@ export function IssueRunLedgerContent({
                     {retryState.secondary ? <p>{retryState.secondary}</p> : null}
                     {retryState.retryOfRunId ? (
                       <p>
-                        Retry of{" "}
+                        {t("paperclip.issueRunLedger.runCard.retryOf")}{" "}
                         <Link
                           to={`/agents/${run.agentId}/runs/${retryState.retryOfRunId}`}
                           className="font-mono text-foreground hover:underline"
@@ -816,8 +867,8 @@ export function IssueRunLedgerContent({
                   return (
                     <p className="min-w-0 break-words text-[11px] leading-5 text-amber-700 dark:text-amber-300">
                       {profile.requested === "cheap"
-                        ? "Cheap profile fell back to primary"
-                        : `${profile.requested} profile unavailable`}
+                        ? t("paperclip.issueRunLedger.runCard.profileCheapFallback")
+                        : t("paperclip.issueRunLedger.runCard.profileGenericUnavailable", { requested: profile.requested })}
                       {": "}
                       <span className="font-mono">{profile.fallbackReason}</span>
                     </p>
@@ -832,7 +883,7 @@ export function IssueRunLedgerContent({
 
                 {run.nextAction ? (
                   <div className="min-w-0 rounded-md bg-accent/40 px-2 py-1.5 text-xs leading-5">
-                    <span className="font-medium text-foreground">Next action: </span>
+                    <span className="font-medium text-foreground">{t("paperclip.issueRunLedger.runCard.nextActionPrefix")}</span>
                     <span className="break-words text-muted-foreground">{run.nextAction}</span>
                   </div>
                 ) : null}
@@ -841,7 +892,7 @@ export function IssueRunLedgerContent({
           })}
           {feedItems.length > 20 ? (
             <div className="px-3 py-2 text-xs text-muted-foreground">
-              {feedItems.length - 20} older items not shown
+              {t("paperclip.issueRunLedger.runCard.olderItemsHidden", { count: feedItems.length - 20 })}
             </div>
           ) : null}
         </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { IssueRelatedWorkItem, IssueRelatedWorkSummary } from "@paperclipai/shared";
 import { IssueReferencePill } from "./IssueReferencePill";
 
@@ -88,22 +89,23 @@ export function IssueRelatedWorkPanel({
 }: {
   relatedWork?: IssueRelatedWorkSummary | null;
 }) {
+  const { t } = useTranslation();
   const outbound = relatedWork?.outbound ?? [];
   const inbound = relatedWork?.inbound ?? [];
 
   return (
     <div className="space-y-3">
       <Section
-        title="References"
-        description="Other tasks this issue currently points at in its title, description, comments, or documents."
+        title={t("paperclip.issueRelatedWork.referencesTitle")}
+        description={t("paperclip.issueRelatedWork.referencesDescription")}
         items={outbound}
-        emptyLabel="This issue does not reference any other tasks yet."
+        emptyLabel={t("paperclip.issueRelatedWork.referencesEmpty")}
       />
       <Section
-        title="Referenced by"
-        description="Other tasks that currently point at this issue."
+        title={t("paperclip.issueRelatedWork.referencedByTitle")}
+        description={t("paperclip.issueRelatedWork.referencedByDescription")}
         items={inbound}
-        emptyLabel="No other tasks reference this issue yet."
+        emptyLabel={t("paperclip.issueRelatedWork.referencedByEmpty")}
       />
     </div>
   );

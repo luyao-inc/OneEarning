@@ -16,27 +16,32 @@ export function formatNumber(n: number): string {
   return n.toLocaleString("en-US");
 }
 
+function dateLocaleTag(): string {
+  const lng = i18n.resolvedLanguage ?? i18n.language ?? "en-US";
+  return lng.startsWith("zh") ? "zh-CN" : lng;
+}
+
 export function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
+  return new Date(date).toLocaleDateString(dateLocaleTag(), {
     year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 }
 
 export function formatDateTime(date: Date | string): string {
-  return new Date(date).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
+  return new Date(date).toLocaleString(dateLocaleTag(), {
     year: "numeric",
+    month: "long",
+    day: "numeric",
     hour: "numeric",
     minute: "2-digit",
   });
 }
 
 export function formatShortDate(date: Date | string): string {
-  return new Date(date).toLocaleString("en-US", {
-    month: "short",
+  return new Date(date).toLocaleString(dateLocaleTag(), {
+    month: "long",
     day: "numeric",
   });
 }

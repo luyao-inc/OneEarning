@@ -5,7 +5,8 @@ import type { ComponentProps } from "react";
 import { createRoot } from "react-dom/client";
 import type { IssueDocument } from "@paperclipai/shared";
 import { ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY } from "@paperclipai/shared";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import i18n from "@shell/i18n";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { IssueContinuationHandoff } from "./IssueContinuationHandoff";
 
 vi.mock("./MarkdownBody", () => ({
@@ -46,6 +47,10 @@ function createHandoffDocument(): IssueDocument {
 describe("IssueContinuationHandoff", () => {
   let container: HTMLDivElement;
 
+  beforeAll(async () => {
+    await i18n.changeLanguage("en");
+  });
+
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -72,7 +77,7 @@ describe("IssueContinuationHandoff", () => {
     expect(container.textContent).not.toContain("Resume from the activity tab.");
 
     const copyButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Copy"));
+      .find((button) => button.textContent?.includes(i18n.t("paperclip.issueContinuation.copy")));
     expect(copyButton).toBeTruthy();
 
     await act(async () => {

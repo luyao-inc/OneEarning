@@ -148,7 +148,202 @@
       "routineBadge": "Routine",
       "productivityReviewTitle": "This task is a productivity review.",
       "productivityReviewBadge": "Productivity review",
-      "hideThisIssue": "Hide this issue"
+      "hideThisIssue": "Hide this issue",
+      "tabChat": "Chat",
+      "tabActivity": "Activity",
+      "tabRelatedWork": "Related work",
+      "uploadAttachment": "Upload attachment",
+      "uploadAttachmentShort": "Upload",
+      "uploadingAttachments": "Uploading…",
+      "attachmentsTitle": "Attachments",
+      "attachmentDeletePrompt": "Delete?",
+      "attachmentDeleteYes": "Yes",
+      "attachmentDeleteNo": "No",
+      "attachmentAlt": "attachment",
+      "documentsTitle": "Documents",
+      "newDocument": "New document",
+      "newDocumentShort": "New",
+      "documentKeyPlaceholder": "Document key",
+      "documentOptionalTitlePlaceholder": "Optional title",
+      "documentBodyPlaceholder": "Markdown body",
+      "documentKeyFormatHint": "Use lowercase letters, numbers, -, or _, and start with a letter or number.",
+      "documentCancel": "Cancel",
+      "documentCreate": "Create document",
+      "documentSaving": "Saving...",
+      "documentErrorKeyBodyRequired": "Document key and body are required",
+      "documentErrorBodyEmpty": "Document body cannot be empty",
+      "documentErrorKeyInvalid": "Document key must start with a letter or number and use only lowercase letters, numbers, -, or _.",
+      "documentErrorDeleteFailed": "Failed to delete document",
+      "documentErrorRestoreRevisionFailed": "Failed to restore document revision",
+      "documentErrorRemoteChanged": "Document changed remotely and the latest version could not be loaded",
+      "documentErrorSaveFailed": "Failed to save document",
+      "documentErrorCopyFailed": "Could not copy document",
+      "documentErrorUnsavedBeforeRevision": "Save or cancel your local changes before viewing an older revision.",
+      "activityCostSummaryTitle": "Cost summary",
+      "activityCostSummaryEmpty": "No cost data yet.",
+      "activityCostSummaryThisIssue": "This issue",
+      "activityCostSummaryTokensInOut": "Tokens {{total}} (in {{input}}, out {{output}})",
+      "activityCostSummaryTokensInOutCached": "Tokens {{total}} (in {{input}}, out {{output}}, cached {{cached}})",
+      "activityCostSummaryNoDirectData": "No direct cost data.",
+      "activityCostSummaryIncludingSubIssues": "Including sub-issues {{amount}}",
+      "activityCostSummaryIssueCountOne": "{{count}} issue",
+      "activityCostSummaryIssueCountMany": "{{count}} issues"
+    },
+    "issueRelatedWork": {
+      "referencesTitle": "References",
+      "referencesDescription": "Other tasks this issue currently points at in its title, description, comments, or documents.",
+      "referencesEmpty": "This issue does not reference any other tasks yet.",
+      "referencedByTitle": "Referenced by",
+      "referencedByDescription": "Other tasks that currently point at this issue.",
+      "referencedByEmpty": "No other tasks reference this issue yet."
+    },
+    "issueContinuation": {
+      "cardTitle": "Continuation Summary",
+      "defaultTitle": "Continuation handoff",
+      "badgeHandoff": "handoff",
+      "updated": "Updated {{time}}",
+      "revisionSuffix": " · revision {{revision}}",
+      "copy": "Copy",
+      "copied": "Copied",
+      "ariaExpand": "Expand continuation handoff",
+      "ariaCollapse": "Collapse continuation handoff"
+    },
+    "issueRunLedger": {
+      "title": "Run ledger",
+      "subtitleWaitingFirstRun": "Waiting for the first run record.",
+      "subtitleNoRuns": "No runs linked yet.",
+      "latestRunLink": "Latest run",
+      "summaryRunning": "Running now by {{agent}}",
+      "summaryQueued": "Queued for {{agent}}",
+      "summaryRetryScheduled": "Automatic retry scheduled for {{agent}}",
+      "summaryByAgent": "{{status}} by {{agent}}",
+      "runStatus": {
+        "succeeded": "Succeeded",
+        "failed": "Failed",
+        "cancelled": "Cancelled",
+        "running": "Running",
+        "queued": "Queued",
+        "scheduled_retry": "Scheduled retry",
+        "timed_out": "Timed out",
+        "paused": "Paused"
+      },
+      "runCard": {
+        "runLabel": "Run",
+        "byAgent": "by {{agent}}",
+        "live": "live",
+        "elapsed": "Elapsed",
+        "elapsedUnknown": "unknown",
+        "lastUsefulAction": "Last useful action",
+        "stop": "Stop",
+        "exhaustedBadge": "Exhausted",
+        "continuationAttempt": "Continuation attempt {{count}}",
+        "nextActionPrefix": "Next action: ",
+        "retryOf": "Retry of",
+        "olderItemsHidden": "{{count}} older items not shown",
+        "emptyWithActivity": "Runs and activity will appear here once this issue has history.",
+        "emptyNoActivity": "Historical runs without liveness metadata will appear here once linked to this issue.",
+        "profileApplied": "Profile: {{requested}}",
+        "profileFallback": "Profile: {{requested}} → {{applied}}",
+        "profileUnavailable": "Profile: {{requested}} (unavailable)",
+        "profileCheapFallback": "Cheap profile fell back to primary",
+        "profileGenericUnavailable": "{{requested}} profile unavailable"
+      },
+      "childWork": {
+        "title": "Child work",
+        "summaryActive": "{{active}} active, {{done}} done, {{cancelled}} cancelled",
+        "summaryAllTerminal": "all {{total}} terminal ({{done}} done, {{cancelled}} cancelled)",
+        "more": "+{{count}} more"
+      },
+      "outputSilence": {
+        "suspicious": "Silence watch",
+        "critical": "Stale run",
+        "snoozed": "Silence snoozed"
+      },
+      "liveness": {
+        "retryPending": {
+          "label": "Retry pending",
+          "description": "OneEarning queued an automatic retry that has not started yet."
+        },
+        "pendingAfterFinish": {
+          "label": "Checks after finish",
+          "description": "Liveness is evaluated after the run finishes."
+        },
+        "noLivenessData": {
+          "label": "No liveness data",
+          "description": "This run has no persisted liveness classification."
+        },
+        "completed": {
+          "label": "Completed",
+          "description": "Issue reached a terminal state."
+        },
+        "advanced": {
+          "label": "Advanced",
+          "description": "Run produced concrete evidence of progress."
+        },
+        "plan_only": {
+          "label": "Plan only",
+          "description": "Run described future work without concrete action evidence."
+        },
+        "empty_response": {
+          "label": "Empty response",
+          "description": "Run finished without useful output."
+        },
+        "blocked": {
+          "label": "Blocked",
+          "description": "Run or issue declared a blocker."
+        },
+        "failed": {
+          "label": "Failed",
+          "description": "Run ended unsuccessfully."
+        },
+        "needs_followup": {
+          "label": "Needs follow-up",
+          "description": "Run produced useful output but did not prove concrete progress."
+        }
+      },
+      "stopReason": {
+        "timeout": "timeout",
+        "timeoutWithLimit": "timeout ({{limit}})",
+        "budget_paused": "budget paused",
+        "cancelled": "cancelled",
+        "paused_by_board": "paused by board",
+        "process_lost": "process lost",
+        "adapter_failed": "adapter failed",
+        "completed": "completed",
+        "completedWithLimit": "completed ({{limit}})"
+      },
+      "stopStatus": {
+        "retryPending": "Retry pending",
+        "waitingToStart": "Waiting to start",
+        "stillRunning": "Still running",
+        "unavailable": "Unavailable",
+        "noStopReason": "No stop reason"
+      },
+      "lastUsefulAction": {
+        "waitingNextAttempt": "Waiting for next attempt",
+        "noActionYet": "No action recorded yet",
+        "noConcreteAction": "No concrete action",
+        "noUsefulOutput": "No useful output",
+        "unavailable": "Unavailable",
+        "noneRecorded": "None recorded"
+      },
+      "retryState": {
+        "badgeScheduled": "Retry scheduled",
+        "badgeExhausted": "Retry exhausted",
+        "badgeAttempted": "Retried run",
+        "attempt": "Attempt {{count}}",
+        "nextRetryAt": "Next retry {{at}}",
+        "nextRetryPending": "Next retry pending schedule",
+        "autoRetriesExhausted": "Automatic retries exhausted",
+        "manualInterventionSuffix": " Manual intervention required."
+      },
+      "retryReason": {
+        "transient_failure": "Transient failure",
+        "missing_issue_comment": "Missing issue comment",
+        "process_lost": "Process lost",
+        "assignment_recovery": "Assignment recovery",
+        "issue_continuation_needed": "Continuation needed"
+      }
     },
     "issueProperties": {
       "truncatedCopied": "Copied!",
@@ -585,6 +780,14 @@
       "jumpToLatest": "Jump to latest",
       "composerSend": "Send",
       "composerPosting": "Posting...",
+      "composerReplyPlaceholder": "Reply",
+      "dropToUploadTitle": "Drop to upload",
+      "dropToUploadDescription": "Images insert into the reply. Other files are added to this issue.",
+      "composerAttachmentUploading": "Uploading to issue",
+      "composerAttachmentUploadFailed": "Upload failed",
+      "composerAttachmentInsertedInline": "Inserted inline",
+      "composerAttachmentAttachedToIssue": "Attached to issue",
+      "composerFileTypeNotSupported": "This file type cannot be attached here",
       "emptyEmbedded": "No run output yet.",
       "emptyFull": "This issue conversation is empty. Start with a message below.",
       "agentFallback": "Agent"
@@ -1007,6 +1210,31 @@
         "descriptionUpdated": "updated the description",
         "you": "You",
         "agentFallback": "agent"
+      },
+      "issueActionPhrases": {
+        "issue_created": "created the issue",
+        "issue_updated": "updated the issue",
+        "issue_checked_out": "checked out the issue",
+        "issue_released": "released the issue",
+        "issue_comment_added": "added a comment",
+        "issue_comment_cancelled": "cancelled a queued comment",
+        "issue_feedback_vote_saved": "saved feedback on an AI output",
+        "issue_attachment_added": "added an attachment",
+        "issue_attachment_removed": "removed an attachment",
+        "issue_document_created": "created a document",
+        "issue_document_updated": "updated a document",
+        "issue_document_deleted": "deleted a document",
+        "issue_deleted": "deleted the issue",
+        "agent_created": "created an agent",
+        "agent_updated": "updated the agent",
+        "agent_paused": "paused the agent",
+        "agent_resumed": "resumed the agent",
+        "agent_terminated": "terminated the agent",
+        "heartbeat_invoked": "invoked a heartbeat",
+        "heartbeat_cancelled": "cancelled a heartbeat",
+        "approval_created": "requested approval",
+        "approval_approved": "approved",
+        "approval_rejected": "rejected"
       }
     },
     "issuesList": {

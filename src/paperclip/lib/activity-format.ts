@@ -458,5 +458,13 @@ export function formatIssueActivityAction(
     return `${ISSUE_ACTIVITY_LABELS[action] ?? action} ${key}${title}`;
   }
 
+  if (t && ISSUE_ACTIVITY_LABELS[action]) {
+    const phraseTk = `paperclip.activity.issueActionPhrases.${action.replace(/\./g, "_")}`;
+    return t(phraseTk, { defaultValue: ISSUE_ACTIVITY_LABELS[action] });
+  }
+  if (t && !ISSUE_ACTIVITY_LABELS[action]) {
+    const verbTk = `paperclip.activity.verbs.${action.replace(/\./g, "_")}`;
+    return t(verbTk, { defaultValue: action.replace(/[._]/g, " ") });
+  }
   return ISSUE_ACTIVITY_LABELS[action] ?? action.replace(/[._]/g, " ");
 }

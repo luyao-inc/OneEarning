@@ -1,6 +1,7 @@
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import i18n from "@shell/i18n";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { IssueRelatedWorkPanel } from "./IssueRelatedWorkPanel";
 
 vi.mock("@/lib/router", () => ({
@@ -8,6 +9,10 @@ vi.mock("@/lib/router", () => ({
 }));
 
 describe("IssueRelatedWorkPanel", () => {
+  beforeAll(async () => {
+    await i18n.changeLanguage("en");
+  });
+
   it("renders outbound and inbound related work with source labels", () => {
     const html = renderToStaticMarkup(
       <IssueRelatedWorkPanel

@@ -988,13 +988,13 @@ function IssueDetailActivityTab({
     <>
       {shouldShowCostSummary && (
         <div className="mb-3 px-3 py-2 rounded-lg border border-border">
-          <div className="text-sm font-medium text-muted-foreground mb-1">Cost Summary</div>
+          <div className="text-sm font-medium text-muted-foreground mb-1">{t("paperclip.issueDetail.activityCostSummaryTitle")}</div>
           {!issueCostSummary.hasCost && !issueCostSummary.hasTokens && !hasIssueTreeCost ? (
-            <div className="text-xs text-muted-foreground">No cost data yet.</div>
+            <div className="text-xs text-muted-foreground">{t("paperclip.issueDetail.activityCostSummaryEmpty")}</div>
           ) : (
             <div className="space-y-1 text-xs text-muted-foreground tabular-nums">
               <div className="flex flex-wrap gap-3">
-                <span className="font-medium text-foreground">This issue</span>
+                <span className="font-medium text-foreground">{t("paperclip.issueDetail.activityCostSummaryThisIssue")}</span>
                 {issueCostSummary.hasCost ? (
                   <span className="font-medium text-foreground">
                     ${issueCostSummary.cost.toFixed(4)}
@@ -1002,33 +1002,59 @@ function IssueDetailActivityTab({
                 ) : null}
                 {issueCostSummary.hasTokens ? (
                   <span>
-                    Tokens {formatTokens(issueCostSummary.totalTokens)}
                     {issueCostSummary.cached > 0
-                      ? ` (in ${formatTokens(issueCostSummary.input)}, out ${formatTokens(issueCostSummary.output)}, cached ${formatTokens(issueCostSummary.cached)})`
-                      : ` (in ${formatTokens(issueCostSummary.input)}, out ${formatTokens(issueCostSummary.output)})`}
+                      ? t("paperclip.issueDetail.activityCostSummaryTokensInOutCached", {
+                          total: formatTokens(issueCostSummary.totalTokens),
+                          input: formatTokens(issueCostSummary.input),
+                          output: formatTokens(issueCostSummary.output),
+                          cached: formatTokens(issueCostSummary.cached),
+                        })
+                      : t("paperclip.issueDetail.activityCostSummaryTokensInOut", {
+                          total: formatTokens(issueCostSummary.totalTokens),
+                          input: formatTokens(issueCostSummary.input),
+                          output: formatTokens(issueCostSummary.output),
+                        })}
                   </span>
                 ) : null}
                 {!issueCostSummary.hasCost && !issueCostSummary.hasTokens ? (
-                  <span>No direct cost data.</span>
+                  <span>{t("paperclip.issueDetail.activityCostSummaryNoDirectData")}</span>
                 ) : null}
               </div>
               {hasIssueTreeCost && issueTreeCostSummary ? (
                 <div className="flex flex-wrap gap-3">
                   <span className="font-medium text-foreground">
-                    Including sub-issues {(issueTreeCostSummary.costCents / 100).toLocaleString(undefined, {
-                      style: "currency",
-                      currency: "USD",
-                      minimumFractionDigits: 4,
-                      maximumFractionDigits: 4,
+                    {t("paperclip.issueDetail.activityCostSummaryIncludingSubIssues", {
+                      amount: (issueTreeCostSummary.costCents / 100).toLocaleString(undefined, {
+                        style: "currency",
+                        currency: "USD",
+                        minimumFractionDigits: 4,
+                        maximumFractionDigits: 4,
+                      }),
                     })}
                   </span>
                   <span>
-                    Tokens {formatTokens(issueTreeCostTokens)}
                     {issueTreeCostSummary.cachedInputTokens > 0
-                      ? ` (in ${formatTokens(issueTreeCostSummary.inputTokens)}, out ${formatTokens(issueTreeCostSummary.outputTokens)}, cached ${formatTokens(issueTreeCostSummary.cachedInputTokens)})`
-                      : ` (in ${formatTokens(issueTreeCostSummary.inputTokens)}, out ${formatTokens(issueTreeCostSummary.outputTokens)})`}
+                      ? t("paperclip.issueDetail.activityCostSummaryTokensInOutCached", {
+                          total: formatTokens(issueTreeCostTokens),
+                          input: formatTokens(issueTreeCostSummary.inputTokens),
+                          output: formatTokens(issueTreeCostSummary.outputTokens),
+                          cached: formatTokens(issueTreeCostSummary.cachedInputTokens),
+                        })
+                      : t("paperclip.issueDetail.activityCostSummaryTokensInOut", {
+                          total: formatTokens(issueTreeCostTokens),
+                          input: formatTokens(issueTreeCostSummary.inputTokens),
+                          output: formatTokens(issueTreeCostSummary.outputTokens),
+                        })}
                   </span>
-                  <span>{issueTreeCostSummary.issueCount} issue{issueTreeCostSummary.issueCount === 1 ? "" : "s"}</span>
+                  <span>
+                    {issueTreeCostSummary.issueCount === 1
+                      ? t("paperclip.issueDetail.activityCostSummaryIssueCountOne", {
+                          count: issueTreeCostSummary.issueCount,
+                        })
+                      : t("paperclip.issueDetail.activityCostSummaryIssueCountMany", {
+                          count: issueTreeCostSummary.issueCount,
+                        })}
+                  </span>
                 </div>
               ) : null}
             </div>
@@ -2937,10 +2963,10 @@ export function IssueDetail() {
         )}
       >
         <Paperclip className="h-3.5 w-3.5 mr-1.5" />
-        {uploadAttachment.isPending || importMarkdownDocument.isPending ? "Uploading..." : (
+        {uploadAttachment.isPending || importMarkdownDocument.isPending ? t("paperclip.issueDetail.uploadingAttachments") : (
           <>
-            <span className="hidden sm:inline">Upload attachment</span>
-            <span className="sm:hidden">Upload</span>
+            <span className="hidden sm:inline">{t("paperclip.issueDetail.uploadAttachment")}</span>
+            <span className="sm:hidden">{t("paperclip.issueDetail.uploadAttachmentShort")}</span>
           </>
         )}
       </Button>
@@ -3467,7 +3493,7 @@ export function IssueDetail() {
         onDrop={(evt) => void handleAttachmentDrop(evt)}
       >
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Attachments</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("paperclip.issueDetail.attachmentsTitle")}</h3>
           {attachmentUploadButton}
         </div>
 
@@ -3489,7 +3515,7 @@ export function IssueDetail() {
               >
                 <img
                   src={attachment.contentPath}
-                  alt={attachment.originalFilename ?? "attachment"}
+                  alt={attachment.originalFilename ?? t("paperclip.issueDetail.attachmentAlt")}
                   className="h-full w-full object-cover"
                   loading="lazy"
                 />
@@ -3499,7 +3525,7 @@ export function IssueDetail() {
                     className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/60"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <p className="text-xs text-white font-medium">Delete?</p>
+                    <p className="text-xs text-white font-medium">{t("paperclip.issueDetail.attachmentDeletePrompt")}</p>
                     <div className="flex gap-1.5">
                       <button
                         type="button"
@@ -3511,7 +3537,7 @@ export function IssueDetail() {
                         }}
                         disabled={deleteAttachment.isPending}
                       >
-                        Yes
+                        {t("paperclip.issueDetail.attachmentDeleteYes")}
                       </button>
                       <button
                         type="button"
@@ -3521,7 +3547,7 @@ export function IssueDetail() {
                           setConfirmDeleteId(null);
                         }}
                       >
-                        No
+                        {t("paperclip.issueDetail.attachmentDeleteNo")}
                       </button>
                     </div>
                   </div>
@@ -3596,15 +3622,15 @@ export function IssueDetail() {
         <TabsList variant="line" className="w-full justify-start gap-1">
           <TabsTrigger value="chat" className="gap-1.5">
             <MessageSquare className="h-3.5 w-3.5" />
-            Chat
+            {t("paperclip.issueDetail.tabChat")}
           </TabsTrigger>
           <TabsTrigger value="activity" className="gap-1.5">
             <ActivityIcon className="h-3.5 w-3.5" />
-            Activity
+            {t("paperclip.issueDetail.tabActivity")}
           </TabsTrigger>
           <TabsTrigger value="related-work" className="gap-1.5">
             <ListTree className="h-3.5 w-3.5" />
-            Related work
+            {t("paperclip.issueDetail.tabRelatedWork")}
           </TabsTrigger>
           {issuePluginTabItems.map((item) => (
             <TabsTrigger key={item.value} value={item.value}>

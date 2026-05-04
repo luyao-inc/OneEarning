@@ -129,6 +129,18 @@ export class PaperclipServerManager {
       }
     }
 
+    /**
+     * doctor 可能已拉起过嵌入式 PG；紧接着 run 再启同一数据目录时，Windows 上易出现
+     * FATAL: pre-existing shared memory block is still in use。
+     * 在 spawn run 前再清一次并短暂等待，与开发/生产安装包行为对齐。
+     */
+    cleanupStaleEmbeddedPostgres(dataDir, root);
+    if (process.platform === 'win32') {
+      await new Promise<void>((r) => {
+        setTimeout(r, 1500);
+      });
+    }
+
     // paperclipai run 无 -y/--yes 选项（与 doctor 不同）；默认已带 --repair
     const args = [entry, 'run', '--data-dir', dataDir];
 

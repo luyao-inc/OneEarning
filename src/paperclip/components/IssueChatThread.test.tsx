@@ -4,7 +4,8 @@ import { act, createRef, forwardRef, useImperativeHandle, useState } from "react
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import i18n from "@shell/i18n";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Agent } from "@paperclipai/shared";
 import {
   IssueChatThread,
@@ -295,6 +296,10 @@ function createFileDragEvent(type: string, files: File[]) {
 
 describe("IssueChatThread", () => {
   let container: HTMLDivElement;
+
+  beforeAll(async () => {
+    await i18n.changeLanguage("en");
+  });
 
   beforeEach(() => {
     container = document.createElement("div");
@@ -1699,7 +1704,7 @@ describe("IssueChatThread", () => {
 
     const editor = container.querySelector('textarea[aria-label="Issue chat editor"]') as HTMLTextAreaElement | null;
     expect(editor).not.toBeNull();
-    expect(editor?.placeholder).toBe("Reply");
+    expect(editor?.placeholder).toBe(i18n.t("paperclip.issueChat.composerReplyPlaceholder"));
 
     act(() => {
       const valueSetter = Object.getOwnPropertyDescriptor(

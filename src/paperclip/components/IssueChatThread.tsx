@@ -2811,7 +2811,7 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
       } else {
         setComposerAttachments((prev) => prev.map((item) =>
           item.id === attachmentId
-            ? { ...item, status: "error", error: "This file type cannot be attached here" }
+            ? { ...item, status: "error", error: t("paperclip.issueChat.composerFileTypeNotSupported") }
             : item,
         ));
       }
@@ -2821,7 +2821,7 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
           ? {
               ...item,
               status: "error",
-              error: err instanceof Error ? err.message : "Upload failed",
+              error: err instanceof Error ? err.message : t("paperclip.issueChat.composerAttachmentUploadFailed"),
             }
           : item,
       ));
@@ -2921,9 +2921,9 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
               <Paperclip className="h-4 w-4" />
             </span>
             <div className="min-w-0">
-              <div className="text-sm font-medium text-foreground">Drop to upload</div>
+              <div className="text-sm font-medium text-foreground">{t("paperclip.issueChat.dropToUploadTitle")}</div>
               <div className="mt-0.5 text-xs leading-5 text-muted-foreground">
-                Images insert into the reply. Other files are added to this issue.
+                {t("paperclip.issueChat.dropToUploadDescription")}
               </div>
             </div>
           </div>
@@ -2934,7 +2934,7 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
         ref={editorRef}
         value={body}
         onChange={setBody}
-        placeholder="Reply"
+        placeholder={t("paperclip.issueChat.composerReplyPlaceholder")}
         mentions={mentions}
         onSubmit={handleSubmit}
         imageUploadHandler={onImageUpload}
@@ -2958,12 +2958,12 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
             const sizeLabel = formatAttachmentSize(attachment.size);
             const statusLabel =
               attachment.status === "uploading"
-                ? "Uploading to issue"
+                ? t("paperclip.issueChat.composerAttachmentUploading")
                 : attachment.status === "error"
-                  ? attachment.error ?? "Upload failed"
+                  ? attachment.error ?? t("paperclip.issueChat.composerAttachmentUploadFailed")
                   : attachment.inline
-                    ? "Inserted inline"
-                    : "Attached to issue";
+                    ? t("paperclip.issueChat.composerAttachmentInsertedInline")
+                    : t("paperclip.issueChat.composerAttachmentAttachedToIssue");
             return (
               <div
                 key={attachment.id}

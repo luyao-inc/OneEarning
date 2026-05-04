@@ -148,7 +148,202 @@
       "routineBadge": "例行",
       "productivityReviewTitle": "此任务为效率复盘。",
       "productivityReviewBadge": "效率复盘",
-      "hideThisIssue": "隐藏此任务"
+      "hideThisIssue": "隐藏此任务",
+      "tabChat": "对话",
+      "tabActivity": "动态",
+      "tabRelatedWork": "相关工作",
+      "uploadAttachment": "上传附件",
+      "uploadAttachmentShort": "上传",
+      "uploadingAttachments": "上传中…",
+      "attachmentsTitle": "附件",
+      "attachmentDeletePrompt": "删除？",
+      "attachmentDeleteYes": "是",
+      "attachmentDeleteNo": "否",
+      "attachmentAlt": "附件",
+      "documentsTitle": "文档",
+      "newDocument": "新建文档",
+      "newDocumentShort": "新建",
+      "documentKeyPlaceholder": "文档键名",
+      "documentOptionalTitlePlaceholder": "可选标题",
+      "documentBodyPlaceholder": "Markdown 正文",
+      "documentKeyFormatHint": "请使用小写字母、数字、连字符或下划线，且以字母或数字开头。",
+      "documentCancel": "取消",
+      "documentCreate": "创建文档",
+      "documentSaving": "保存中…",
+      "documentErrorKeyBodyRequired": "请填写文档键名和正文",
+      "documentErrorBodyEmpty": "正文不能为空",
+      "documentErrorKeyInvalid": "文档键名须以小写字母或数字开头，且只能包含小写字母、数字、- 或 _。",
+      "documentErrorDeleteFailed": "删除文档失败",
+      "documentErrorRestoreRevisionFailed": "恢复该版本失败",
+      "documentErrorRemoteChanged": "远端已更新，无法加载最新版本",
+      "documentErrorSaveFailed": "保存文档失败",
+      "documentErrorCopyFailed": "无法复制文档",
+      "documentErrorUnsavedBeforeRevision": "请先保存或放弃本地修改，再查看较早版本。",
+      "activityCostSummaryTitle": "费用摘要",
+      "activityCostSummaryEmpty": "尚无费用数据。",
+      "activityCostSummaryThisIssue": "本任务",
+      "activityCostSummaryTokensInOut": "令牌 {{total}}（入 {{input}}，出 {{output}}）",
+      "activityCostSummaryTokensInOutCached": "令牌 {{total}}（入 {{input}}，出 {{output}}，缓存 {{cached}}）",
+      "activityCostSummaryNoDirectData": "暂无直接费用数据。",
+      "activityCostSummaryIncludingSubIssues": "含子任务 {{amount}}",
+      "activityCostSummaryIssueCountOne": "{{count}} 个任务",
+      "activityCostSummaryIssueCountMany": "{{count}} 个任务"
+    },
+    "issueRelatedWork": {
+      "referencesTitle": "引用",
+      "referencesDescription": "此任务在其标题、描述、评论或文档中当前指向的其他任务。",
+      "referencesEmpty": "此任务尚未引用任何其他任务。",
+      "referencedByTitle": "被引用",
+      "referencedByDescription": "当前指向此任务的其他任务。",
+      "referencedByEmpty": "尚无其他任务引用此任务。"
+    },
+    "issueContinuation": {
+      "cardTitle": "续跑摘要",
+      "defaultTitle": "续跑交接",
+      "badgeHandoff": "交接",
+      "updated": "更新于 {{time}}",
+      "revisionSuffix": " · 修订版 {{revision}}",
+      "copy": "复制",
+      "copied": "已复制",
+      "ariaExpand": "展开续跑摘要",
+      "ariaCollapse": "收起续跑摘要"
+    },
+    "issueRunLedger": {
+      "title": "运行台账",
+      "subtitleWaitingFirstRun": "等待首条运行记录。",
+      "subtitleNoRuns": "暂无关联运行。",
+      "latestRunLink": "最近运行",
+      "summaryRunning": "{{agent}} 正在运行",
+      "summaryQueued": "已排队：{{agent}}",
+      "summaryRetryScheduled": "已为 {{agent}} 安排自动重试",
+      "summaryByAgent": "{{status}} · {{agent}}",
+      "runStatus": {
+        "succeeded": "已成功",
+        "failed": "已失败",
+        "cancelled": "已取消",
+        "running": "运行中",
+        "queued": "已排队",
+        "scheduled_retry": "计划重试",
+        "timed_out": "已超时",
+        "paused": "已暂停"
+      },
+      "runCard": {
+        "runLabel": "运行",
+        "byAgent": "· {{agent}}",
+        "live": "实时",
+        "elapsed": "已用时间",
+        "elapsedUnknown": "未知",
+        "lastUsefulAction": "最近有效动作",
+        "stop": "结束状态",
+        "exhaustedBadge": "续跑已耗尽",
+        "continuationAttempt": "续跑尝试 {{count}}",
+        "nextActionPrefix": "下一步：",
+        "retryOf": "重试自",
+        "olderItemsHidden": "另有 {{count}} 条较早记录未显示",
+        "emptyWithActivity": "此任务有记录后，运行与动态将显示在这里。",
+        "emptyNoActivity": "关联到此任务的历史运行（无存活度元数据）将显示在这里。",
+        "profileApplied": "模型配置：{{requested}}",
+        "profileFallback": "模型配置：{{requested}} → {{applied}}",
+        "profileUnavailable": "模型配置：{{requested}}（不可用）",
+        "profileCheapFallback": "经济配置已回退到主配置",
+        "profileGenericUnavailable": "{{requested}} 配置不可用"
+      },
+      "childWork": {
+        "title": "子任务工作",
+        "summaryActive": "{{active}} 个进行中，{{done}} 个已完成，{{cancelled}} 个已取消",
+        "summaryAllTerminal": "共 {{total}} 个已结束（{{done}} 个已完成，{{cancelled}} 个已取消）",
+        "more": "还有 {{count}} 个"
+      },
+      "outputSilence": {
+        "suspicious": "静默观察",
+        "critical": "陈旧运行",
+        "snoozed": "静默已延后"
+      },
+      "liveness": {
+        "retryPending": {
+          "label": "重试排队中",
+          "description": "OneEarning 已排队自动重试，尚未开始。"
+        },
+        "pendingAfterFinish": {
+          "label": "结束后检查",
+          "description": "运行结束后才会评估存活度。"
+        },
+        "noLivenessData": {
+          "label": "无存活度数据",
+          "description": "此运行没有持久化的存活度分类。"
+        },
+        "completed": {
+          "label": "已完成",
+          "description": "任务已进入终态。"
+        },
+        "advanced": {
+          "label": "有实质进展",
+          "description": "运行产出了可验证的进展证据。"
+        },
+        "plan_only": {
+          "label": "仅计划",
+          "description": "运行描述了后续工作，但缺少可验证动作证据。"
+        },
+        "empty_response": {
+          "label": "空响应",
+          "description": "运行结束但没有有效输出。"
+        },
+        "blocked": {
+          "label": "已阻塞",
+          "description": "运行或任务声明了阻塞项。"
+        },
+        "failed": {
+          "label": "已失败",
+          "description": "运行未成功结束。"
+        },
+        "needs_followup": {
+          "label": "需跟进",
+          "description": "运行有有用输出，但不足以证明实质进展。"
+        }
+      },
+      "stopReason": {
+        "timeout": "超时",
+        "timeoutWithLimit": "超时（{{limit}}）",
+        "budget_paused": "预算已暂停",
+        "cancelled": "已取消",
+        "paused_by_board": "已由看板暂停",
+        "process_lost": "进程丢失",
+        "adapter_failed": "适配器失败",
+        "completed": "已完成",
+        "completedWithLimit": "已完成（{{limit}}）"
+      },
+      "stopStatus": {
+        "retryPending": "重试排队中",
+        "waitingToStart": "等待开始",
+        "stillRunning": "仍在运行",
+        "unavailable": "不可用",
+        "noStopReason": "无结束原因"
+      },
+      "lastUsefulAction": {
+        "waitingNextAttempt": "等待下一次尝试",
+        "noActionYet": "尚无有效动作记录",
+        "noConcreteAction": "无实质动作",
+        "noUsefulOutput": "无有效输出",
+        "unavailable": "不可用",
+        "noneRecorded": "无记录"
+      },
+      "retryState": {
+        "badgeScheduled": "已安排重试",
+        "badgeExhausted": "重试已用尽",
+        "badgeAttempted": "重试运行",
+        "attempt": "第 {{count}} 次尝试",
+        "nextRetryAt": "下次重试 {{at}}",
+        "nextRetryPending": "下次重试时间待定",
+        "autoRetriesExhausted": "自动重试已用尽",
+        "manualInterventionSuffix": "（需人工介入）"
+      },
+      "retryReason": {
+        "transient_failure": "瞬时故障",
+        "missing_issue_comment": "缺少任务评论",
+        "process_lost": "进程丢失",
+        "assignment_recovery": "分配恢复",
+        "issue_continuation_needed": "需要续跑"
+      }
     },
     "issueProperties": {
       "truncatedCopied": "已复制！",
@@ -585,6 +780,14 @@
       "jumpToLatest": "跳到最新",
       "composerSend": "发送",
       "composerPosting": "发送中…",
+      "composerReplyPlaceholder": "回复…",
+      "dropToUploadTitle": "松开以上传",
+      "dropToUploadDescription": "图片将插入回复；其他文件会添加到此任务。",
+      "composerAttachmentUploading": "正在上传到任务",
+      "composerAttachmentUploadFailed": "上传失败",
+      "composerAttachmentInsertedInline": "已内联插入",
+      "composerAttachmentAttachedToIssue": "已附加到任务",
+      "composerFileTypeNotSupported": "此处不支持该文件类型",
       "emptyEmbedded": "尚无运行输出。",
       "emptyFull": "此任务对话为空，请在下方发送消息。",
       "agentFallback": "智能体"
@@ -1007,6 +1210,31 @@
         "descriptionUpdated": "更新了描述",
         "you": "你",
         "agentFallback": "智能体"
+      },
+      "issueActionPhrases": {
+        "issue_created": "创建了此任务",
+        "issue_updated": "更新了此任务",
+        "issue_checked_out": "签出了此任务",
+        "issue_released": "释放了此任务",
+        "issue_comment_added": "添加了一条评论",
+        "issue_comment_cancelled": "取消了一条排队中的评论",
+        "issue_feedback_vote_saved": "保存了对 AI 输出的反馈",
+        "issue_attachment_added": "添加了附件",
+        "issue_attachment_removed": "移除了附件",
+        "issue_document_created": "创建了文档",
+        "issue_document_updated": "更新了文档",
+        "issue_document_deleted": "删除了文档",
+        "issue_deleted": "删除了此任务",
+        "agent_created": "创建了智能体",
+        "agent_updated": "更新了智能体",
+        "agent_paused": "暂停了智能体",
+        "agent_resumed": "恢复了智能体",
+        "agent_terminated": "终止了智能体",
+        "heartbeat_invoked": "触发了心跳",
+        "heartbeat_cancelled": "取消了心跳",
+        "approval_created": "发起了审批",
+        "approval_approved": "批准了",
+        "approval_rejected": "拒绝了"
       }
     },
     "issuesList": {
