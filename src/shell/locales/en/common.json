@@ -131,6 +131,49 @@
       "emptyPending": "No pending approvals.",
       "emptyAll": "No approvals yet."
     },
+    "approvalUi": {
+      "types": {
+        "hire_agent": "Hire Agent",
+        "approve_ceo_strategy": "CEO Strategy",
+        "budget_override_required": "Budget Override",
+        "request_board_approval": "Board Approval"
+      },
+      "fields": {
+        "name": "Name",
+        "role": "Role",
+        "title": "Title",
+        "icon": "Icon",
+        "capabilities": "Capabilities",
+        "adapter": "Adapter",
+        "skills": "Skills",
+        "scope": "Scope",
+        "window": "Window",
+        "metric": "Metric"
+      },
+      "board": {
+        "title": "Title",
+        "summary": "Summary",
+        "recommendedAction": "Recommended action",
+        "onApproval": "On approval",
+        "risks": "Risks",
+        "proposedComment": "Proposed comment"
+      },
+      "budget": {
+        "limit": "Limit",
+        "observed": "Observed",
+        "limitObserved": "{{limit}} · {{observed}}"
+      },
+      "card": {
+        "requestedBy": "Requested by",
+        "createdAt": "Approval request created {{time}}",
+        "viewDetails": "View details",
+        "approve": "Approve",
+        "reject": "Reject",
+        "approving": "Approving...",
+        "rejecting": "Rejecting...",
+        "decisionNoteLead": "Decision note."
+      }
+    },
     "goalDetail": {
       "fallbackTitle": "Goal",
       "showPropertiesTitle": "Show properties"
@@ -1624,7 +1667,34 @@
       "reviewLinkedIssues": "Review linked issues",
       "reviewLinkedIssue": "Review linked issue",
       "openHiredAgent": "Open hired agent",
-      "backToApprovals": "Back to approvals"
+      "backToApprovals": "Back to approvals",
+      "approvalConfirmedTitle": "Approval confirmed",
+      "approvalConfirmedBody": "The requesting agent was notified to review this approval and linked issues.",
+      "requestedBy": "Requested by",
+      "seeFullRequest": "See full request",
+      "decisionNote": "Decision note: {{note}}",
+      "linkedIssuesTitle": "Linked issues",
+      "linkedIssuesHint": "Linked issues stay open until the requesting agent follows up and closes them.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "requestRevision": "Request revision",
+      "markResubmitted": "Mark resubmitted",
+      "deleteAgentConfirm": "Delete this disapproved agent? This cannot be undone.",
+      "deleteDisapprovedAgent": "Delete disapproved agent",
+      "budgetResolveHintPrefix": "Resolve this budget stop from the budget controls on",
+      "budgetResolveCostsLink": "/costs",
+      "budgetResolveHintSuffix": ".",
+      "commentsHeading": "Comments ({{count}})",
+      "commentPlaceholder": "Add a comment...",
+      "postComment": "Post comment",
+      "postingComment": "Posting…",
+      "authorBoard": "Board",
+      "errorApproveFailed": "Approve failed",
+      "errorRejectFailed": "Reject failed",
+      "errorRevisionFailed": "Revision request failed",
+      "errorResubmitFailed": "Resubmit failed",
+      "errorCommentFailed": "Comment failed",
+      "errorDeleteFailed": "Delete failed"
     },
     "inboxPage": {
       "tabMine": "Mine",
@@ -1837,10 +1907,12 @@
       "running": "Running"
     },
     "approvalStatusDisplay": {
+      "pending": "Pending",
       "pending_approval": "Pending approval",
       "revision_requested": "Revision requested",
       "approved": "Approved",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
     },
     "goalStatusDisplay": {
       "planned": "Planned",

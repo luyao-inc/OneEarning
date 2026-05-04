@@ -18,6 +18,16 @@ import {
   resetPaperclipReadyCoordinator,
   schedulePaperclipReadyNotify,
 } from './paperclip-ready-coordinator.js';
+import { waitForDevServerReachable } from '../utils/wait-for-dev-server.js';
+
+/**
+ * Windows：Chromium 独立 Network Service 子进程偶发崩溃（终端 network_service_instance_impl），
+ * 可能与开发态首次 loadURL(127.0.0.1:5174) 后仅见背景、无 UI 有关。禁用独立网络服务，改回进程内网络栈以减轻该问题。
+ * 不影响 Paperclip 后端（38473）；那是 Node 子进程，与渲染进程网络栈分离。
+ */
+if (process.platform === 'win32') {
+  app.commandLine.appendSwitch('disable-features', 'NetworkService');
+}
 
 /**
  * Vite 开发模式下主进程 bundle 的 import.meta.url 可能不是 file:，
@@ -40,6 +50,18 @@ const __dirname = resolveMainDirname();
 const APP_DISPLAY_TITLE = 'OneEarning';
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
+
+/** Windows 上 localhost 常解析到 ::1，与仅监听 127.0.0.1 的 dev server 不一致会导致白屏 / 网络子进程异常 */
+function devServerUrlForElectron(): string {
+  const raw = process.env.VITE_DEV_SERVER_URL ?? '';
+  try {
+    const u = new URL(raw);
+    if (u.hostname === 'localhost') u.hostname = '127.0.0.1';
+    return u.toString();
+  } catch {
+    return raw;
+  }
+}
 
 function bindFixedWindowTitle(win: BrowserWindow): void {
   win.setTitle(APP_DISPLAY_TITLE);
@@ -92,6 +114,7 @@ function createMainWindow(): BrowserWindow {
     width: 1200,
     height: 800,
     show: false,
+    backgroundColor: '#0f1419',
     title: APP_DISPLAY_TITLE,
     ...windowIconOptions(),
     webPreferences: {
@@ -116,11 +139,23 @@ function createMainWindow(): BrowserWindow {
 }
 
 function loadSplash(win: BrowserWindow): void {
+  const prodHtml = join(__dirname, '../../dist/index.html');
   if (isDev) {
-    const url = `${process.env.VITE_DEV_SERVER_URL}`;
-    void win.loadURL(url);
+    const url = devServerUrlForElectron();
+    const tryLoad = (attempt: 1 | 2) => {
+      void win.loadURL(url).catch((err: unknown) => {
+        if (attempt === 1) {
+          setImmediate(() => tryLoad(2));
+        } else {
+          console.error('[OneEarning] loadURL(dev) failed', err);
+        }
+      });
+    };
+    tryLoad(1);
   } else {
-    void win.loadFile(join(__dirname, '../../dist/index.html'));
+    void win.loadFile(prodHtml).catch((err: unknown) => {
+      console.error('[OneEarning] loadFile(prod) failed', err);
+    });
   }
 }
 
@@ -144,13 +179,29 @@ function openAuxWindow(route: 'about' | 'service' | 'settings'): void {
     modal: false,
   });
   bindFixedWindowTitle(child);
-  const q = `route=${route}`;
   if (isDev) {
-    void child.loadURL(`${process.env.VITE_DEV_SERVER_URL}?${q}`);
+    const base = devServerUrlForElectron();
+    const u = new URL(base);
+    u.searchParams.set('route', route);
+    const auxUrl = u.toString();
+    const tryAux = (attempt: 1 | 2) => {
+      void child.loadURL(auxUrl).catch((err: unknown) => {
+        if (attempt === 1) {
+          setImmediate(() => tryAux(2));
+        } else {
+          console.error('[OneEarning] loadURL(aux dev) failed', err);
+        }
+      });
+    };
+    tryAux(1);
   } else {
-    void child.loadFile(join(__dirname, '../../dist/index.html'), {
-      query: { route },
-    });
+    void child
+      .loadFile(join(__dirname, '../../dist/index.html'), {
+        query: { route },
+      })
+      .catch((err: unknown) => {
+        console.error('[OneEarning] loadFile(aux prod) failed', err);
+      });
   }
 }
 
@@ -231,6 +282,14 @@ app.whenReady().then(async () => {
 
   mainWindow = createMainWindow();
   setupShellUi();
+
+  if (isDev) {
+    try {
+      await waitForDevServerReachable(devServerUrlForElectron(), 45_000);
+    } catch {
+      /* 超时仍尝试 loadURL，由 tryLoad 二次补救 */
+    }
+  }
 
   loadSplash(mainWindow);
 

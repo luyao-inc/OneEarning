@@ -67,6 +67,8 @@ export default defineConfig(({ mode }) => ({
         }
       : undefined,
   server: {
+    /** 与 Electron 开发态 `devServerUrlForElectron` 对齐，避免 Windows 上 localhost→::1 与监听栈不一致导致白屏 */
+    host: '127.0.0.1',
     port: 5174,
     strictPort: true,
     watch: createUiDevWatchOptions(process.cwd()),

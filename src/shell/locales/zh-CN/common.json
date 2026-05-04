@@ -131,6 +131,49 @@
       "emptyPending": "暂无待处理审批。",
       "emptyAll": "暂无审批记录。"
     },
+    "approvalUi": {
+      "types": {
+        "hire_agent": "雇佣智能体",
+        "approve_ceo_strategy": "CEO 战略",
+        "budget_override_required": "预算覆盖",
+        "request_board_approval": "董事会审批"
+      },
+      "fields": {
+        "name": "名称",
+        "role": "角色",
+        "title": "职位",
+        "icon": "图标",
+        "capabilities": "能力说明",
+        "adapter": "适配器",
+        "skills": "技能",
+        "scope": "范围",
+        "window": "窗口",
+        "metric": "指标"
+      },
+      "board": {
+        "title": "标题",
+        "summary": "摘要",
+        "recommendedAction": "建议操作",
+        "onApproval": "批准后",
+        "risks": "风险",
+        "proposedComment": "拟发布评论"
+      },
+      "budget": {
+        "limit": "上限",
+        "observed": "观测值",
+        "limitObserved": "{{limit}} · {{observed}}"
+      },
+      "card": {
+        "requestedBy": "申请人",
+        "createdAt": "审批请求创建于 {{time}}",
+        "viewDetails": "查看详情",
+        "approve": "批准",
+        "reject": "拒绝",
+        "approving": "正在批准…",
+        "rejecting": "正在拒绝…",
+        "decisionNoteLead": "审批说明："
+      }
+    },
     "goalDetail": {
       "fallbackTitle": "目标",
       "showPropertiesTitle": "显示属性"
@@ -1624,7 +1667,34 @@
       "reviewLinkedIssues": "查看关联任务",
       "reviewLinkedIssue": "查看关联任务",
       "openHiredAgent": "打开已雇佣智能体",
-      "backToApprovals": "返回审批列表"
+      "backToApprovals": "返回审批列表",
+      "approvalConfirmedTitle": "审批已通过",
+      "approvalConfirmedBody": "已通知申请智能体查看本审批及关联任务。",
+      "requestedBy": "申请人",
+      "seeFullRequest": "查看完整请求",
+      "decisionNote": "审批说明：{{note}}",
+      "linkedIssuesTitle": "关联任务",
+      "linkedIssuesHint": "关联任务会保持开启，直至申请智能体跟进并关闭。",
+      "approve": "批准",
+      "reject": "拒绝",
+      "requestRevision": "要求修改",
+      "markResubmitted": "标记为已重新提交",
+      "deleteAgentConfirm": "确定删除该未通过审批的智能体？此操作不可撤销。",
+      "deleteDisapprovedAgent": "删除未通过的智能体",
+      "budgetResolveHintPrefix": "请在",
+      "budgetResolveCostsLink": "费用页",
+      "budgetResolveHintSuffix": "的预算控制中处理该预算拦截。",
+      "commentsHeading": "评论（{{count}}）",
+      "commentPlaceholder": "添加评论…",
+      "postComment": "发布评论",
+      "postingComment": "正在发布…",
+      "authorBoard": "董事会",
+      "errorApproveFailed": "批准失败",
+      "errorRejectFailed": "拒绝失败",
+      "errorRevisionFailed": "要求修改失败",
+      "errorResubmitFailed": "重新提交失败",
+      "errorCommentFailed": "评论失败",
+      "errorDeleteFailed": "删除失败"
     },
     "inboxPage": {
       "tabMine": "我的",
@@ -1838,10 +1908,12 @@
       "running": "运行中"
     },
     "approvalStatusDisplay": {
+      "pending": "待处理",
       "pending_approval": "待审批",
       "revision_requested": "需要修订",
       "approved": "已批准",
-      "rejected": "已拒绝"
+      "rejected": "已拒绝",
+      "cancelled": "已取消"
     },
     "goalStatusDisplay": {
       "planned": "已计划",

@@ -2,11 +2,16 @@
 
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import i18n from "@shell/i18n";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ApprovalPayloadRenderer, approvalLabel } from "./ApprovalPayload";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+
+beforeAll(async () => {
+  await i18n.changeLanguage("en");
+});
 
 describe("approvalLabel", () => {
   it("uses payload titles for generic board approvals", () => {
