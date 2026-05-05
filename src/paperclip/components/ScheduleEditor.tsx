@@ -1,40 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronRight } from "lucide-react";
 
 type SchedulePreset = "every_minute" | "every_hour" | "every_day" | "weekdays" | "weekly" | "monthly" | "custom";
 
-const PRESETS: { value: SchedulePreset; label: string }[] = [
-  { value: "every_minute", label: "Every minute" },
-  { value: "every_hour", label: "Every hour" },
-  { value: "every_day", label: "Every day" },
-  { value: "weekdays", label: "Weekdays" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "custom", label: "Custom (cron)" },
+const SCHEDULE_PRESETS: SchedulePreset[] = [
+  "every_minute",
+  "every_hour",
+  "every_day",
+  "weekdays",
+  "weekly",
+  "monthly",
+  "custom",
 ];
 
-const HOURS = Array.from({ length: 24 }, (_, i) => ({
-  value: String(i),
-  label: i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`,
-}));
+const HOUR_VALUES = Array.from({ length: 24 }, (_, i) => String(i));
 
 const MINUTES = Array.from({ length: 12 }, (_, i) => ({
   value: String(i * 5),
   label: String(i * 5).padStart(2, "0"),
 }));
 
-const DAYS_OF_WEEK = [
-  { value: "1", label: "Mon" },
-  { value: "2", label: "Tue" },
-  { value: "3", label: "Wed" },
-  { value: "4", label: "Thu" },
-  { value: "5", label: "Fri" },
-  { value: "6", label: "Sat" },
-  { value: "0", label: "Sun" },
-];
+const WEEKDAY_VALUES = ["1", "2", "3", "4", "5", "6", "0"] as const;
 
 const DAYS_OF_MONTH = Array.from({ length: 31 }, (_, i) => ({
   value: String(i + 1),
@@ -61,32 +51,26 @@ function parseCronToPreset(cron: string): {
 
   const [min, hr, dom, , dow] = parts;
 
-  // Every minute: "* * * * *"
   if (min === "*" && hr === "*" && dom === "*" && dow === "*") {
     return { preset: "every_minute", ...defaults };
   }
 
-  // Every hour: "0 * * * *"
   if (hr === "*" && dom === "*" && dow === "*") {
     return { preset: "every_hour", ...defaults, minute: min === "*" ? "0" : min };
   }
 
-  // Every day: "M H * * *"
   if (dom === "*" && dow === "*" && hr !== "*") {
     return { preset: "every_day", ...defaults, hour: hr, minute: min === "*" ? "0" : min };
   }
 
-  // Weekdays: "M H * * 1-5"
   if (dom === "*" && dow === "1-5" && hr !== "*") {
     return { preset: "weekdays", ...defaults, hour: hr, minute: min === "*" ? "0" : min };
   }
 
-  // Weekly: "M H * * D" (single day)
   if (dom === "*" && /^\d$/.test(dow) && hr !== "*") {
     return { preset: "weekly", ...defaults, hour: hr, minute: min === "*" ? "0" : min, dayOfWeek: dow };
   }
 
-  // Monthly: "M H D * *"
   if (/^\d{1,2}$/.test(dom) && dow === "*" && hr !== "*") {
     return { preset: "monthly", ...defaults, hour: hr, minute: min === "*" ? "0" : min, dayOfMonth: dom };
   }
@@ -113,35 +97,41 @@ function buildCron(preset: SchedulePreset, hour: string, minute: string, dayOfWe
   }
 }
 
-function describeSchedule(cron: string): string {
-  const { preset, hour, minute, dayOfWeek, dayOfMonth } = parseCronToPreset(cron);
-  const hourLabel = HOURS.find((h) => h.value === hour)?.label ?? `${hour}`;
-  const timeStr = `${hourLabel.replace(/ (AM|PM)$/, "")}:${minute.padStart(2, "0")} ${hourLabel.match(/(AM|PM)$/)?.[0] ?? ""}`;
-
-  switch (preset) {
-    case "every_minute":
-      return "Every minute";
-    case "every_hour":
-      return `Every hour at :${minute.padStart(2, "0")}`;
-    case "every_day":
-      return `Every day at ${timeStr}`;
-    case "weekdays":
-      return `Weekdays at ${timeStr}`;
-    case "weekly": {
-      const day = DAYS_OF_WEEK.find((d) => d.value === dayOfWeek)?.label ?? dayOfWeek;
-      return `Every ${day} at ${timeStr}`;
-    }
-    case "monthly":
-      return `Monthly on the ${dayOfMonth}${ordinalSuffix(Number(dayOfMonth))} at ${timeStr}`;
-    case "custom":
-      return cron || "No schedule set";
-  }
-}
-
 function ordinalSuffix(n: number): string {
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
+}
+
+function describeSchedule(cron: string, t: TFunction): string {
+  const { preset, hour, minute, dayOfWeek, dayOfMonth } = parseCronToPreset(cron);
+  const hp = hour.padStart(2, "0");
+  const mp = minute.padStart(2, "0");
+  const time24 = `${hp}:${mp}`;
+  const base = "paperclip.routinesPage.scheduleEditor";
+
+  switch (preset) {
+    case "every_minute":
+      return t(`${base}.describeEveryMinute`);
+    case "every_hour":
+      return t(`${base}.describeEveryHour`, { minute: mp });
+    case "every_day":
+      return t(`${base}.describeEveryDay`, { time: time24 });
+    case "weekdays":
+      return t(`${base}.describeWeekdays`, { time: time24 });
+    case "weekly": {
+      const weekday = t(`${base}.dow_${dayOfWeek}`);
+      return t(`${base}.describeWeekly`, { weekday, time: time24 });
+    }
+    case "monthly":
+      return t(`${base}.describeMonthly`, {
+        day: dayOfMonth,
+        ordinalDay: `${dayOfMonth}${ordinalSuffix(Number(dayOfMonth))}`,
+        time: time24,
+      });
+    case "custom":
+      return cron.trim() ? cron : t(`${base}.describeNoSchedule`);
+  }
 }
 
 export { describeSchedule };
@@ -153,6 +143,8 @@ export function ScheduleEditor({
   value: string;
   onChange: (cron: string) => void;
 }) {
+  const { t } = useTranslation();
+  const base = "paperclip.routinesPage.scheduleEditor";
   const parsed = useMemo(() => parseCronToPreset(value), [value]);
   const [preset, setPreset] = useState<SchedulePreset>(parsed.preset);
   const [hour, setHour] = useState(parsed.hour);
@@ -161,7 +153,11 @@ export function ScheduleEditor({
   const [dayOfMonth, setDayOfMonth] = useState(parsed.dayOfMonth);
   const [customCron, setCustomCron] = useState(preset === "custom" ? value : "");
 
-  // Sync from external value changes
+  const atWord = t(`${base}.atWord`);
+  const atMinuteLabel = t(`${base}.atMinute`);
+  const onWord = t(`${base}.onWord`);
+  const onDayLabel = t(`${base}.onDay`);
+
   useEffect(() => {
     const p = parseCronToPreset(value);
     setPreset(p.preset);
@@ -196,12 +192,12 @@ export function ScheduleEditor({
     <div className="space-y-3">
       <Select value={preset} onValueChange={(v) => handlePresetChange(v as SchedulePreset)}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Choose frequency..." />
+          <SelectValue placeholder={t(`${base}.chooseFrequency`)} />
         </SelectTrigger>
         <SelectContent>
-          {PRESETS.map((p) => (
-            <SelectItem key={p.value} value={p.value}>
-              {p.label}
+          {SCHEDULE_PRESETS.map((p) => (
+            <SelectItem key={p} value={p}>
+              {t(`${base}.preset_${p}`)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -218,15 +214,13 @@ export function ScheduleEditor({
             placeholder="0 10 * * *"
             className="font-mono text-sm"
           />
-          <p className="text-xs text-muted-foreground">
-            Five fields: minute hour day-of-month month day-of-week
-          </p>
+          <p className="text-xs text-muted-foreground">{t(`${base}.cronHint`)}</p>
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           {preset !== "every_minute" && preset !== "every_hour" && (
             <>
-              <span className="text-sm text-muted-foreground">at</span>
+              {atWord ? <span className="text-sm text-muted-foreground">{atWord}</span> : null}
               <Select
                 value={hour}
                 onValueChange={(h) => {
@@ -238,9 +232,9 @@ export function ScheduleEditor({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {HOURS.map((h) => (
-                    <SelectItem key={h.value} value={h.value}>
-                      {h.label}
+                  {HOUR_VALUES.map((h) => (
+                    <SelectItem key={h} value={h}>
+                      {`${h.padStart(2, "0")}:00`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -269,7 +263,7 @@ export function ScheduleEditor({
 
           {preset === "every_hour" && (
             <>
-              <span className="text-sm text-muted-foreground">at minute</span>
+              <span className="text-sm text-muted-foreground">{atMinuteLabel}</span>
               <Select
                 value={minute}
                 onValueChange={(m) => {
@@ -293,21 +287,21 @@ export function ScheduleEditor({
 
           {preset === "weekly" && (
             <>
-              <span className="text-sm text-muted-foreground">on</span>
+              {onWord ? <span className="text-sm text-muted-foreground">{onWord}</span> : null}
               <div className="flex gap-1">
-                {DAYS_OF_WEEK.map((d) => (
+                {WEEKDAY_VALUES.map((d) => (
                   <Button
-                    key={d.value}
+                    key={d}
                     type="button"
-                    variant={dayOfWeek === d.value ? "default" : "outline"}
+                    variant={dayOfWeek === d ? "default" : "outline"}
                     size="sm"
                     className="h-7 px-2 text-xs"
                     onClick={() => {
-                      setDayOfWeek(d.value);
-                      emitChange(preset, hour, minute, d.value, dayOfMonth, customCron);
+                      setDayOfWeek(d);
+                      emitChange(preset, hour, minute, d, dayOfMonth, customCron);
                     }}
                   >
-                    {d.label}
+                    {t(`${base}.dow_${d}`)}
                   </Button>
                 ))}
               </div>
@@ -316,7 +310,7 @@ export function ScheduleEditor({
 
           {preset === "monthly" && (
             <>
-              <span className="text-sm text-muted-foreground">on day</span>
+              <span className="text-sm text-muted-foreground">{onDayLabel}</span>
               <Select
                 value={dayOfMonth}
                 onValueChange={(dom) => {

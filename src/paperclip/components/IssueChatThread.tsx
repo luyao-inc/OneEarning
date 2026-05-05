@@ -28,6 +28,7 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Link, useLocation } from "@/lib/router";
 import type {
   Agent,
@@ -668,7 +669,7 @@ function runStatusClass(status: string) {
   }
 }
 
-function toolCountSummary(toolParts: ToolCallMessagePart[]): string | null {
+function toolCountSummary(toolParts: ToolCallMessagePart[], t: TFunction): string | null {
   if (toolParts.length === 0) return null;
   let commands = 0;
   let other = 0;
@@ -677,9 +678,9 @@ function toolCountSummary(toolParts: ToolCallMessagePart[]): string | null {
     else other++;
   }
   const parts: string[] = [];
-  if (commands > 0) parts.push(`ran ${commands} command${commands === 1 ? "" : "s"}`);
-  if (other > 0) parts.push(`called ${other} tool${other === 1 ? "" : "s"}`);
-  return parts.join(", ");
+  if (commands > 0) parts.push(t("paperclip.issueChat.cotRanCommands", { count: commands }));
+  if (other > 0) parts.push(t("paperclip.issueChat.cotCalledTools", { count: other }));
+  return parts.length ? parts.join(t("paperclip.issueChat.cotSummarySep")) : null;
 }
 
 function cleanToolDisplayText(tool: ToolCallMessagePart): string {
@@ -700,6 +701,7 @@ function IssueChatChainOfThought({
   message: ThreadMessage;
   cotParts: readonly IssueChatCoTPart[];
 }) {
+  const { t } = useTranslation();
   const { agentMap } = useContext(IssueChatCtx);
   const custom = message.metadata.custom as Record<string, unknown>;
   const runAgentId = typeof custom.runAgentId === "string" ? custom.runAgentId : null;
@@ -737,18 +739,18 @@ function IssueChatChainOfThought({
   let headerVerb: string;
   let headerSuffix: string | null = null;
   if (isActive) {
-    headerVerb = "Working";
-    if (liveElapsed) headerSuffix = `for ${liveElapsed}`;
+    headerVerb = t("paperclip.issueChat.cotWorking");
+    if (liveElapsed) headerSuffix = t("paperclip.issueChat.cotForDuration", { duration: liveElapsed });
   } else if (segmentTiming) {
     const durationMs = segmentTiming.endMs - segmentTiming.startMs;
     const durationText = formatDurationWords(durationMs);
-    headerVerb = "Worked";
-    if (durationText) headerSuffix = `for ${durationText}`;
+    headerVerb = t("paperclip.issueChat.cotWorked");
+    if (durationText) headerSuffix = t("paperclip.issueChat.cotForDuration", { duration: durationText });
   } else {
-    headerVerb = "Worked";
+    headerVerb = t("paperclip.issueChat.cotWorked");
   }
 
-  const toolSummary = toolCountSummary(toolParts);
+  const toolSummary = toolCountSummary(toolParts, t);
   const hasContent = allReasoningText.trim().length > 0 || toolParts.length > 0;
 
   return (

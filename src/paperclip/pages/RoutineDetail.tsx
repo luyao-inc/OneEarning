@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useParams } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -40,7 +41,7 @@ import {
   type RoutineRunDialogSubmitData,
 } from "../components/RoutineRunVariablesDialog";
 import { RoutineVariablesEditor, RoutineVariablesHint } from "../components/RoutineVariablesEditor";
-import { ScheduleEditor, describeSchedule } from "../components/ScheduleEditor";
+import { ScheduleEditor } from "../components/ScheduleEditor";
 import { RunButton } from "../components/AgentActionButtons";
 import { getRecentAssigneeIds, sortAgentsByRecency, trackRecentAssignee } from "../lib/recent-assignees";
 import { getRecentProjectIds, trackRecentProject } from "../lib/recent-projects";
@@ -65,21 +66,6 @@ const catchUpPolicies = ["skip_missed", "enqueue_missed_with_cap"];
 const triggerKinds = ["schedule", "webhook"];
 const signingModes = ["bearer", "hmac_sha256", "github_hmac", "none"];
 const routineTabs = ["triggers", "runs", "activity"] as const;
-const concurrencyPolicyDescriptions: Record<string, string> = {
-  coalesce_if_active: "Keep one follow-up run queued while an active run is still working.",
-  always_enqueue: "Queue every trigger occurrence, even if several runs stack up.",
-  skip_if_active: "Drop overlapping trigger occurrences while the routine is already active.",
-};
-const catchUpPolicyDescriptions: Record<string, string> = {
-  skip_missed: "Ignore schedule windows that were missed while the routine or scheduler was paused.",
-  enqueue_missed_with_cap: "Catch up missed schedule windows in capped batches after recovery.",
-};
-const signingModeDescriptions: Record<string, string> = {
-  bearer: "Expect a shared bearer token in the Authorization header.",
-  hmac_sha256: "Expect an HMAC SHA-256 signature over the request using the shared secret.",
-  github_hmac: "Accept GitHub-style X-Hub-Signature-256 header (HMAC over raw body, no timestamp).",
-  none: "No authentication — the webhook URL itself acts as a shared secret.",
-};
 const SIGNING_MODES_WITHOUT_REPLAY_WINDOW = new Set(["github_hmac", "none"]);
 
 type RoutineTab = (typeof routineTabs)[number];
@@ -105,16 +91,46 @@ function getRoutineTabFromSearch(search: string): RoutineTab {
   return isRoutineTab(tab) ? tab : "triggers";
 }
 
-function formatActivityDetailValue(value: unknown): string {
-  if (value === null) return "null";
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  if (Array.isArray(value)) return value.length === 0 ? "[]" : value.map((item) => formatActivityDetailValue(item)).join(", ");
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return "[unserializable]";
+const AP_BASE = "paperclip.routinesPage.activityPanel";
+
+function translateRoutineActivityAction(action: string, t: TFunction): string {
+  const slug = action.replace(/\./g, "_");
+  return t(`${AP_BASE}.actions.${slug}`, { defaultValue: action.replace(/\./g, " ") });
+}
+
+function translateActivityDetailKey(key: string, t: TFunction): string {
+  return t(`${AP_BASE}.detailKeys.${key}`, { defaultValue: key.replace(/_/g, " ") });
+}
+
+function translateRoutineRunSource(source: string, t: TFunction): string {
+  return t(`paperclip.routinesPage.runsList.source.${source}`, { defaultValue: source });
+}
+
+function translateRoutineRunStatus(status: string, t: TFunction): string {
+  const slug = status.replace(/\./g, "_");
+  return t(`paperclip.routinesPage.runsList.status.${slug}`, { defaultValue: status.replaceAll("_", " ") });
+}
+
+function translateActivityDetailValue(fieldKey: string, value: unknown, t: TFunction): string {
+  if (value === null) return t(`${AP_BASE}.valueNull`);
+  if (typeof value === "string") {
+    return t(`${AP_BASE}.detailValues.${fieldKey}.${value}`, { defaultValue: value });
   }
+  if (typeof value === "number" || typeof value === "boolean") {
+    const s = String(value);
+    return t(`${AP_BASE}.detailValues.${fieldKey}.${s}`, { defaultValue: s });
+  }
+  if (Array.isArray(value)) {
+    return value.length === 0 ? "[]" : value.map((item) => translateActivityDetailValue(fieldKey, item, t)).join(", ");
+  }
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return t(`${AP_BASE}.valueUnserializable`);
+    }
+  }
+  return String(value);
 }
 
 function getLocalTimezone(): string {
@@ -154,6 +170,7 @@ function TriggerEditor({
   onRotate: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState({
     label: trigger.label ?? "",
     cronExpression: trigger.cronExpression ?? "",
@@ -179,16 +196,18 @@ function TriggerEditor({
         </div>
         <span className="text-xs text-muted-foreground">
           {trigger.kind === "schedule" && trigger.nextRunAt
-            ? `Next: ${new Date(trigger.nextRunAt).toLocaleString()}`
+            ? t("paperclip.routinesPage.detail.triggerNextRun", {
+                datetime: new Date(trigger.nextRunAt).toLocaleString(),
+              })
             : trigger.kind === "webhook"
-              ? "Webhook"
-              : "API"}
+              ? t("paperclip.routinesPage.detail.triggerKindWebhook")
+              : t("paperclip.routinesPage.detail.triggerKindApi")}
         </span>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
         <div className="space-y-1.5">
-          <Label className="text-xs">Label</Label>
+          <Label className="text-xs">{t("paperclip.routinesPage.detail.triggerFieldLabel")}</Label>
           <Input
             value={draft.label}
             onChange={(event) => setDraft((current) => ({ ...current, label: event.target.value }))}
@@ -196,7 +215,7 @@ function TriggerEditor({
         </div>
         {trigger.kind === "schedule" && (
           <div className="md:col-span-2 space-y-1.5">
-            <Label className="text-xs">Schedule</Label>
+            <Label className="text-xs">{t("paperclip.routinesPage.detail.scheduleLabel")}</Label>
             <ScheduleEditor
               value={draft.cronExpression}
               onChange={(cronExpression) => setDraft((current) => ({ ...current, cronExpression }))}
@@ -206,7 +225,7 @@ function TriggerEditor({
         {trigger.kind === "webhook" && (
           <>
             <div className="space-y-1.5">
-              <Label className="text-xs">Signing mode</Label>
+              <Label className="text-xs">{t("paperclip.routinesPage.detail.signingModeFieldLabel")}</Label>
               <Select
                 value={draft.signingMode}
                 onValueChange={(signingMode) => setDraft((current) => ({ ...current, signingMode }))}
@@ -216,14 +235,16 @@ function TriggerEditor({
                 </SelectTrigger>
                 <SelectContent>
                   {signingModes.map((mode) => (
-                    <SelectItem key={mode} value={mode}>{mode}</SelectItem>
+                    <SelectItem key={mode} value={mode}>
+                      {t(`paperclip.routinesPage.signingModeLabels.${mode}`)}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             {!SIGNING_MODES_WITHOUT_REPLAY_WINDOW.has(draft.signingMode) && (
               <div className="space-y-1.5">
-                <Label className="text-xs">Replay window (seconds)</Label>
+                <Label className="text-xs">{t("paperclip.routinesPage.detail.replayWindowLabel")}</Label>
                 <Input
                   value={draft.replayWindowSec}
                   onChange={(event) => setDraft((current) => ({ ...current, replayWindowSec: event.target.value }))}
@@ -235,12 +256,16 @@ function TriggerEditor({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        {trigger.lastResult && <span className="text-xs text-muted-foreground">Last: {trigger.lastResult}</span>}
+        {trigger.lastResult && (
+          <span className="text-xs text-muted-foreground">
+            {t("paperclip.routinesPage.detail.triggerLastPrefix", { result: trigger.lastResult })}
+          </span>
+        )}
         <div className="ml-auto flex items-center gap-2">
           {trigger.kind === "webhook" && (
             <Button variant="outline" size="sm" onClick={() => onRotate(trigger.id)}>
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-              Rotate secret
+              {t("paperclip.routinesPage.detail.rotateSecret")}
             </Button>
           )}
           <Button
@@ -249,7 +274,7 @@ function TriggerEditor({
             onClick={() => onSave(trigger.id, buildRoutineTriggerPatch(trigger, draft, getLocalTimezone()))}
           >
             <Save className="mr-1.5 h-3.5 w-3.5" />
-            Save trigger
+            {t("paperclip.routinesPage.detail.saveTrigger")}
           </Button>
           <Button
             variant="ghost"
@@ -671,7 +696,7 @@ export function RoutineDetail() {
   const currentProject = editDraft.projectId ? projectById.get(editDraft.projectId) ?? null : null;
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Repeat} message="Select a company to view routines." />;
+    return <EmptyState icon={Repeat} message={t("paperclip.routinesPage.selectCompany")} />;
   }
 
   if (isLoading) {
@@ -681,7 +706,7 @@ export function RoutineDetail() {
   if (error || !routine) {
     return (
       <p className="pt-6 text-sm text-destructive">
-        {error instanceof Error ? error.message : "Routine not found"}
+        {error instanceof Error ? error.message : t("paperclip.routinesPage.detail.routineNotFound")}
       </p>
     );
   }
@@ -690,12 +715,12 @@ export function RoutineDetail() {
   const selectedProject = routine.projectId ? (projects?.find((project) => project.id === routine.projectId) ?? null) : null;
   const automationToggleDisabled = updateRoutineStatus.isPending || routine.status === "archived";
   const automationLabel = routine.status === "archived"
-    ? "Archived"
+    ? t("paperclip.routinesPage.detail.statusArchived")
     : !routine.assigneeAgentId
-      ? "Draft"
+      ? t("paperclip.routinesPage.detail.statusDraft")
       : automationEnabled
-        ? "Active"
-        : "Paused";
+        ? t("paperclip.routinesPage.detail.statusActive")
+        : t("paperclip.routinesPage.detail.statusPaused");
   const automationLabelClassName = routine.status === "archived"
     ? "text-muted-foreground"
     : automationEnabled
@@ -709,7 +734,7 @@ export function RoutineDetail() {
         <textarea
           ref={titleInputRef}
           className="flex-1 min-w-0 resize-none overflow-hidden bg-transparent text-xl font-bold outline-none placeholder:text-muted-foreground/50"
-          placeholder="Routine title"
+          placeholder={t("paperclip.routinesPage.routineTitlePlaceholder")}
           rows={1}
           value={editDraft.title}
           onChange={(event) => {
@@ -758,7 +783,11 @@ export function RoutineDetail() {
               updateRoutineStatus.mutate(automationEnabled ? "paused" : "active");
             }}
             disabled={automationToggleDisabled}
-            aria-label={automationEnabled ? "Pause automatic triggers" : "Enable automatic triggers"}
+            aria-label={
+              automationEnabled
+                ? t("paperclip.routinesPage.detail.ariaPauseAutomation")
+                : t("paperclip.routinesPage.detail.ariaEnableAutomation")
+            }
           />
           <span className={`min-w-[3.75rem] text-sm font-medium ${automationLabelClassName}`}>
             {automationLabel}
@@ -771,21 +800,31 @@ export function RoutineDetail() {
         <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-4 space-y-3 text-sm">
           <div>
             <p className="font-medium">{secretMessage.title}</p>
-            <p className="text-xs text-muted-foreground">Save this now. OneEarning will not show the secret value again.</p>
+            <p className="text-xs text-muted-foreground">{t("paperclip.routinesPage.detail.secretSaveBanner")}</p>
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Input value={secretMessage.webhookUrl} readOnly className="flex-1" />
-              <Button variant="outline" size="sm" onClick={() => copySecretValue("Webhook URL", secretMessage.webhookUrl)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copySecretValue(t("paperclip.routinesPage.detail.copyWebhookUrl"), secretMessage.webhookUrl)}
+              >
                 <Copy className="h-3.5 w-3.5 mr-1" />
-                URL
+                {t("paperclip.routinesPage.detail.copyUrlShort")}
               </Button>
             </div>
             <div className="flex items-center gap-2">
               <Input value={secretMessage.webhookSecret} readOnly className="flex-1" />
-              <Button variant="outline" size="sm" onClick={() => copySecretValue("Webhook secret", secretMessage.webhookSecret)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  copySecretValue(t("paperclip.routinesPage.detail.copyWebhookSecret"), secretMessage.webhookSecret)
+                }
+              >
                 <Copy className="h-3.5 w-3.5 mr-1" />
-                Secret
+                {t("paperclip.routinesPage.detail.copySecretShort")}
               </Button>
             </div>
           </div>
@@ -794,23 +833,23 @@ export function RoutineDetail() {
 
       {!routine.assigneeAgentId ? (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-900 dark:text-amber-200">
-          Default agent required. This routine can stay as a draft and still run manually, but automation stays paused until you assign a default agent.
+          {t("paperclip.routinesPage.detail.defaultAgentBanner")}
         </div>
       ) : null}
 
       {/* Assignment row */}
       <div className="overflow-x-auto overscroll-x-contain">
         <div className="inline-flex min-w-full flex-wrap items-center gap-2 text-sm text-muted-foreground sm:min-w-max sm:flex-nowrap">
-          <span>For</span>
+          <span>{t("paperclip.routinesPage.forLabel")}</span>
           <InlineEntitySelector
             ref={assigneeSelectorRef}
             value={editDraft.assigneeAgentId}
             options={assigneeOptions}
             recentOptionIds={recentAssigneeIds}
-            placeholder="Assignee"
-            noneLabel="No assignee"
-            searchPlaceholder="Search assignees..."
-            emptyMessage="No assignees found."
+            placeholder={t("paperclip.routinesPage.assigneePlaceholder")}
+            noneLabel={t("paperclip.routinesPage.noAssignee")}
+            searchPlaceholder={t("paperclip.routinesPage.searchAssignees")}
+            emptyMessage={t("paperclip.routinesPage.emptyAssignees")}
             onChange={(assigneeAgentId) => {
               if (assigneeAgentId) trackRecentAssignee(assigneeAgentId);
               setEditDraft((current) => ({ ...current, assigneeAgentId }));
@@ -833,7 +872,7 @@ export function RoutineDetail() {
                   <span className="truncate">{option.label}</span>
                 )
               ) : (
-                <span className="text-muted-foreground">Assignee</span>
+                <span className="text-muted-foreground">{t("paperclip.routinesPage.assigneePlaceholder")}</span>
               )
             }
             renderOption={(option) => {
@@ -847,16 +886,16 @@ export function RoutineDetail() {
               );
             }}
           />
-          <span>in</span>
+          <span>{t("paperclip.routinesPage.inLabel")}</span>
           <InlineEntitySelector
             ref={projectSelectorRef}
             value={editDraft.projectId}
             options={projectOptions}
             recentOptionIds={recentProjectIds}
-            placeholder="Project"
-            noneLabel="No project"
-            searchPlaceholder="Search projects..."
-            emptyMessage="No projects found."
+            placeholder={t("paperclip.routinesPage.projectPlaceholder")}
+            noneLabel={t("paperclip.routinesPage.noProject")}
+            searchPlaceholder={t("paperclip.routinesPage.searchProjects")}
+            emptyMessage={t("paperclip.routinesPage.emptyProjects")}
             onChange={(projectId) => {
               if (projectId) trackRecentProject(projectId);
               setEditDraft((current) => ({ ...current, projectId }));
@@ -872,7 +911,7 @@ export function RoutineDetail() {
                   <span className="truncate">{option.label}</span>
                 </>
               ) : (
-                <span className="text-muted-foreground">Project</span>
+                <span className="text-muted-foreground">{t("paperclip.routinesPage.projectPlaceholder")}</span>
               )
             }
             renderOption={(option) => {
@@ -897,7 +936,7 @@ export function RoutineDetail() {
         ref={descriptionEditorRef}
         value={editDraft.description}
         onChange={(description) => setEditDraft((current) => ({ ...current, description }))}
-        placeholder="Add instructions..."
+        placeholder={t("paperclip.routinesPage.instructionsPlaceholder")}
         bordered={false}
         contentClassName="min-h-[120px] text-[15px] leading-7"
         mentions={mentionOptions}
@@ -918,13 +957,15 @@ export function RoutineDetail() {
       {/* Advanced delivery settings */}
       <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
         <CollapsibleTrigger className="flex w-full items-center justify-between text-left">
-          <span className="text-sm font-medium">Advanced delivery settings</span>
+          <span className="text-sm font-medium">{t("paperclip.routinesPage.advancedTitle")}</span>
           {advancedOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-3">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Concurrency</p>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                {t("paperclip.routinesPage.sectionConcurrency")}
+              </p>
               <Select
                 value={editDraft.concurrencyPolicy}
                 onValueChange={(concurrencyPolicy) => setEditDraft((current) => ({ ...current, concurrencyPolicy }))}
@@ -934,14 +975,20 @@ export function RoutineDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   {concurrencyPolicies.map((value) => (
-                    <SelectItem key={value} value={value}>{value.replaceAll("_", " ")}</SelectItem>
+                    <SelectItem key={value} value={value}>
+                      {t(`paperclip.routinesPage.concurrencyPolicyLabels.${value}`)}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">{concurrencyPolicyDescriptions[editDraft.concurrencyPolicy]}</p>
+              <p className="text-xs text-muted-foreground">
+                {t(`paperclip.routinesPage.concurrencyPolicyDescriptions.${editDraft.concurrencyPolicy}`)}
+              </p>
             </div>
             <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Catch-up</p>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                {t("paperclip.routinesPage.sectionCatchUp")}
+              </p>
               <Select
                 value={editDraft.catchUpPolicy}
                 onValueChange={(catchUpPolicy) => setEditDraft((current) => ({ ...current, catchUpPolicy }))}
@@ -951,11 +998,15 @@ export function RoutineDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   {catchUpPolicies.map((value) => (
-                    <SelectItem key={value} value={value}>{value.replaceAll("_", " ")}</SelectItem>
+                    <SelectItem key={value} value={value}>
+                      {t(`paperclip.routinesPage.catchUpPolicyLabels.${value}`)}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">{catchUpPolicyDescriptions[editDraft.catchUpPolicy]}</p>
+              <p className="text-xs text-muted-foreground">
+                {t(`paperclip.routinesPage.catchUpPolicyDescriptions.${editDraft.catchUpPolicy}`)}
+              </p>
             </div>
           </div>
         </CollapsibleContent>
@@ -964,7 +1015,7 @@ export function RoutineDetail() {
       {/* Save bar */}
       <div className="flex items-center justify-between">
         {isEditDirty ? (
-          <span className="text-xs text-amber-600">Unsaved changes</span>
+          <span className="text-xs text-amber-600">{t("paperclip.routinesPage.detail.unsavedChanges")}</span>
         ) : (
           <span />
         )}
@@ -973,7 +1024,7 @@ export function RoutineDetail() {
           disabled={saveRoutine.isPending || !editDraft.title.trim()}
         >
           <Save className="mr-2 h-4 w-4" />
-          Save routine
+          {t("paperclip.routinesPage.detail.saveRoutine")}
         </Button>
       </div>
 
@@ -984,26 +1035,26 @@ export function RoutineDetail() {
         <TabsList variant="line" className="w-full justify-start gap-1">
           <TabsTrigger value="triggers" className="gap-1.5">
             <Clock3 className="h-3.5 w-3.5" />
-            Triggers
+            {t("paperclip.routinesPage.detail.tabTriggers")}
           </TabsTrigger>
           <TabsTrigger value="runs" className="gap-1.5">
             <Play className="h-3.5 w-3.5" />
-            Runs
+            {t("paperclip.routinesPage.detail.tabRuns")}
             {hasLiveRun && <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />}
           </TabsTrigger>
-<TabsTrigger value="activity" className="gap-1.5">
+          <TabsTrigger value="activity" className="gap-1.5">
             <ActivityIcon className="h-3.5 w-3.5" />
-            Activity
+            {t("paperclip.routinesPage.detail.tabActivity")}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="triggers" className="space-y-4">
           {/* Add trigger form */}
           <div className="rounded-lg border border-border p-4 space-y-3">
-            <p className="text-sm font-medium">Add trigger</p>
+            <p className="text-sm font-medium">{t("paperclip.routinesPage.detail.addTriggerTitle")}</p>
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-xs">Kind</Label>
+                <Label className="text-xs">{t("paperclip.routinesPage.detail.triggerKindLabel")}</Label>
                 <Select value={newTrigger.kind} onValueChange={(kind) => setNewTrigger((current) => ({ ...current, kind }))}>
                   <SelectTrigger>
                     <SelectValue />
@@ -1011,7 +1062,8 @@ export function RoutineDetail() {
                   <SelectContent>
                     {triggerKinds.map((kind) => (
                       <SelectItem key={kind} value={kind} disabled={kind === "webhook"}>
-                        {kind}{kind === "webhook" ? " — COMING SOON" : ""}
+                        {t(`paperclip.routinesPage.detail.triggerKind_${kind}`)}
+                        {kind === "webhook" ? t("paperclip.routinesPage.detail.webhookComingSoonSuffix") : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1019,7 +1071,7 @@ export function RoutineDetail() {
               </div>
               {newTrigger.kind === "schedule" && (
                 <div className="md:col-span-2 space-y-1.5">
-                  <Label className="text-xs">Schedule</Label>
+                  <Label className="text-xs">{t("paperclip.routinesPage.detail.scheduleLabel")}</Label>
                   <ScheduleEditor
                     value={newTrigger.cronExpression}
                     onChange={(cronExpression) => setNewTrigger((current) => ({ ...current, cronExpression }))}
@@ -1029,22 +1081,26 @@ export function RoutineDetail() {
               {newTrigger.kind === "webhook" && (
                 <>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Signing mode</Label>
+                    <Label className="text-xs">{t("paperclip.routinesPage.detail.signingModeFieldLabel")}</Label>
                     <Select value={newTrigger.signingMode} onValueChange={(signingMode) => setNewTrigger((current) => ({ ...current, signingMode }))}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {signingModes.map((mode) => (
-                          <SelectItem key={mode} value={mode}>{mode}</SelectItem>
+                          <SelectItem key={mode} value={mode}>
+                            {t(`paperclip.routinesPage.signingModeLabels.${mode}`)}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">{signingModeDescriptions[newTrigger.signingMode]}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t(`paperclip.routinesPage.signingModeDescriptions.${newTrigger.signingMode}`)}
+                    </p>
                   </div>
                   {!SIGNING_MODES_WITHOUT_REPLAY_WINDOW.has(newTrigger.signingMode) && (
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Replay window (seconds)</Label>
+                      <Label className="text-xs">{t("paperclip.routinesPage.detail.replayWindowLabel")}</Label>
                       <Input value={newTrigger.replayWindowSec} onChange={(event) => setNewTrigger((current) => ({ ...current, replayWindowSec: event.target.value }))} />
                     </div>
                   )}
@@ -1053,14 +1109,16 @@ export function RoutineDetail() {
             </div>
             <div className="flex items-center justify-end">
               <Button size="sm" onClick={() => createTrigger.mutate()} disabled={createTrigger.isPending}>
-                {createTrigger.isPending ? "Adding..." : "Add trigger"}
+                {createTrigger.isPending
+                  ? t("paperclip.routinesPage.detail.addingTrigger")
+                  : t("paperclip.routinesPage.detail.addTriggerButton")}
               </Button>
             </div>
           </div>
 
           {/* Existing triggers */}
           {routine.triggers.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No triggers configured yet.</p>
+            <p className="text-xs text-muted-foreground">{t("paperclip.routinesPage.detail.noTriggersConfigured")}</p>
           ) : (
             <div className="space-y-3">
               {routine.triggers.map((trigger) => (
@@ -1081,18 +1139,23 @@ export function RoutineDetail() {
             <LiveRunWidget issueId={activeIssueId} companyId={routine.companyId} />
           )}
           {(routineRuns ?? []).length === 0 ? (
-            <p className="text-xs text-muted-foreground">No runs yet.</p>
+            <p className="text-xs text-muted-foreground">{t("paperclip.routinesPage.detail.noRunsYet")}</p>
           ) : (
             <div className="border border-border rounded-lg divide-y divide-border">
               {(routineRuns ?? []).map((run) => (
                 <div key={run.id} className="flex items-center justify-between px-3 py-2 text-sm">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="outline" className="shrink-0">{run.source}</Badge>
+                    <Badge variant="outline" className="shrink-0">{translateRoutineRunSource(run.source, t)}</Badge>
                     <Badge variant={run.status === "failed" ? "destructive" : "secondary"} className="shrink-0">
-                      {run.status.replaceAll("_", " ")}
+                      {translateRoutineRunStatus(run.status, t)}
                     </Badge>
                     {run.trigger && (
-                      <span className="text-muted-foreground truncate">{run.trigger.label ?? run.trigger.kind}</span>
+                      <span className="text-muted-foreground truncate">
+                        {run.trigger.label
+                          ?? t(`paperclip.routinesPage.detail.triggerKind_${run.trigger.kind}`, {
+                            defaultValue: run.trigger.kind,
+                          })}
+                      </span>
                     )}
                     {run.linkedIssue && (
                       <Link to={`/issues/${run.linkedIssue.identifier ?? run.linkedIssue.id}`} className="text-muted-foreground hover:underline truncate">
@@ -1109,20 +1172,22 @@ export function RoutineDetail() {
 
         <TabsContent value="activity">
           {(activity ?? []).length === 0 ? (
-            <p className="text-xs text-muted-foreground">No activity yet.</p>
+            <p className="text-xs text-muted-foreground">{t("paperclip.routinesPage.detail.noActivityYet")}</p>
           ) : (
             <div className="border border-border rounded-lg divide-y divide-border">
               {(activity ?? []).map((event) => (
                 <div key={event.id} className="flex items-center justify-between px-3 py-2 text-xs gap-4">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-medium text-foreground/90 shrink-0">{event.action.replaceAll(".", " ")}</span>
+                    <span className="font-medium text-foreground/90 shrink-0">
+                      {translateRoutineActivityAction(event.action, t)}
+                    </span>
                     {event.details && Object.keys(event.details).length > 0 && (
                       <span className="text-muted-foreground truncate">
                         {Object.entries(event.details).slice(0, 3).map(([key, value], i) => (
                           <span key={key}>
                             {i > 0 && <span className="mx-1 text-border">·</span>}
-                            <span className="text-muted-foreground/70">{key.replaceAll("_", " ")}:</span>{" "}
-                            {formatActivityDetailValue(value)}
+                            <span className="text-muted-foreground/70">{translateActivityDetailKey(key, t)}:</span>{" "}
+                            {translateActivityDetailValue(key, value, t)}
                           </span>
                         ))}
                       </span>

@@ -181,6 +181,14 @@ const claudeThinkingEffortOptions = [
 
 export function AgentConfigForm(props: AgentConfigFormProps) {
   const { t } = useTranslation();
+  const helpT = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const key of Object.keys(help)) {
+      const k = key as keyof typeof help;
+      out[k] = t(`paperclip.agentConfigForm.help.${key}`, { defaultValue: help[k] });
+    }
+    return out as typeof help;
+  }, [t]);
   const { mode, adapterModels: externalModels } = props;
   const isCreate = mode === "create";
   const cards = props.sectionLayout === "cards";
@@ -483,14 +491,14 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       errorMessage: testEnvironment.error instanceof Error
         ? testEnvironment.error.message
         : testEnvironment.error
-          ? "Environment test failed"
+          ? t("paperclip.agentConfigForm.environmentTestFailed", { defaultValue: "Environment test failed" })
           : null,
       result: testEnvironment.data ?? null,
     });
     return () => {
       props.onTestFeedbackChange?.({ errorMessage: null, result: null });
     };
-  }, [props.onTestFeedbackChange, testEnvironment.data, testEnvironment.error]);
+  }, [props.onTestFeedbackChange, testEnvironment.data, testEnvironment.error, t]);
 
   // Current model for display
   const currentModelId = isCreate
@@ -505,7 +513,13 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       const refreshed = await agentsApi.adapterModels(selectedCompanyId, adapterType, { refresh: true });
       queryClient.setQueryData(modelQueryKey, refreshed);
     } catch (error) {
-      setRefreshModelsError(error instanceof Error ? error.message : "Failed to refresh adapter models.");
+      setRefreshModelsError(
+        error instanceof Error
+          ? error.message
+          : t("paperclip.agentConfigForm.failedToRefreshAdapterModels", {
+              defaultValue: "Failed to refresh adapter models.",
+            }),
+      );
     } finally {
       setRefreshingModels(false);
     }
@@ -519,14 +533,24 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
         : adapterType === "opencode_local"
           ? "variant"
           : "effort";
-  const thinkingEffortOptions =
-    adapterType === "codex_local"
-      ? codexThinkingEffortOptions
-      : adapterType === "cursor"
-        ? cursorModeOptions
-        : adapterType === "opencode_local"
-          ? openCodeThinkingEffortOptions
-          : claudeThinkingEffortOptions;
+  const translatedThinkingEffortOptions = useMemo(() => {
+    const base =
+      adapterType === "codex_local"
+        ? codexThinkingEffortOptions
+        : adapterType === "cursor"
+          ? cursorModeOptions
+          : adapterType === "opencode_local"
+            ? openCodeThinkingEffortOptions
+            : claudeThinkingEffortOptions;
+    const idKey = (id: string) => id || "auto";
+    return base.map((o) => ({
+      id: o.id,
+      label:
+        adapterType === "cursor"
+          ? t(`paperclip.agentConfigForm.cursorMode.${idKey(o.id)}`, { defaultValue: o.label })
+          : t(`paperclip.agentConfigForm.thinkingLevel.${idKey(o.id)}`, { defaultValue: o.label }),
+    }));
+  }, [adapterType, t]);
   const currentThinkingEffort = isCreate
     ? val!.thinkingEffort
     : adapterType === "codex_local"
@@ -656,7 +680,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
             : <div className="px-4 py-2 text-xs font-medium text-muted-foreground">{t("paperclip.agentConfigForm.identity")}</div>
           }
           <div className={cn(cards ? "border border-border rounded-lg p-4 space-y-3" : "px-4 pb-3 space-y-3")}>
-            <Field label={t("paperclip.agentConfigForm.name")} hint={help.name}>
+            <Field label={t("paperclip.agentConfigForm.name")} hint={helpT.name}>
               <DraftInput
                 value={eff("identity", "name", props.agent.name)}
                 onCommit={(v) => mark("identity", "name", v)}
@@ -665,7 +689,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 placeholder={t("paperclip.agentConfigForm.agentNamePlaceholder")}
               />
             </Field>
-            <Field label={t("paperclip.agentConfigForm.title")} hint={help.title}>
+            <Field label={t("paperclip.agentConfigForm.title")} hint={helpT.title}>
               <DraftInput
                 value={eff("identity", "title", props.agent.title ?? "")}
                 onCommit={(v) => mark("identity", "title", v || null)}
@@ -674,7 +698,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 placeholder={t("paperclip.agentConfigForm.titlePlaceholder")}
               />
             </Field>
-            <Field label={t("paperclip.agentConfigForm.reportsTo")} hint={help.reportsTo}>
+            <Field label={t("paperclip.agentConfigForm.reportsTo")} hint={helpT.reportsTo}>
               <ReportsToPicker
                 agents={companyAgents}
                 value={eff("identity", "reportsTo", props.agent.reportsTo ?? null)}
@@ -683,7 +707,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 chooseLabel={t("paperclip.agentConfigForm.chooseManager")}
               />
             </Field>
-            <Field label={t("paperclip.agentConfigForm.capabilities")} hint={help.capabilities}>
+            <Field label={t("paperclip.agentConfigForm.capabilities")} hint={helpT.capabilities}>
               <MarkdownEditor
                 value={eff("identity", "capabilities", props.agent.capabilities ?? "") ?? ""}
                 onChange={(v) => mark("identity", "capabilities", v || null)}
@@ -700,7 +724,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
             </Field>
             {isLocal && !props.hidePromptTemplate && (
               <>
-                <Field label={t("paperclip.agentConfigForm.promptTemplate")} hint={help.promptTemplate}>
+                <Field label={t("paperclip.agentConfigForm.promptTemplate")} hint={helpT.promptTemplate}>
                   <MarkdownEditor
                     value={eff(
                       "adapterConfig",
@@ -784,7 +808,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
         </div>
         <div className={cn(cards ? "border border-border rounded-lg p-4 space-y-3" : "px-4 pb-3 space-y-3")}>
           {showAdapterTypeField && (
-            <Field label={t("paperclip.agentConfigForm.adapterType")} hint={help.adapterType}>
+            <Field label={t("paperclip.agentConfigForm.adapterType")} hint={helpT.adapterType}>
               <AdapterTypeDropdown
                 value={adapterType}
                 disabledTypes={disabledTypes}
@@ -843,7 +867,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
             <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {testEnvironment.error instanceof Error
                 ? testEnvironment.error.message
-                : "Environment test failed"}
+                : t("paperclip.agentConfigForm.environmentTestFailed", { defaultValue: "Environment test failed" })}
             </div>
           )}
 
@@ -853,7 +877,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
 
           {/* Working directory */}
           {showLegacyWorkingDirectoryField && (
-            <Field label="Working directory (deprecated)" hint={help.cwd}>
+            <Field label={t("paperclip.agentConfigForm.workingDirectoryDeprecated", { defaultValue: "Working directory (deprecated)" })} hint={helpT.cwd}>
               <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5">
                 <FolderOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <DraftInput
@@ -869,7 +893,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                   }
                   immediate
                   className="w-full bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/40"
-                  placeholder="/path/to/project"
+                  placeholder={t("paperclip.agentConfigForm.pathPlaceholder", { defaultValue: "/path/to/project" })}
                 />
                 <ChoosePathButton />
               </div>
@@ -885,11 +909,11 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       {isLocal && (
         <div className={cn(!cards && "border-b border-border")}>
           {cards
-            ? <h3 className="text-sm font-medium mb-3">Permissions &amp; Configuration</h3>
-            : <div className="px-4 py-2 text-xs font-medium text-muted-foreground">Permissions &amp; Configuration</div>
+            ? <h3 className="text-sm font-medium mb-3">{t("paperclip.agentConfigForm.permissionsAndConfiguration", { defaultValue: "Permissions & Configuration" })}</h3>
+            : <div className="px-4 py-2 text-xs font-medium text-muted-foreground">{t("paperclip.agentConfigForm.permissionsAndConfiguration", { defaultValue: "Permissions & Configuration" })}</div>
           }
           <div className={cn(cards ? "border border-border rounded-lg p-4 space-y-3" : "px-4 pb-3 space-y-3")}>
-              <Field label="Command" hint={help.localCommand}>
+              <Field label={t("paperclip.agentConfigForm.command", { defaultValue: "Command" })} hint={helpT.localCommand}>
                 <DraftInput
                   value={
                     isCreate
@@ -911,21 +935,24 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                   }
                   immediate
                   className={inputClass}
-                  placeholder={
-                    ({
-                      claude_local: "claude",
-                      codex_local: "codex",
-                      gemini_local: "gemini",
-                      pi_local: "pi",
-                      cursor: "agent",
-                      opencode_local: "opencode",
-                    } as Record<string, string>)[adapterType] ?? adapterType.replace(/_local$/, "")
-                  }
+                  placeholder={t(`paperclip.agentConfigForm.commandPlaceholder.${adapterType}`, {
+                    defaultValue:
+                      ({
+                        claude_local: "claude",
+                        codex_local: "codex",
+                        gemini_local: "gemini",
+                        pi_local: "pi",
+                        cursor: "agent",
+                        opencode_local: "opencode",
+                      } as Record<string, string>)[adapterType] ?? adapterType.replace(/_local$/, ""),
+                  })}
                 />
               </Field>
 
               {supportsModelProfiles && (
-                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Primary model</div>
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {t("paperclip.agentConfigForm.primaryModel", { defaultValue: "Primary model" })}
+                </div>
               )}
               <ModelDropdown
                 models={models}
@@ -937,6 +964,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 }
                 open={modelOpen}
                 onOpenChange={setModelOpen}
+                fieldHint={helpT.model}
                 allowDefault={adapterType !== "opencode_local"}
                 required={adapterType === "opencode_local"}
                 groupByProvider={adapterType === "opencode_local"}
@@ -949,15 +977,18 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 }}
                 onRefreshModels={adapterType === "codex_local" ? handleRefreshModels : undefined}
                 refreshingModels={refreshingModels}
-                detectModelLabel="Detect model"
-                emptyDetectHint="No model detected. Select or enter one manually."
+                emptyDetectHint={t("paperclip.agentConfigForm.modelPicker.emptyDetectHintPrimary", {
+                  defaultValue: "No model detected. Select or enter one manually.",
+                })}
               />
               {(refreshModelsError || fetchedModelsError) && (
                 <p className="text-xs text-destructive">
                   {refreshModelsError
                     ?? (fetchedModelsError instanceof Error
                       ? fetchedModelsError.message
-                      : "Failed to load adapter models.")}
+                      : t("paperclip.agentConfigForm.failedToLoadAdapterModels", {
+                          defaultValue: "Failed to load adapter models.",
+                        }))}
                 </p>
               )}
 
@@ -978,8 +1009,12 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
               {showThinkingEffort && (
                 <>
                   <ThinkingEffortDropdown
+                    fieldLabel={t("paperclip.agentConfigForm.thinkingEffortLabel", {
+                      defaultValue: "Thinking effort",
+                    })}
+                    fieldHint={helpT.thinkingEffort}
                     value={currentThinkingEffort}
-                    options={thinkingEffortOptions}
+                    options={translatedThinkingEffortOptions}
                     onChange={(v) =>
                       isCreate
                         ? set!({ thinkingEffort: v })
@@ -992,14 +1027,17 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                     codexSearchEnabled &&
                     currentThinkingEffort === "minimal" && (
                       <p className="text-xs text-amber-400">
-                        Codex may reject `minimal` thinking when search is enabled.
+                        {t("paperclip.agentConfigForm.codexMinimalSearchWarning", {
+                          defaultValue:
+                            "Codex may reject `minimal` thinking when search is enabled.",
+                        })}
                       </p>
                     )}
                 </>
               )}
               {!isCreate && typeof config.bootstrapPromptTemplate === "string" && config.bootstrapPromptTemplate && (
                 <>
-                  <Field label="Bootstrap prompt (legacy)" hint={help.bootstrapPrompt}>
+                  <Field label={t("paperclip.agentConfigForm.bootstrapPromptLegacy", { defaultValue: "Bootstrap prompt (legacy)" })} hint={helpT.bootstrapPrompt}>
                     <MarkdownEditor
                       value={eff(
                         "adapterConfig",
@@ -1009,7 +1047,9 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                       onChange={(v) =>
                         mark("adapterConfig", "bootstrapPromptTemplate", v || undefined)
                       }
-                      placeholder="Optional initial setup prompt for the first run"
+                      placeholder={t("paperclip.agentConfigForm.bootstrapPromptPlaceholder", {
+                        defaultValue: "Optional initial setup prompt for the first run",
+                      })}
                       contentClassName="min-h-[44px] text-sm font-mono"
                       imageUploadHandler={async (file) => {
                         const namespace = `agents/${props.agent.id}/bootstrap-prompt`;
@@ -1019,7 +1059,10 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                     />
                   </Field>
                   <div className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                    Bootstrap prompt is legacy and will be removed in a future release. Consider moving this content into the agent&apos;s prompt template or instructions file instead.
+                    {t("paperclip.agentConfigForm.bootstrapLegacyBanner", {
+                      defaultValue:
+                        "Bootstrap prompt is legacy and will be removed in a future release. Consider moving this content into the agent's prompt template or instructions file instead.",
+                    })}
                   </div>
                 </>
               )}
@@ -1028,7 +1071,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
               )}
               <uiAdapter.ConfigFields {...adapterFieldProps} />
 
-              <Field label="Extra args (comma-separated)" hint={help.extraArgs}>
+              <Field label={t("paperclip.agentConfigForm.extraArgs", { defaultValue: "Extra args (comma-separated)" })} hint={helpT.extraArgs}>
                 <DraftInput
                   value={
                     isCreate
@@ -1042,11 +1085,13 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                   }
                   immediate
                   className={inputClass}
-                  placeholder="e.g. --verbose, --foo=bar"
+                  placeholder={t("paperclip.agentConfigForm.extraArgsPlaceholder", {
+                    defaultValue: "e.g. --verbose, --foo=bar",
+                  })}
                 />
               </Field>
 
-              <Field label="Environment variables" hint={help.envVars}>
+              <Field label={t("paperclip.agentConfigForm.environmentVariables", { defaultValue: "Environment variables" })} hint={helpT.envVars}>
                 <EnvVarEditor
                   value={
                     isCreate
@@ -1070,7 +1115,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
               {/* Edit-only: timeout + grace period */}
               {!isCreate && (
                 <>
-                  <Field label="Timeout (sec)" hint={help.timeoutSec}>
+                  <Field label={t("paperclip.agentConfigForm.timeoutLabel", { defaultValue: "Timeout (sec)" })} hint={helpT.timeoutSec}>
                     <DraftNumberInput
                       value={eff(
                         "adapterConfig",
@@ -1082,7 +1127,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                       className={inputClass}
                     />
                   </Field>
-                  <Field label="Interrupt grace period (sec)" hint={help.graceSec}>
+                  <Field label={t("paperclip.agentConfigForm.interruptGraceLabel", { defaultValue: "Interrupt grace period (sec)" })} hint={helpT.graceSec}>
                     <DraftNumberInput
                       value={eff(
                         "adapterConfig",
@@ -1104,20 +1149,20 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       {isCreate && showCreateRunPolicySection ? (
         <div className={cn(!cards && "border-b border-border")}>
           {cards
-            ? <h3 className="text-sm font-medium flex items-center gap-2 mb-3"><Heart className="h-3 w-3" /> Run Policy</h3>
-            : <div className="px-4 py-2 text-xs font-medium text-muted-foreground flex items-center gap-2"><Heart className="h-3 w-3" /> Run Policy</div>
+            ? <h3 className="text-sm font-medium flex items-center gap-2 mb-3"><Heart className="h-3 w-3" /> {t("paperclip.agentConfigForm.runPolicy", { defaultValue: "Run Policy" })}</h3>
+            : <div className="px-4 py-2 text-xs font-medium text-muted-foreground flex items-center gap-2"><Heart className="h-3 w-3" /> {t("paperclip.agentConfigForm.runPolicy", { defaultValue: "Run Policy" })}</div>
           }
           <div className={cn(cards ? "border border-border rounded-lg p-4 space-y-3" : "px-4 pb-3 space-y-3")}>
             <ToggleWithNumber
-              label="Heartbeat on interval"
-              hint={help.heartbeatInterval}
+              label={t("paperclip.agentConfigForm.heartbeatOnInterval", { defaultValue: "Heartbeat on interval" })}
+              hint={helpT.heartbeatInterval}
               checked={val!.heartbeatEnabled}
               onCheckedChange={(v) => set!({ heartbeatEnabled: v })}
               number={val!.intervalSec}
               onNumberChange={(v) => set!({ intervalSec: v })}
-              numberLabel="sec"
-              numberPrefix="Run heartbeat every"
-              numberHint={help.intervalSec}
+              numberLabel={t("paperclip.agentConfigForm.secShort", { defaultValue: "sec" })}
+              numberPrefix={t("paperclip.agentConfigForm.runHeartbeatEvery", { defaultValue: "Run heartbeat every" })}
+              numberHint={helpT.intervalSec}
               showNumber={val!.heartbeatEnabled}
             />
           </div>
@@ -1125,34 +1170,34 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       ) : !isCreate ? (
         <div className={cn(!cards && "border-b border-border")}>
           {cards
-            ? <h3 className="text-sm font-medium flex items-center gap-2 mb-3"><Heart className="h-3 w-3" /> Run Policy</h3>
-            : <div className="px-4 py-2 text-xs font-medium text-muted-foreground flex items-center gap-2"><Heart className="h-3 w-3" /> Run Policy</div>
+            ? <h3 className="text-sm font-medium flex items-center gap-2 mb-3"><Heart className="h-3 w-3" /> {t("paperclip.agentConfigForm.runPolicy", { defaultValue: "Run Policy" })}</h3>
+            : <div className="px-4 py-2 text-xs font-medium text-muted-foreground flex items-center gap-2"><Heart className="h-3 w-3" /> {t("paperclip.agentConfigForm.runPolicy", { defaultValue: "Run Policy" })}</div>
           }
           <div className={cn(cards ? "border border-border rounded-lg overflow-hidden" : "")}>
             <div className={cn(cards ? "p-4 space-y-3" : "px-4 pb-3 space-y-3")}>
               <ToggleWithNumber
-                label="Heartbeat on interval"
-                hint={help.heartbeatInterval}
+                label={t("paperclip.agentConfigForm.heartbeatOnInterval", { defaultValue: "Heartbeat on interval" })}
+                hint={helpT.heartbeatInterval}
                 checked={eff("heartbeat", "enabled", heartbeat.enabled === true)}
                 onCheckedChange={(v) => mark("heartbeat", "enabled", v)}
                 number={eff("heartbeat", "intervalSec", Number(heartbeat.intervalSec ?? 300))}
                 onNumberChange={(v) => mark("heartbeat", "intervalSec", v)}
-                numberLabel="sec"
-                numberPrefix="Run heartbeat every"
-                numberHint={help.intervalSec}
+                numberLabel={t("paperclip.agentConfigForm.secShort", { defaultValue: "sec" })}
+                numberPrefix={t("paperclip.agentConfigForm.runHeartbeatEvery", { defaultValue: "Run heartbeat every" })}
+                numberHint={helpT.intervalSec}
                 showNumber={eff("heartbeat", "enabled", heartbeat.enabled === true)}
               />
             </div>
             <CollapsibleSection
-              title="Advanced Run Policy"
+              title={t("paperclip.agentConfigForm.advancedRunPolicy", { defaultValue: "Advanced Run Policy" })}
               bordered={cards}
               open={runPolicyAdvancedOpen}
               onToggle={() => setRunPolicyAdvancedOpen(!runPolicyAdvancedOpen)}
             >
             <div className="space-y-3">
               <ToggleField
-                label="Wake on demand"
-                hint={help.wakeOnDemand}
+                label={t("paperclip.agentConfigForm.wakeOnDemand", { defaultValue: "Wake on demand" })}
+                hint={helpT.wakeOnDemand}
                 checked={eff(
                   "heartbeat",
                   "wakeOnDemand",
@@ -1160,7 +1205,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 )}
                 onChange={(v) => mark("heartbeat", "wakeOnDemand", v)}
               />
-              <Field label="Cooldown (sec)" hint={help.cooldownSec}>
+              <Field label={t("paperclip.agentConfigForm.cooldownLabel", { defaultValue: "Cooldown (sec)" })} hint={helpT.cooldownSec}>
                 <DraftNumberInput
                   value={eff(
                     "heartbeat",
@@ -1172,7 +1217,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                   className={inputClass}
                 />
               </Field>
-              <Field label="Max concurrent runs" hint={help.maxConcurrentRuns}>
+              <Field label={t("paperclip.agentConfigForm.maxConcurrentRunsLabel", { defaultValue: "Max concurrent runs" })} hint={helpT.maxConcurrentRuns}>
                 <DraftNumberInput
                   value={eff(
                     "heartbeat",
@@ -1195,8 +1240,13 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
 }
 
 export function AdapterEnvironmentResult({ result }: { result: AdapterEnvironmentTestResult }) {
+  const { t } = useTranslation();
   const statusLabel =
-    result.status === "pass" ? "Passed" : result.status === "warn" ? "Warnings" : "Failed";
+    result.status === "pass"
+      ? t("paperclip.agentConfigForm.envTest.passed", { defaultValue: "Passed" })
+      : result.status === "warn"
+        ? t("paperclip.agentConfigForm.envTest.warnings", { defaultValue: "Warnings" })
+        : t("paperclip.agentConfigForm.envTest.failed", { defaultValue: "Failed" });
   const statusClass =
     result.status === "pass"
       ? "text-green-700 dark:text-green-300 border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10"
@@ -1221,7 +1271,11 @@ export function AdapterEnvironmentResult({ result }: { result: AdapterEnvironmen
             <span className="mx-1 opacity-60">·</span>
             <span>{check.message}</span>
             {check.detail && <span className="block opacity-75 break-all">({check.detail})</span>}
-            {check.hint && <span className="block opacity-90 break-words">Hint: {check.hint}</span>}
+            {check.hint && (
+              <span className="block opacity-90 break-words">
+                {t("paperclip.agentConfigForm.envTest.hintPrefix", { defaultValue: "Hint:" })} {check.hint}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -1240,6 +1294,7 @@ function AdapterTypeDropdown({
   onChange: (type: string) => void;
   disabledTypes: Set<string>;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const selectedDisplay = getAdapterDisplay(value);
   const adapterList = useMemo(
@@ -1287,7 +1342,9 @@ function AdapterTypeDropdown({
               {item.experimental && <ExperimentalBadge />}
             </span>
             {item.comingSoon && (
-              <span className="text-[10px] text-muted-foreground">Coming soon</span>
+              <span className="text-[10px] text-muted-foreground">
+                {t("paperclip.agentConfigForm.comingSoon", { defaultValue: "Coming soon" })}
+              </span>
             )}
           </button>
         ))}
@@ -1297,9 +1354,10 @@ function AdapterTypeDropdown({
 }
 
 function ExperimentalBadge() {
+  const { t } = useTranslation();
   return (
     <span className="shrink-0 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium leading-none text-amber-700 dark:text-amber-200">
-      Experimental
+      {t("paperclip.agentConfigForm.experimental", { defaultValue: "Experimental" })}
     </span>
   );
 }
@@ -1322,6 +1380,8 @@ function ModelDropdown({
   detectModelLabel,
   emptyDetectHint,
   defaultLabel,
+  fieldLabel,
+  fieldHint,
 }: {
   models: AdapterModel[];
   value: string;
@@ -1340,7 +1400,14 @@ function ModelDropdown({
   detectModelLabel?: string;
   emptyDetectHint?: string;
   defaultLabel?: string;
+  fieldLabel?: string;
+  fieldHint?: string;
 }) {
+  const { t } = useTranslation();
+  const labelText =
+    fieldLabel ?? t("paperclip.agentConfigForm.modelLabel", { defaultValue: "Model" });
+  const hintText =
+    fieldHint ?? t("paperclip.agentConfigForm.help.model", { defaultValue: help.model });
   const [modelSearch, setModelSearch] = useState("");
   const [detectingModel, setDetectingModel] = useState(false);
   const selected = models.find((m) => m.id === value);
@@ -1412,8 +1479,14 @@ function ModelDropdown({
     }
   }
 
+  const detectLabel =
+    detectModelLabel ?? t("paperclip.agentConfigForm.modelPicker.detectFromConfig", { defaultValue: "Detect from config" });
+  const redetectLabel = t("paperclip.agentConfigForm.modelPicker.redetectFromConfig", {
+    defaultValue: "Re-detect from config",
+  });
+
   return (
-    <Field label="Model" hint={help.model}>
+    <Field label={labelText} hint={hintText}>
       <Popover
         open={open}
         onOpenChange={(nextOpen) => {
@@ -1427,7 +1500,16 @@ function ModelDropdown({
               {selected
                 ? selected.label
                 : value
-                  || (allowDefault ? (defaultLabel ?? "Default") : required ? "Select model (required)" : "Select model")}
+                  || (allowDefault
+                    ? (defaultLabel ??
+                      t("paperclip.agentConfigForm.modelPicker.default", { defaultValue: "Default" }))
+                    : required
+                      ? t("paperclip.agentConfigForm.modelPicker.selectRequired", {
+                          defaultValue: "Select model (required)",
+                        })
+                      : t("paperclip.agentConfigForm.modelPicker.selectModel", {
+                          defaultValue: "Select model",
+                        }))}
             </span>
             <ChevronDown className="h-3 w-3 text-muted-foreground" />
           </button>
@@ -1436,7 +1518,15 @@ function ModelDropdown({
           <div className="relative mb-1">
             <input
               className="w-full px-2 py-1.5 pr-6 text-xs bg-transparent outline-none border-b border-border placeholder:text-muted-foreground/50"
-              placeholder={creatable ? "Search models... (type to create)" : "Search models..."}
+              placeholder={
+                creatable
+                  ? t("paperclip.agentConfigForm.modelPicker.searchCreatable", {
+                      defaultValue: "Search models... (type to create)",
+                    })
+                  : t("paperclip.agentConfigForm.modelPicker.search", {
+                      defaultValue: "Search models...",
+                    })
+              }
               value={modelSearch}
               onChange={(e) => setModelSearch(e.target.value)}
               autoFocus
@@ -1467,7 +1557,11 @@ function ModelDropdown({
                 <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                 <path d="M3 3v5h5" />
               </svg>
-              {detectingModel ? "Detecting..." : detectedModel ? (detectModelLabel?.replace(/^Detect\b/, "Re-detect") ?? "Re-detect from config") : (detectModelLabel ?? "Detect from config")}
+              {detectingModel
+                ? t("paperclip.agentConfigForm.modelPicker.detecting", { defaultValue: "Detecting..." })
+                : detectedModel
+                  ? redetectLabel
+                  : detectLabel}
             </button>
           )}
           {onRefreshModels && !modelSearch.trim() && (
@@ -1485,7 +1579,9 @@ function ModelDropdown({
                 <path d="M21 12a9 9 0 0 1-15.28 6.36L3 16" />
                 <path d="M8 16H3v5" />
               </svg>
-              {refreshingModels ? "Refreshing..." : "Refresh models"}
+              {refreshingModels
+                ? t("paperclip.agentConfigForm.modelPicker.refreshing", { defaultValue: "Refreshing..." })
+                : t("paperclip.agentConfigForm.modelPicker.refreshModels", { defaultValue: "Refresh models" })}
             </button>
           )}
           {value && (!models.some((m) => m.id === value) || promotedModelIds.has(value)) && (
@@ -1502,7 +1598,7 @@ function ModelDropdown({
                 {models.find((m) => m.id === value)?.label ?? value}
               </span>
               <span className="shrink-0 ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/20">
-                current
+                {t("paperclip.agentConfigForm.modelPicker.badgeCurrent", { defaultValue: "current" })}
               </span>
             </button>
           )}
@@ -1521,7 +1617,7 @@ function ModelDropdown({
                 {models.find((m) => m.id === detectedModel)?.label ?? detectedModel}
               </span>
               <span className="shrink-0 ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20">
-                detected
+                {t("paperclip.agentConfigForm.modelPicker.badgeDetected", { defaultValue: "detected" })}
               </span>
             </button>
           )}
@@ -1545,7 +1641,7 @@ function ModelDropdown({
                     {entry?.label ?? candidate}
                   </span>
                   <span className="shrink-0 ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/20">
-                    config
+                    {t("paperclip.agentConfigForm.modelPicker.badgeConfig", { defaultValue: "config" })}
                   </span>
                 </button>
               );
@@ -1563,7 +1659,7 @@ function ModelDropdown({
                   onOpenChange(false);
                 }}
               >
-                Default
+                {t("paperclip.agentConfigForm.modelPicker.default", { defaultValue: "Default" })}
               </button>
             )}
             {canCreateManualModel && (
@@ -1576,7 +1672,7 @@ function ModelDropdown({
                   setModelSearch("");
                 }}
               >
-                <span>Use manual model</span>
+                <span>{t("paperclip.agentConfigForm.modelPicker.useManualModel", { defaultValue: "Use manual model" })}</span>
                 <span className="text-xs font-mono text-muted-foreground">{manualModel}</span>
               </button>
             )}
@@ -1611,8 +1707,11 @@ function ModelDropdown({
               <div className="px-2 py-2 space-y-2">
                 <p className="text-xs text-muted-foreground">
                   {onDetectModel
-                    ? (emptyDetectHint ?? "No model detected yet. Enter a provider/model manually.")
-                    : "No models found."}
+                    ? (emptyDetectHint ??
+                      t("paperclip.agentConfigForm.modelPicker.noModelDetectedManual", {
+                        defaultValue: "No model detected yet. Enter a provider/model manually.",
+                      }))
+                    : t("paperclip.agentConfigForm.modelPicker.noModelsFound", { defaultValue: "No models found." })}
                 </p>
               </div>
             )}
@@ -1644,16 +1743,27 @@ function CheapModelSection({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const placeholderHint = adapterDefaultModel
-    ? `Adapter default · ${adapterDefaultModel}`
-    : "No adapter default — choose a cheaper model";
+    ? t("paperclip.agentConfigForm.cheapModel.placeholderWithDefault", {
+        model: adapterDefaultModel,
+        defaultValue: `Adapter default · ${adapterDefaultModel}`,
+      })
+    : t("paperclip.agentConfigForm.cheapModel.placeholderNoDefault", {
+        defaultValue: "No adapter default — choose a cheaper model",
+      });
   return (
     <div className="rounded-md border border-border/70 bg-muted/20 p-3 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Cheap model</div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            {t("paperclip.agentConfigForm.cheapModel.title", { defaultValue: "Cheap model" })}
+          </div>
           <p className="text-xs text-muted-foreground">
-            Used when a run requests the cheap profile (e.g. routine summaries). The primary model stays unchanged.
+            {t("paperclip.agentConfigForm.cheapModel.description", {
+              defaultValue:
+                "Used when a run requests the cheap profile (e.g. routine summaries). The primary model stays unchanged.",
+            })}
           </p>
         </div>
         <ToggleSwitch checked={enabled} onCheckedChange={onEnabledChange} />
@@ -1677,12 +1787,19 @@ function CheapModelSection({
       ) : null}
       {enabled && !model && adapterDefaultModel ? (
         <p className="text-[11px] text-muted-foreground">
-          No explicit cheap model selected — runtime falls back to <code>{adapterDefaultModel}</code>.
+          {t("paperclip.agentConfigForm.cheapModel.fallbackPrefix", {
+            defaultValue: "No explicit cheap model selected — runtime falls back to ",
+          })}
+          <code>{adapterDefaultModel}</code>
+          {t("paperclip.agentConfigForm.cheapModel.fallbackSuffix", { defaultValue: "." })}
         </p>
       ) : null}
       {enabled && !model && !adapterDefaultModel ? (
         <p className="text-[11px] text-amber-500">
-          No cheap model selected and the adapter has no default. Cheap-lane runs will continue on the primary model with a fallback note.
+          {t("paperclip.agentConfigForm.cheapModel.noAdapterDefaultWarning", {
+            defaultValue:
+              "No cheap model selected and the adapter has no default. Cheap-lane runs will continue on the primary model with a fallback note.",
+          })}
         </p>
       ) : null}
     </div>
@@ -1690,26 +1807,34 @@ function CheapModelSection({
 }
 
 function ThinkingEffortDropdown({
+  fieldLabel,
+  fieldHint,
   value,
   options,
   onChange,
   open,
   onOpenChange,
 }: {
+  fieldLabel: string;
+  fieldHint: string;
   value: string;
   options: ReadonlyArray<{ id: string; label: string }>;
   onChange: (id: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const selected = options.find((option) => option.id === value) ?? options[0];
 
   return (
-    <Field label="Thinking effort" hint={help.thinkingEffort}>
+    <Field label={fieldLabel} hint={fieldHint}>
       <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverTrigger asChild>
           <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-sm hover:bg-accent/50 transition-colors w-full justify-between">
-            <span className={cn(!value && "text-muted-foreground")}>{selected?.label ?? "Auto"}</span>
+            <span className={cn(!value && "text-muted-foreground")}>
+              {selected?.label ??
+                t("paperclip.agentConfigForm.thinkingLevel.auto", { defaultValue: "Auto" })}
+            </span>
             <ChevronDown className="h-3 w-3 text-muted-foreground" />
           </button>
         </PopoverTrigger>
