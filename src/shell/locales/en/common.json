@@ -64,6 +64,9 @@
       "closeSidebar": "Close sidebar",
       "openSidebar": "Open sidebar"
     },
+    "cloudAccessGate": {
+      "connecting": "Connecting locally…"
+    },
     "crumbs": {
       "dashboard": "Dashboard",
       "dashboardLive": "Live runs",

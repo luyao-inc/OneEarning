@@ -64,6 +64,9 @@
       "closeSidebar": "关闭侧栏",
       "openSidebar": "打开侧栏"
     },
+    "cloudAccessGate": {
+      "connecting": "本地连接中…"
+    },
     "crumbs": {
       "dashboard": "概览",
       "dashboardLive": "实时运行",

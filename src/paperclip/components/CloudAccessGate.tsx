@@ -1,9 +1,14 @@
 import { Navigate, Outlet, useLocation } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { accessApi } from "@/api/access";
 import { authApi } from "@/api/auth";
 import { healthApi } from "@/api/health";
 import { queryKeys } from "@/lib/queryKeys";
+
+function isFetchLikeStartupMessage(message: string): boolean {
+  return /fetch failed|failed to fetch|failed to load session/i.test(message);
+}
 
 function BootstrapPendingPage({ hasActiveInvite = false }: { hasActiveInvite?: boolean }) {
   return (
@@ -41,6 +46,7 @@ function NoBoardAccessPage() {
 }
 
 export function CloudAccessGate() {
+  const { t } = useTranslation();
   const location = useLocation();
   const healthQuery = useQuery({
     queryKey: queryKeys.health,
@@ -80,14 +86,15 @@ export function CloudAccessGate() {
     return <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">Loading...</div>;
   }
 
-  if (healthQuery.error || boardAccessQuery.error) {
+  if (healthQuery.error || sessionQuery.error || boardAccessQuery.error) {
+    const err = healthQuery.error ?? sessionQuery.error ?? boardAccessQuery.error;
+    const message = err instanceof Error ? err.message : String(err);
+    const body = isFetchLikeStartupMessage(message)
+      ? t("paperclip.cloudAccessGate.connecting")
+      : message;
     return (
-      <div className="mx-auto max-w-xl py-10 text-sm text-destructive">
-        {healthQuery.error instanceof Error
-          ? healthQuery.error.message
-          : boardAccessQuery.error instanceof Error
-            ? boardAccessQuery.error.message
-            : "Failed to load app state"}
+      <div className="mx-auto max-w-xl py-10">
+        <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">{body}</div>
       </div>
     );
   }
