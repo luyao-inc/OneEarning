@@ -1180,29 +1180,34 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
 
 function LatestRunCard({ runs, agentId }: { runs: HeartbeatRun[]; agentId: string }) {
   const { t } = useTranslation();
-  if (runs.length === 0) return null;
-
-  const sorted = [...runs].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
-
-  const liveRun = sorted.find((r) => r.status === "running" || r.status === "queued");
-  const run = liveRun ?? sorted[0];
-  const isLive = run.status === "running" || run.status === "queued";
-  const statusInfo = runStatusIcons[run.status] ?? { icon: Clock, color: "text-neutral-400" };
-  const StatusIcon = statusInfo.icon;
-  const summaryRaw = run.resultJson
-    ? String((run.resultJson as Record<string, unknown>).summary ?? (run.resultJson as Record<string, unknown>).result ?? "")
-    : run.error ?? "";
-
-  // Extract a clean 2-3 line excerpt: first non-empty, non-header, non-list-mark lines
-  const summary = useMemo(() => {
-    if (!summaryRaw) return "";
+  const { run, summary } = useMemo(() => {
+    if (runs.length === 0) return { run: null as HeartbeatRun | null, summary: "" };
+    const sorted = [...runs].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    const liveRun = sorted.find((r) => r.status === "running" || r.status === "queued");
+    const chosen = liveRun ?? sorted[0]!;
+    const summaryRaw = chosen.resultJson
+      ? String(
+          (chosen.resultJson as Record<string, unknown>).summary ??
+            (chosen.resultJson as Record<string, unknown>).result ??
+            "",
+        )
+      : chosen.error ?? "";
+    if (!summaryRaw) return { run: chosen, summary: "" };
     const lines = summaryRaw
       .replace(/^#{1,6}\s+/gm, "")
       .split("\n")
       .map((l) => l.trim())
-      .filter((l) => l.length > 0 && !l.startsWith("---") && !l.startsWith("|") && !l.startsWith("```") && !/^[-*>]/.test(l) && !/^\d+\./.test(l));
+      .filter(
+        (l) =>
+          l.length > 0 &&
+          !l.startsWith("---") &&
+          !l.startsWith("|") &&
+          !l.startsWith("```") &&
+          !/^[-*>]/.test(l) &&
+          !/^\d+\./.test(l),
+      );
     const excerpt: string[] = [];
     let chars = 0;
     for (const line of lines) {
@@ -1210,8 +1215,14 @@ function LatestRunCard({ runs, agentId }: { runs: HeartbeatRun[]; agentId: strin
       excerpt.push(line);
       chars += line.length;
     }
-    return excerpt.join(" ");
-  }, [summaryRaw]);
+    return { run: chosen, summary: excerpt.join(" ") };
+  }, [runs]);
+
+  if (!run) return null;
+
+  const isLive = run.status === "running" || run.status === "queued";
+  const statusInfo = runStatusIcons[run.status] ?? { icon: Clock, color: "text-neutral-400" };
+  const StatusIcon = statusInfo.icon;
 
   return (
     <div className="space-y-3">
