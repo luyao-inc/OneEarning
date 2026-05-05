@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
 import type {
   Agent,
@@ -20,7 +21,12 @@ import { OutputFeedbackButtons } from "./OutputFeedbackButtons";
 import { ApprovalCard } from "./ApprovalCard";
 import { AgentIcon } from "./AgentIconPicker";
 import { formatAssigneeUserLabel } from "../lib/assignees";
-import type { IssueTimelineAssignee, IssueTimelineEvent } from "../lib/issue-timeline-events";
+import {
+  displayTimelineActorName,
+  formatTimelineAssigneeForDisplay,
+  translateTimelineIssueStatus,
+} from "../lib/issue-timeline-i18n";
+import type { IssueTimelineEvent } from "../lib/issue-timeline-events";
 import { translateRunStatusLabel } from "../lib/issue-chat-messages";
 import { timeAgo } from "../lib/timeAgo";
 import { cn, formatDateTime } from "../lib/utils";
@@ -166,25 +172,6 @@ function parseReassignment(target: string): CommentReassignment | null {
 function shouldImplicitlyReopenComment(issueStatus: string | undefined, assigneeValue: string) {
   const resumesToTodo = issueStatus === "done" || issueStatus === "cancelled" || issueStatus === "blocked";
   return resumesToTodo && assigneeValue.startsWith("agent:");
-}
-
-function humanizeValue(value: string | null): string {
-  if (!value) return "None";
-  return value.replace(/_/g, " ");
-}
-
-function formatTimelineAssigneeLabel(
-  assignee: IssueTimelineAssignee,
-  agentMap?: Map<string, Agent>,
-  currentUserId?: string | null,
-) {
-  if (assignee.agentId) {
-    return agentMap?.get(assignee.agentId)?.name ?? assignee.agentId.slice(0, 8);
-  }
-  if (assignee.userId) {
-    return formatAssigneeUserLabel(assignee.userId, currentUserId) ?? "Board";
-  }
-  return "Unassigned";
 }
 
 function formatTimelineActorName(
@@ -477,8 +464,12 @@ function TimelineEventCard({
   agentMap?: Map<string, Agent>;
   currentUserId?: string | null;
 }) {
-  const actorName = formatTimelineActorName(event.actorType, event.actorId, agentMap, currentUserId);
-  const actionLabel = event.followUpRequested ? "requested follow-up" : "updated this task";
+  const { t } = useTranslation();
+  const rawActorName = formatTimelineActorName(event.actorType, event.actorId, agentMap, currentUserId);
+  const actorName = displayTimelineActorName(event.actorType, rawActorName, t);
+  const actionLabel = event.followUpRequested
+    ? t("paperclip.issueChat.activityRequestedFollowUp")
+    : t("paperclip.issueChat.activityUpdatedTask");
 
   return (
     <div id={`activity-${event.id}`} className="flex items-start gap-2.5 py-1.5">
@@ -500,30 +491,30 @@ function TimelineEventCard({
 
         {event.statusChange ? (
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="w-14 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Status
+            <span className="min-w-[3.5rem] text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              {t("paperclip.issueChat.activityStatusField")}
             </span>
             <span className="text-muted-foreground">
-              {humanizeValue(event.statusChange.from)}
+              {translateTimelineIssueStatus(event.statusChange.from, t)}
             </span>
             <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="font-medium text-foreground">
-              {humanizeValue(event.statusChange.to)}
+              {translateTimelineIssueStatus(event.statusChange.to, t)}
             </span>
           </div>
         ) : null}
 
         {event.assigneeChange ? (
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="w-14 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Assignee
+            <span className="min-w-[3.5rem] text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              {t("paperclip.issueChat.activityAssigneeField")}
             </span>
             <span className="text-muted-foreground">
-              {formatTimelineAssigneeLabel(event.assigneeChange.from, agentMap, currentUserId)}
+              {formatTimelineAssigneeForDisplay(event.assigneeChange.from, t, agentMap, currentUserId)}
             </span>
             <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="font-medium text-foreground">
-              {formatTimelineAssigneeLabel(event.assigneeChange.to, agentMap, currentUserId)}
+              {formatTimelineAssigneeForDisplay(event.assigneeChange.to, t, agentMap, currentUserId)}
             </span>
           </div>
         ) : null}
@@ -729,6 +720,7 @@ export function CommentThread({
   interruptingQueuedRunId = null,
   composerDisabledReason = null,
 }: CommentThreadProps) {
+  const { t } = useTranslation();
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [attaching, setAttaching] = useState(false);
@@ -920,7 +912,9 @@ export function CommentThread({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold">Timeline ({timeline.length + queuedComments.length})</h3>
+      <h3 className="text-sm font-semibold">
+        {t("paperclip.issueChat.timelineTitle", { count: timeline.length + queuedComments.length })}
+      </h3>
 
       <TimelineList
         timeline={timeline}
@@ -945,7 +939,7 @@ export function CommentThread({
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
-              Queued Comments ({queuedComments.length})
+              {t("paperclip.issueChat.queuedCommentsTitle", { count: queuedComments.length })}
             </h4>
             {onInterruptQueued && queuedComments[0]?.queueTargetRunId ? (
               <Button
@@ -955,7 +949,9 @@ export function CommentThread({
                 disabled={interruptingQueuedRunId === queuedComments[0].queueTargetRunId}
                 onClick={() => void onInterruptQueued(queuedComments[0]!.queueTargetRunId!)}
               >
-                {interruptingQueuedRunId === queuedComments[0].queueTargetRunId ? "Interrupting..." : "Interrupt"}
+                {interruptingQueuedRunId === queuedComments[0].queueTargetRunId
+                  ? t("paperclip.issueChat.interrupting")
+                  : t("paperclip.issueChat.interrupt")}
               </Button>
             ) : null}
           </div>
@@ -985,7 +981,7 @@ export function CommentThread({
             ref={editorRef}
             value={body}
             onChange={setBody}
-            placeholder="Leave a comment..."
+            placeholder={t("paperclip.issueChat.leaveCommentPlaceholder")}
             mentions={mentions}
             onSubmit={handleSubmit}
             imageUploadHandler={imageUploadHandler}

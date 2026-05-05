@@ -62,6 +62,11 @@ import type {
 import { buildIssueThreadInteractionSummary, isIssueThreadInteraction } from "../lib/issue-thread-interactions";
 import { resolveIssueChatTranscriptRuns } from "../lib/issueChatTranscriptRuns";
 import type { IssueTimelineAssignee, IssueTimelineEvent } from "../lib/issue-timeline-events";
+import {
+  displayTimelineActorName,
+  formatTimelineAssigneeForDisplay,
+  translateTimelineIssueStatus,
+} from "../lib/issue-timeline-i18n";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -597,26 +602,6 @@ const IssueChatTextPart = memo(function IssueChatTextPart({ text, recessed }: { 
   );
 });
 
-function humanizeValue(value: string | null) {
-  if (!value) return "None";
-  return value.replace(/_/g, " ");
-}
-
-function formatTimelineAssigneeLabel(
-  assignee: IssueTimelineAssignee,
-  agentMap?: Map<string, Agent>,
-  currentUserId?: string | null,
-  userLabelMap?: ReadonlyMap<string, string> | null,
-) {
-  if (assignee.agentId) {
-    return agentMap?.get(assignee.agentId)?.name ?? assignee.agentId.slice(0, 8);
-  }
-  if (assignee.userId) {
-    return formatAssigneeUserLabel(assignee.userId, currentUserId, userLabelMap) ?? "Board";
-  }
-  return "Unassigned";
-}
-
 function initialsForName(name: string) {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) {
@@ -845,6 +830,14 @@ function IssueChatReasoningPart({ text }: { text: string }) {
     }
   }, [lastLine]);
 
+  useEffect(() => {
+    if (ticker.exiting === null) return undefined;
+    const id = window.setTimeout(() => {
+      setTicker((t) => (t.exiting !== null ? { ...t, exiting: null } : t));
+    }, 450);
+    return () => window.clearTimeout(id);
+  }, [ticker.exiting, ticker.key]);
+
   return (
     <div className="flex gap-2 px-1">
       <div className="flex flex-col items-center pt-0.5">
@@ -894,6 +887,14 @@ function IssueChatRollingToolPart({ toolParts }: { toolParts: ToolCallMessagePar
       setTicker((t) => ({ key: t.key + 1, current: fullText, exiting: prev }));
     }
   }, [fullText]);
+
+  useEffect(() => {
+    if (ticker.exiting === null) return undefined;
+    const id = window.setTimeout(() => {
+      setTicker((t) => (t.exiting !== null ? { ...t, exiting: null } : t));
+    }, 450);
+    return () => window.clearTimeout(id);
+  }, [ticker.exiting, ticker.key]);
 
   const ToolIcon = getToolIcon(latest.toolName);
   const isRunning = latest.result === undefined;
@@ -1171,6 +1172,7 @@ function IssueChatUserMessage({
   message: ThreadMessage;
   isInterruptingQueuedRun: boolean;
 }) {
+  const { t } = useTranslation();
   const {
     onInterruptQueued,
     onCancelQueued,
@@ -1185,7 +1187,10 @@ function IssueChatUserMessage({
   const queued = custom.queueState === "queued" || custom.clientStatus === "queued";
   const followUpRequested = custom.followUpRequested === true;
   const queueReason = typeof custom.queueReason === "string" ? custom.queueReason : null;
-  const queueBadgeLabel = queueReason === "hold" ? "\u23f8 Deferred wake" : "Queued";
+  const queueBadgeLabel =
+    queueReason === "hold"
+      ? t("paperclip.issueChat.queueBadgeDeferredWake")
+      : t("paperclip.issueChat.queueBadgeQueued");
   const pending = custom.clientStatus === "pending";
   const queueTargetRunId = typeof custom.queueTargetRunId === "string" ? custom.queueTargetRunId : null;
   const [copied, setCopied] = useState(false);
@@ -1211,7 +1216,7 @@ function IssueChatUserMessage({
         <span className="text-sm font-medium text-foreground">{resolvedAuthorName}</span>
         {followUpRequested ? (
           <Badge variant="outline" className="text-[10px] uppercase tracking-[0.14em]">
-            Follow-up
+            {t("paperclip.issueChat.followUp")}
           </Badge>
         ) : null}
       </div>
@@ -1237,7 +1242,7 @@ function IssueChatUserMessage({
                 disabled={isInterruptingQueuedRun}
                 onClick={() => void onInterruptQueued(queueTargetRunId)}
               >
-                {isInterruptingQueuedRun ? "Interrupting..." : "Interrupt"}
+                {isInterruptingQueuedRun ? t("paperclip.issueChat.interrupting") : t("paperclip.issueChat.interrupt")}
               </Button>
             ) : null}
             {onCancelQueued ? (
@@ -1247,7 +1252,7 @@ function IssueChatUserMessage({
                 className="h-6 border-amber-300 px-2 text-[11px] text-amber-900 hover:bg-amber-100/80 hover:text-amber-950 dark:border-amber-500/40 dark:text-amber-100 dark:hover:bg-amber-500/10"
                 onClick={() => onCancelQueued(commentId)}
               >
-                Cancel
+                {t("paperclip.issueChat.cancelQueued")}
               </Button>
             ) : null}
           </div>
@@ -1259,7 +1264,7 @@ function IssueChatUserMessage({
 
       {pending ? (
         <div className={cn("mt-1 flex px-1 text-[11px] text-muted-foreground", isCurrentUser ? "justify-end" : "justify-start")}>
-          Sending...
+          {t("paperclip.issueChat.composerPosting")}
         </div>
       ) : (
         <div
@@ -1284,8 +1289,8 @@ function IssueChatUserMessage({
           <button
             type="button"
             className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-            title="Copy message"
-            aria-label="Copy message"
+            title={t("paperclip.issueChat.copyMessage")}
+            aria-label={t("paperclip.issueChat.copyMessage")}
             onClick={() => {
               const text = message.content
                 .filter((p): p is { type: "text"; text: string } => p.type === "text")
@@ -1483,8 +1488,8 @@ function IssueChatAssistantMessage({
                 <button
                   type="button"
                   className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                  title="Copy message"
-                  aria-label="Copy message"
+                  title={t("paperclip.issueChat.copyMessage")}
+                  aria-label={t("paperclip.issueChat.copyMessage")}
                   onClick={() => {
                     void navigator.clipboard.writeText(copyText).then(() => {
                       setCopied(true);
@@ -1521,8 +1526,8 @@ function IssueChatAssistantMessage({
                       variant="ghost"
                       size="icon-xs"
                       className="text-muted-foreground hover:text-foreground"
-                      title="More actions"
-                      aria-label="More actions"
+                      title={t("paperclip.issueChat.moreActions")}
+                      aria-label={t("paperclip.issueChat.moreActions")}
                     >
                       <MoreHorizontal className="h-3.5 w-3.5" />
                     </Button>
@@ -1534,7 +1539,7 @@ function IssueChatAssistantMessage({
                       }}
                     >
                       <Copy className="mr-2 h-3.5 w-3.5" />
-                      Copy message
+                      {t("paperclip.issueChat.copyMessage")}
                     </DropdownMenuItem>
                     {canStopRun && onStopRun && runId ? (
                       <DropdownMenuItem
@@ -1812,6 +1817,7 @@ function ExpiredRequestConfirmationActivity({
     onRejectInteraction,
     onCancelInteraction,
   } = useContext(IssueChatCtx);
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const hasResolvedActor = Boolean(interaction.resolvedByAgentId || interaction.resolvedByUserId);
   const actorAgentId = hasResolvedActor
@@ -1836,7 +1842,7 @@ function ExpiredRequestConfirmationActivity({
     <div className="min-w-0 flex-1">
       <div className={cn("flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs", isCurrentUser && "justify-end")}>
         <span className="font-medium text-foreground">{actorName}</span>
-        <span className="text-muted-foreground">updated this task</span>
+        <span className="text-muted-foreground">{t("paperclip.issueChat.activityUpdatedTask")}</span>
         <a
           href={anchorId ? `#${anchorId}` : undefined}
           className="text-xs text-muted-foreground transition-colors hover:text-foreground hover:underline"
@@ -1851,7 +1857,9 @@ function ExpiredRequestConfirmationActivity({
           onClick={() => setExpanded((current) => !current)}
         >
           <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
-          {expanded ? "Hide confirmation" : "Expired confirmation"}
+          {expanded
+            ? t("paperclip.issueChat.expiredConfirmationToggleHide")
+            : t("paperclip.issueChat.expiredConfirmationToggleShow")}
         </button>
       </div>
       {expanded ? (
@@ -1898,6 +1906,7 @@ function ExpiredRequestConfirmationActivity({
 }
 
 function IssueChatSystemMessage({ message }: { message: ThreadMessage }) {
+  const { t } = useTranslation();
   const {
     agentMap,
     currentUserId,
@@ -1962,13 +1971,16 @@ function IssueChatSystemMessage({ message }: { message: ThreadMessage }) {
     const isCurrentUser = actorType === "user" && !!currentUserId && actorId === currentUserId;
     const isAgent = actorType === "agent";
     const agentIcon = isAgent && actorId ? agentMap?.get(actorId)?.icon : undefined;
+    const displayActorName = displayTimelineActorName(actorType, actorName, t);
 
     const eventContent = (
       <div className="min-w-0 space-y-1">
         <div className={cn("flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-xs", isCurrentUser && "justify-end")}>
-          <span className="font-medium text-foreground">{actorName}</span>
+          <span className="font-medium text-foreground">{displayActorName}</span>
           <span className="text-muted-foreground">
-            {custom.followUpRequested === true ? "requested follow-up" : "updated this task"}
+            {custom.followUpRequested === true
+              ? t("paperclip.issueChat.activityRequestedFollowUp")
+              : t("paperclip.issueChat.activityUpdatedTask")}
           </span>
           <a
             href={anchorId ? `#${anchorId}` : undefined}
@@ -1981,25 +1993,25 @@ function IssueChatSystemMessage({ message }: { message: ThreadMessage }) {
         {statusChange ? (
           <div className={cn("flex flex-wrap items-center gap-1.5 text-xs", isCurrentUser && "justify-end")}>
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Status
+              {t("paperclip.issueChat.activityStatusField")}
             </span>
-            <span className="text-muted-foreground">{humanizeValue(statusChange.from)}</span>
+            <span className="text-muted-foreground">{translateTimelineIssueStatus(statusChange.from, t)}</span>
             <ArrowRight className="h-3 w-3 text-muted-foreground" />
-            <span className="font-medium text-foreground">{humanizeValue(statusChange.to)}</span>
+            <span className="font-medium text-foreground">{translateTimelineIssueStatus(statusChange.to, t)}</span>
           </div>
         ) : null}
 
         {assigneeChange ? (
           <div className={cn("flex flex-wrap items-center gap-1.5 text-xs", isCurrentUser && "justify-end")}>
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Assignee
+              {t("paperclip.issueChat.activityAssigneeField")}
             </span>
             <span className="text-muted-foreground">
-              {formatTimelineAssigneeLabel(assigneeChange.from, agentMap, currentUserId, userLabelMap)}
+              {formatTimelineAssigneeForDisplay(assigneeChange.from, t, agentMap, currentUserId, userLabelMap)}
             </span>
             <ArrowRight className="h-3 w-3 text-muted-foreground" />
             <span className="font-medium text-foreground">
-              {formatTimelineAssigneeLabel(assigneeChange.to, agentMap, currentUserId, userLabelMap)}
+              {formatTimelineAssigneeForDisplay(assigneeChange.to, t, agentMap, currentUserId, userLabelMap)}
             </span>
           </div>
         ) : null}
@@ -2023,7 +2035,7 @@ function IssueChatSystemMessage({ message }: { message: ThreadMessage }) {
             {agentIcon ? (
               <AvatarFallback><AgentIcon icon={agentIcon} className="h-3.5 w-3.5" /></AvatarFallback>
             ) : (
-              <AvatarFallback>{initialsForName(actorName)}</AvatarFallback>
+              <AvatarFallback>{initialsForName(displayActorName)}</AvatarFallback>
             )}
           </Avatar>
           <div className="flex-1">
@@ -2053,7 +2065,7 @@ function IssueChatSystemMessage({ message }: { message: ThreadMessage }) {
               <Link to={`/agents/${runAgentId}`} className="font-medium text-foreground transition-colors hover:underline">
                 {displayedRunAgentName}
               </Link>
-              <span className="text-muted-foreground">run</span>
+              <span className="text-muted-foreground">{t("paperclip.issueChat.activityRunNoun")}</span>
               <Link
                 to={`/agents/${runAgentId}/runs/${runId}`}
                 className="inline-flex items-center rounded-md border border-border bg-accent/40 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"

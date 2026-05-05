@@ -288,9 +288,18 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Without motion, enter + exit would both sit at y=0 and ghost. Hide exit layer. */
   .cot-line-enter,
   .cot-line-exit {
     animation: none;
+  }
+  .cot-line-exit {
+    opacity: 0;
+    transform: translateY(-100%);
+    pointer-events: none;
+  }
+  .cot-line-enter {
+    transform: none;
   }
 }
 
@@ -302,6 +311,8 @@
 }
 
 .shimmer-text {
+  display: inline-block;
+  color: transparent;
   --shimmer-base: var(--foreground);
   --shimmer-highlight: color-mix(in oklch, var(--foreground) 35%, transparent);
   background: linear-gradient(
@@ -322,8 +333,12 @@
 @media (prefers-reduced-motion: reduce) {
   .shimmer-text {
     animation: none;
-    -webkit-text-fill-color: unset;
     background: none;
+    background-size: auto;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    -webkit-text-fill-color: currentcolor;
+    color: inherit;
   }
 }
 

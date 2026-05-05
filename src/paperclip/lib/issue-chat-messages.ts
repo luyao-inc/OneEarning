@@ -17,6 +17,12 @@ import {
 } from "./issue-thread-interactions";
 import type { IssueTimelineEvent } from "./issue-timeline-events";
 import {
+  displayTimelineActorName,
+  formatTimelineAssigneeForDisplay,
+  translateTimelineIssueStatus,
+} from "./issue-timeline-i18n";
+import type { TFunction } from "i18next";
+import {
   summarizeNotice,
 } from "./transcriptPresentation";
 
@@ -351,6 +357,10 @@ function createCommentMessage(args: {
   return message;
 }
 
+function timelineI18nT(): TFunction {
+  return i18n.t.bind(i18n) as TFunction;
+}
+
 function createTimelineEventMessage(args: {
   event: IssueTimelineEvent;
   agentMap?: Map<string, Agent>;
@@ -358,28 +368,38 @@ function createTimelineEventMessage(args: {
   userLabelMap?: ReadonlyMap<string, string> | null;
 }) {
   const { event, agentMap, currentUserId, userLabelMap } = args;
+  const t = timelineI18nT();
   const actorName = event.actorType === "agent"
     ? (agentMap?.get(event.actorId)?.name ?? event.actorId.slice(0, 8))
     : event.actorType === "system"
       ? "System"
       : (formatAssigneeUserLabel(event.actorId, currentUserId, userLabelMap) ?? "Board");
 
+  const actorDisplayForText = displayTimelineActorName(event.actorType, actorName, t);
+
   const lines: string[] = [
-    event.followUpRequested ? `${actorName} requested follow-up` : `${actorName} updated this issue`,
+    event.followUpRequested
+      ? t("paperclip.issueChat.activityLineRequestedFollowUp", { actor: actorDisplayForText })
+      : t("paperclip.issueChat.activityLineUpdatedIssue", { actor: actorDisplayForText }),
   ];
   if (event.statusChange) {
     lines.push(
-      `Status: ${event.statusChange.from ?? "none"} -> ${event.statusChange.to ?? "none"}`,
+      t("paperclip.issueChat.activityRawStatusChange", {
+        from: translateTimelineIssueStatus(event.statusChange.from, t),
+        to: translateTimelineIssueStatus(event.statusChange.to, t),
+      }),
     );
   }
   if (event.assigneeChange) {
-    const from = event.assigneeChange.from.agentId
-      ? (agentMap?.get(event.assigneeChange.from.agentId)?.name ?? event.assigneeChange.from.agentId.slice(0, 8))
-      : (formatAssigneeUserLabel(event.assigneeChange.from.userId, currentUserId, userLabelMap) ?? "Unassigned");
-    const to = event.assigneeChange.to.agentId
-      ? (agentMap?.get(event.assigneeChange.to.agentId)?.name ?? event.assigneeChange.to.agentId.slice(0, 8))
-      : (formatAssigneeUserLabel(event.assigneeChange.to.userId, currentUserId, userLabelMap) ?? "Unassigned");
-    lines.push(`Assignee: ${from} -> ${to}`);
+    const from = formatTimelineAssigneeForDisplay(
+      event.assigneeChange.from,
+      t,
+      agentMap,
+      currentUserId,
+      userLabelMap,
+    );
+    const to = formatTimelineAssigneeForDisplay(event.assigneeChange.to, t, agentMap, currentUserId, userLabelMap);
+    lines.push(t("paperclip.issueChat.activityRawAssigneeChange", { from, to }));
   }
 
   const message: ThreadSystemMessage = {

@@ -10,7 +10,7 @@ describe("GoalPropertiesToggleButton", () => {
       <GoalPropertiesToggleButton panelVisible={false} onShowProperties={() => {}} />,
     );
 
-    expect(html).toContain('title="Show properties"');
+    expect(html).toMatch(/title="(?:Show properties|paperclip\.goalDetail\.showPropertiesTitle)"/);
     expect(html).toContain("opacity-100");
   });
 

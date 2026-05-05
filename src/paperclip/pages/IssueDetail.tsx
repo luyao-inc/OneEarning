@@ -3005,7 +3005,7 @@ export function IssueDetail() {
       {issue.hiddenAt && (
         <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           <EyeOff className="h-4 w-4 shrink-0" />
-          This issue is hidden
+          {t("paperclip.issueDetail.issueHiddenBanner")}
         </div>
       )}
       {activePauseHold && (
@@ -3014,19 +3014,27 @@ export function IssueDetail() {
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">
-                  {childIssues.length === 0 ? "Paused by board." : "Subtree pause is active."}
+                  {childIssues.length === 0
+                    ? t("paperclip.issueDetail.pauseBoardRootTitle")
+                    : t("paperclip.issueDetail.pauseSubtreeActiveTitle")}
                 </span>
                 <span className="text-xs text-amber-900/80 dark:text-amber-100/80">
                   {childIssues.length === 0
-                    ? "Issue execution is held until resume. Human comments can still wake the assignee for triage."
-                    : "Root and descendant execution is held until resume. Human comments can still wake assignees for triage."}
+                    ? t("paperclip.issueDetail.pauseBoardRootHint")
+                    : t("paperclip.issueDetail.pauseSubtreeHint")}
                 </span>
               </div>
               <div className="text-xs text-amber-900/80 dark:text-amber-100/80">
                 {childIssues.length === 0
-                  ? "1 issue held"
-                  : `${heldDescendantCount} descendant${heldDescendantCount === 1 ? "" : "s"} held`}
-                {activeRootPauseHold?.createdAt ? ` · started ${relativeTime(activeRootPauseHold.createdAt)}` : ""}
+                  ? t("paperclip.issueDetail.pauseHeldOneIssue")
+                  : heldDescendantCount === 1
+                    ? t("paperclip.issueDetail.pauseDescendantsHeldOne")
+                    : t("paperclip.issueDetail.pauseDescendantsHeldMany", { count: heldDescendantCount })}
+                {activeRootPauseHold?.createdAt
+                  ? t("paperclip.issueDetail.pauseStartedRelative", {
+                      time: relativeTime(activeRootPauseHold.createdAt),
+                    })
+                  : ""}
               </div>
               {canShowSubtreeControls || canResumeLeafWork ? (
                 <div className="flex flex-wrap items-center gap-2">
@@ -3038,7 +3046,7 @@ export function IssueDetail() {
                       setTreeControlOpen(true);
                     }}
                   >
-                    {childIssues.length === 0 ? "Resume work" : "Resume subtree"}
+                    {childIssues.length === 0 ? t("paperclip.issueDetail.treeResumeWork") : t("paperclip.issueDetail.treeResumeSubtree")}
                   </Button>
                   <Button
                     variant="outline"
@@ -3049,7 +3057,9 @@ export function IssueDetail() {
                       setTreeControlOpen(true);
                     }}
                   >
-                    View affected ({childIssues.length === 0 ? 1 : heldDescendantCount})
+                    {t("paperclip.issueDetail.treeViewAffected", {
+                      count: childIssues.length === 0 ? 1 : heldDescendantCount,
+                    })}
                   </Button>
                   {canShowSubtreeControls ? (
                     <Button
@@ -3062,7 +3072,7 @@ export function IssueDetail() {
                         setTreeControlOpen(true);
                       }}
                     >
-                      Cancel subtree...
+                      {t("paperclip.issueDetail.treeCancelSubtree")}
                     </Button>
                   ) : null}
                 </div>
@@ -3070,7 +3080,7 @@ export function IssueDetail() {
             </div>
           ) : (
             <div className="text-xs">
-              This issue is paused by ancestor{" "}
+              {t("paperclip.issueDetail.pausedByAncestorBefore")}{" "}
               {activePauseHoldRoot?.identifier ? (
                 <Link to={createIssueDetailPath(activePauseHoldRoot.identifier)} className="underline">
                   {activePauseHoldRoot.identifier}
@@ -3078,7 +3088,7 @@ export function IssueDetail() {
               ) : (
                 activePauseHold.rootIssueId.slice(0, 8)
               )}
-              . Resume from the root issue to deliver deferred work.
+              {t("paperclip.issueDetail.pausedByAncestorAfter")}
             </div>
           )}
         </div>
@@ -3103,7 +3113,7 @@ export function IssueDetail() {
                 <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-400" />
               </span>
-              Live
+              {t("paperclip.issueDetail.headerLiveBadge")}
             </span>
           )}
 

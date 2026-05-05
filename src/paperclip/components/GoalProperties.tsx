@@ -1,4 +1,6 @@
 import { useState } from "react";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { Link } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import type { Goal } from "@paperclipai/shared";
@@ -7,6 +9,7 @@ import { agentsApi } from "../api/agents";
 import { goalsApi } from "../api/goals";
 import { useCompany } from "../context/CompanyContext";
 import { queryKeys } from "../lib/queryKeys";
+import { goalLevelLabel } from "../lib/goal-labels";
 import { StatusBadge } from "./StatusBadge";
 import { formatDate, cn, agentUrl } from "../lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -27,8 +30,19 @@ function PropertyRow({ label, children }: { label: string; children: React.React
   );
 }
 
-function label(s: string): string {
-  return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+function goalStatusLabel(status: string, t: TFunction): string {
+  switch (status) {
+    case "planned":
+      return t("paperclip.newGoalDialog.statusPlanned");
+    case "active":
+      return t("paperclip.newGoalDialog.statusActive");
+    case "achieved":
+      return t("paperclip.newGoalDialog.statusAchieved");
+    case "cancelled":
+      return t("paperclip.newGoalDialog.statusCancelled");
+    default:
+      return status;
+  }
 }
 
 function PickerButton({
@@ -36,11 +50,13 @@ function PickerButton({
   options,
   onChange,
   children,
+  optionLabel,
 }: {
   current: string;
   options: readonly string[];
   onChange: (value: string) => void;
   children: React.ReactNode;
+  optionLabel: (value: string) => string;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -62,7 +78,7 @@ function PickerButton({
               setOpen(false);
             }}
           >
-            {label(opt)}
+            {optionLabel(opt)}
           </Button>
         ))}
       </PopoverContent>
@@ -71,6 +87,7 @@ function PickerButton({
 }
 
 export function GoalProperties({ goal, onUpdate }: GoalPropertiesProps) {
+  const { t } = useTranslation();
   const { selectedCompanyId } = useCompany();
 
   const { data: agents } = useQuery({
@@ -96,12 +113,13 @@ export function GoalProperties({ goal, onUpdate }: GoalPropertiesProps) {
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <PropertyRow label="Status">
+        <PropertyRow label={t("paperclip.goalDetail.propStatus")}>
           {onUpdate ? (
             <PickerButton
               current={goal.status}
               options={GOAL_STATUSES}
               onChange={(status) => onUpdate({ status })}
+              optionLabel={(s) => goalStatusLabel(s, t)}
             >
               <StatusBadge status={goal.status} />
             </PickerButton>
@@ -110,21 +128,22 @@ export function GoalProperties({ goal, onUpdate }: GoalPropertiesProps) {
           )}
         </PropertyRow>
 
-        <PropertyRow label="Level">
+        <PropertyRow label={t("paperclip.goalDetail.propLevel")}>
           {onUpdate ? (
             <PickerButton
               current={goal.level}
               options={GOAL_LEVELS}
               onChange={(level) => onUpdate({ level })}
+              optionLabel={(l) => goalLevelLabel(l, t)}
             >
-              <span className="text-sm capitalize">{goal.level}</span>
+              <span className="text-sm">{goalLevelLabel(goal.level, t)}</span>
             </PickerButton>
           ) : (
-            <span className="text-sm capitalize">{goal.level}</span>
+            <span className="text-sm">{goalLevelLabel(goal.level, t)}</span>
           )}
         </PropertyRow>
 
-        <PropertyRow label="Owner">
+        <PropertyRow label={t("paperclip.goalDetail.propOwner")}>
           {ownerAgent ? (
             <Link
               to={agentUrl(ownerAgent)}
@@ -133,12 +152,12 @@ export function GoalProperties({ goal, onUpdate }: GoalPropertiesProps) {
               {ownerAgent.name}
             </Link>
           ) : (
-            <span className="text-sm text-muted-foreground">None</span>
+            <span className="text-sm text-muted-foreground">{t("paperclip.goalDetail.ownerNone")}</span>
           )}
         </PropertyRow>
 
         {goal.parentId && (
-          <PropertyRow label="Parent Goal">
+          <PropertyRow label={t("paperclip.goalDetail.propParentGoal")}>
             <Link
               to={`/goals/${goal.parentId}`}
               className="text-sm hover:underline"
@@ -152,10 +171,10 @@ export function GoalProperties({ goal, onUpdate }: GoalPropertiesProps) {
       <Separator />
 
       <div className="space-y-1">
-        <PropertyRow label="Created">
+        <PropertyRow label={t("paperclip.goalDetail.propCreated")}>
           <span className="text-sm">{formatDate(goal.createdAt)}</span>
         </PropertyRow>
-        <PropertyRow label="Updated">
+        <PropertyRow label={t("paperclip.goalDetail.propUpdated")}>
           <span className="text-sm">{formatDate(goal.updatedAt)}</span>
         </PropertyRow>
       </div>
