@@ -19,7 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { listUIAdapters } from "../adapters";
 import { isVisualAdapterChoice } from "../adapters/metadata";
-import { getAdapterDisplay } from "../adapters/adapter-display-registry";
+import { translateAdapterDisplay } from "../adapters/adapter-display-registry";
 import { useDisabledAdaptersSync } from "../adapters/use-disabled-adapters";
 
 /**
@@ -69,7 +69,7 @@ export function NewAgentDialog() {
     // Sort: recommended first, then alphabetical
     return registered
       .map((a) => {
-        const display = getAdapterDisplay(a.type);
+        const display = translateAdapterDisplay(t, a.type);
         return {
           value: a.type,
           label: display.label,
@@ -85,7 +85,7 @@ export function NewAgentDialog() {
         if (!a.recommended && b.recommended) return 1;
         return a.label.localeCompare(b.label);
       });
-  }, [disabledTypes, serverAdapters]);
+  }, [disabledTypes, serverAdapters, t]);
 
   function handleAskCeo() {
     closeNewAgent();

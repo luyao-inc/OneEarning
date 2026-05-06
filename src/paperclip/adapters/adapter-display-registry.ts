@@ -5,6 +5,7 @@
  * adapters get sensible defaults derived from their type string via
  * `getAdapterDisplay()`.
  */
+import type { TFunction } from "i18next";
 import type { ComponentType } from "react";
 import {
   Bot,
@@ -159,6 +160,28 @@ export function getAdapterDisplay(type: string): AdapterDisplayInfo {
     description: suffix ? `External ${suffix} adapter` : "External adapter",
     icon: Cpu,
   };
+}
+
+/** 下拉等场景：与 `getAdapterLabel` 一致，对 `_local` / `_gateway` 等后缀追加本地化说明 */
+export function translateAdapterLabel(t: TFunction, type: string): string {
+  const suffix = getTypeSuffix(type);
+  const baseEn = adapterDisplayMap[type]?.label ?? humanizeType(type);
+  const translated = t(`paperclip.adapterDisplay.types.${type}.label`, { defaultValue: baseEn });
+  return withSuffix(translated, suffix);
+}
+
+/** 卡片/网格：翻译名称与描述（含 `disabledLabel`） */
+export function translateAdapterDisplay(t: TFunction, type: string): AdapterDisplayInfo {
+  const base = getAdapterDisplay(type);
+  const label = t(`paperclip.adapterDisplay.types.${type}.label`, { defaultValue: base.label });
+  const description = t(`paperclip.adapterDisplay.types.${type}.description`, {
+    defaultValue: base.description,
+  });
+  const disabledLabel =
+    base.disabledLabel !== undefined
+      ? t(`paperclip.adapterDisplay.types.${type}.disabledLabel`, { defaultValue: base.disabledLabel })
+      : undefined;
+  return { ...base, label, description, disabledLabel };
 }
 
 export function isKnownAdapterType(type: string): boolean {

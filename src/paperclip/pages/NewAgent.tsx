@@ -265,7 +265,9 @@ export function NewAgent() {
                 disabled={isFirstAgent}
               >
                 <Shield className="h-3 w-3 text-muted-foreground" />
-                {roleLabels[effectiveRole] ?? effectiveRole}
+                {t(`paperclip.agentRoles.${effectiveRole}`, {
+                  defaultValue: roleLabels[effectiveRole] ?? effectiveRole,
+                })}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-36 p-1" align="start">
@@ -278,7 +280,7 @@ export function NewAgent() {
                   )}
                   onClick={() => { setRole(r); setRoleOpen(false); }}
                 >
-                  {roleLabels[r] ?? r}
+                  {t(`paperclip.agentRoles.${r}`, { defaultValue: roleLabels[r] ?? r })}
                 </button>
               ))}
             </PopoverContent>
@@ -289,6 +291,8 @@ export function NewAgent() {
             value={reportsTo}
             onChange={setReportsTo}
             disabled={isFirstAgent}
+            chooseLabel={t("paperclip.reportsToPicker.chooseManager")}
+            disabledEmptyLabel={t("paperclip.reportsToPicker.disabledEmpty")}
           />
         </div>
 

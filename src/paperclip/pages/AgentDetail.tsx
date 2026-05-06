@@ -2558,17 +2558,38 @@ export function AgentSkillsTab({
   const hasHydratedSkillSnapshotRef = useRef(false);
   const skipNextSkillAutosaveRef = useRef(true);
 
-  const { data: skillSnapshot, isLoading } = useQuery({
+  const {
+    data: skillSnapshot,
+    isLoading: skillSnapshotLoading,
+    isError: skillSnapshotIsError,
+    error: skillSnapshotError,
+  } = useQuery({
     queryKey: queryKeys.agents.skills(agent.id),
     queryFn: () => agentsApi.skills(agent.id, companyId),
     enabled: Boolean(companyId),
+    retry: 1,
   });
 
-  const { data: companySkills } = useQuery({
+  const {
+    data: companySkills,
+    isLoading: companySkillsLoading,
+    isError: companySkillsIsError,
+    error: companySkillsError,
+  } = useQuery({
     queryKey: queryKeys.companySkills.list(companyId ?? ""),
     queryFn: () => companySkillsApi.list(companyId!),
     enabled: Boolean(companyId),
+    retry: 1,
   });
+
+  /** Wait for both snapshots; either stuck API previously looked like an infinite skeleton when only the first query was awaited. */
+  const tabSkillsLoading = Boolean(companyId) && (skillSnapshotLoading || companySkillsLoading);
+  const tabSkillsError =
+    skillSnapshotIsError || companySkillsIsError
+      ? skillSnapshotIsError
+        ? skillSnapshotError
+        : companySkillsError
+      : null;
 
   const syncSkills = useMutation({
     mutationFn: (desiredSkills: string[]) => agentsApi.syncSkills(agent.id, desiredSkills, companyId),
@@ -2763,7 +2784,18 @@ export function AgentSkillsTab({
         </div>
       ) : null}
 
-      {isLoading ? (
+      {!companyId ? (
+        <div className="rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground">
+          {t("paperclip.agentDetailPage.skills.needCompany")}
+        </div>
+      ) : tabSkillsError ? (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div className="font-medium">{t("paperclip.agentDetailPage.skills.loadFailedTitle")}</div>
+          <div className="mt-1 text-xs opacity-90">
+            {tabSkillsError instanceof Error ? tabSkillsError.message : String(tabSkillsError)}
+          </div>
+        </div>
+      ) : tabSkillsLoading ? (
         <PageSkeleton variant="list" />
       ) : (
         <>

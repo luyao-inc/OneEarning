@@ -34,15 +34,6 @@ export function usePaperclipGate(): PaperclipGateState {
 
     window.oneEarning?.signalShellReady?.();
 
-    void window.oneEarning
-      ?.getPaperclipBaseUrl?.()
-      .then((url) => {
-        if (url && isValidBaseUrl(url)) {
-          setState((s) => (s.ready ? s : { ready: true, baseUrl: url }));
-        }
-      })
-      .catch(() => {});
-
     return () => {
       cancelled = true;
       unsub?.();
