@@ -124,8 +124,14 @@ export class PaperclipServerManager {
           if (raw) onLine(stripAnsi(raw));
         }
       }
-      if (doctor.status !== 0) {
-        throw new Error(`paperclipai doctor 失败（退出码 ${doctor.status}）。请查看日志。`);
+      if (doctor.error) {
+        throw new Error(
+          `无法启动 Node 以运行 paperclipai doctor（${node}）：${doctor.error.message}。macOS 打包应用请确认已执行 pnpm run prep:node:mac 并将 resources/bin 打进安装包。`,
+        );
+      }
+      if (doctor.status !== 0 || doctor.signal) {
+        const sig = doctor.signal ? `，信号 ${doctor.signal}` : '';
+        throw new Error(`paperclipai doctor 失败（退出码 ${doctor.status}${sig}）。请查看日志。`);
       }
     }
 

@@ -55,6 +55,8 @@ pnpm run prep:node:win
 pnpm run build:win
 ```
 
+macOS 安装包同样需要捆绑 Node：从 Finder 启动时系统 PATH 通常找不到 Homebrew 的 `node`，会导致 `paperclipai doctor` 报「退出码 null」。`pnpm run build:mac` / `build:mac:release` 已自动执行 `prep:node:mac`（下载至 `resources/bin` 并随包发布）；亦可手动先执行 `pnpm run prep:node:mac`。
+
 ### macOS（生产 / GitHub Release）
 
 本地打出 **Intel + Apple Silicon** 两套 DMG 与 ZIP（输出在 `release/`）：
@@ -72,6 +74,28 @@ export APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
 export APPLE_TEAM_ID="XXXXXXXXXX"
 pnpm run build:mac:release
 ```
+
+`pnpm run build:mac` 已固定 **`-c.mac.notarize=false`**（仅签名、不公证），避免终端里仍导出 `APPLE_*` 时不小心走了公证。
+
+#### 公证报错：`Failed to notarize via notarytool` / `unexpected result` 且几乎没有正文
+
+这通常表示 **`notarytool` 没有打出合法 JSON**（输出为空、网络中断、代理劫持、凭证异常等）。可按顺序排查：
+
+1. **代理 / VPN**：对 Apple 上传不稳定时常见；可暂时关闭全局代理或换网络后重打 `build:mac:release`。
+2. **凭证**：确认同一终端里 `APPLE_ID`、`APPLE_APP_SPECIFIC_PASSWORD`、`APPLE_TEAM_ID` 均已 `export`（专用密码需在 [appleid.apple.com](https://appleid.apple.com/) 生成）。
+3. **调试日志**：  
+   `DEBUG=electron-notarize:* pnpm run build:mac:release`
+4. **钥匙串 profile（常比明文专用密码稳）**：  
+   `xcrun notarytool store-credentials "oneearning-notary" --apple-id "…" --team-id "…" --password "xxxx-xxxx-xxxx-xxxx"`  
+   然后 **`unset APPLE_ID APPLE_APP_SPECIFIC_PASSWORD`**（否则 electron-builder 仍会走「账号+专用密码」分支），再：  
+   `export APPLE_KEYCHAIN_PROFILE=oneearning-notary`  
+   后执行 `pnpm run build:mac:release`。
+
+澄清第 4 点：读 macPackager.js，`APPLE_KEYCHAIN_PROFILE` 分支只有 keychainProfile，**不需要** appleId。但若同时设置了 `APPLE_ID`，会优先走 apple id + password 分支（451行 `if (appleId || appleIdPassword)`）。因此用户要用 keychain 时应 **`unset APPLE_ID APPLE_APP_SPECIFIC_PASSWORD`** 只保留 `APPLE_KEYCHAIN_PROFILE`。
+
+5. **手动提交试一次**（看真实输出）：  
+   `cd release/mac && ditto -c -k --sequesterRsrc --keepParent OneEarning.app /tmp/OneEarning.zip`  
+   `xcrun notarytool submit /tmp/OneEarning.zip --apple-id … --password … --team-id … --wait --output-format json`
 
 证书与环境变量说明亦见 `.github/workflows/release-macos.yml` 注释。推送形如 `v1.2.3` 的 tag 会触发该工作流，将 `release/` 内 `.dmg` / `.zip` 上传到对应 GitHub Release（需在仓库配置可选 Secrets 才会自动签名与公证）。
 

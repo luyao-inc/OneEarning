@@ -4,6 +4,10 @@ dist-electron
 release
 build
 temp_node_extract
+# 下载的捆绑 Node（见 resources/bin/README.md）
+resources/bin/win32-x64/
+resources/bin/darwin-arm64/
+resources/bin/darwin-x64/
 *.zip
 .env
 .DS_Store

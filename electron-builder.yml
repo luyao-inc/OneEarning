@@ -15,6 +15,9 @@ files:
   - locales
 
 extraResources:
+  # 与 electron/utils/node-resolve.ts 一致：Resources/bin/<platform>-<arch>/node(.exe)
+  - from: resources/bin
+    to: bin
   - from: build/paperclip
     to: paperclip
   - from: resources/postgres
