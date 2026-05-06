@@ -678,7 +678,9 @@
         "unsupportedOpenclaw": "OneEarning cannot manage OpenClaw skills here. Visit your OpenClaw instance to manage this agent's skills.",
         "unsupportedDefault": "OneEarning cannot manage skills for this adapter yet. Manage them in the adapter directly.",
         "manageInAdapterHint": "Manage skills in the adapter directly.",
-        "failedUpdate": "Failed to update skills"
+        "failedUpdate": "Failed to update skills",
+        "needCompany": "Select or restore company context to load skills.",
+        "loadFailedTitle": "Could not load skills"
       },
       "runDetail": {
         "cancel": "Cancel",

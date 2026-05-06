@@ -678,7 +678,9 @@
         "unsupportedOpenclaw": "无法在此处管理 OpenClaw 技能，请到 OpenClaw 实例中管理。",
         "unsupportedDefault": "OneEarning 尚无法为此适配器管理技能，请在适配器侧管理。",
         "manageInAdapterHint": "请在适配器侧直接管理技能。",
-        "failedUpdate": "更新技能失败"
+        "failedUpdate": "更新技能失败",
+        "needCompany": "请先选择或恢复公司上下文后再加载技能。",
+        "loadFailedTitle": "技能数据加载失败"
       },
       "runDetail": {
         "cancel": "取消",
