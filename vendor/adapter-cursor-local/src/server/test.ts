@@ -22,6 +22,7 @@ import path from "node:path";
 import { DEFAULT_CURSOR_LOCAL_MODEL } from "../index.js";
 import { parseCursorJsonl } from "./parse.js";
 import { isDefaultCursorCommand, prepareCursorSandboxCommand } from "./remote-command.js";
+import { prepareCursorHostCommand } from "./local-command.js";
 import { hasCursorTrustBypassArg } from "../shared/trust.js";
 
 function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
@@ -147,6 +148,11 @@ export async function testEnvironment(
   });
   command = sandboxCommand.command;
   env = sandboxCommand.env;
+  if (!targetIsRemote) {
+    const hostCommand = await prepareCursorHostCommand({ command, env });
+    command = hostCommand.command;
+    env = hostCommand.env;
+  }
   const runtimeEnv = ensurePathInEnv({ ...process.env, ...env });
   try {
     await ensureAdapterExecutionTargetCommandResolvable(command, target, cwd, runtimeEnv);
