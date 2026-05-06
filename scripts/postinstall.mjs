@@ -5,12 +5,12 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const buildVendor = path.join(root, "scripts", "build-vendor.mjs");
 
-execFileSync(process.execPath, [buildVendor], { cwd: root, stdio: "inherit" });
-
-// 同步 pnpm 对 file: 依赖的虚拟目录（需 dist）；用 shell 以便在 Windows 上找到 pnpm.cmd
+// 先同步 file: 依赖到 node_modules，再编译 vendor（否则 tsc 无法解析 @paperclipai/*）
 execSync("pnpm install --ignore-scripts", {
   cwd: root,
   stdio: "inherit",
   shell: true,
   env: process.env,
 });
+
+execFileSync(process.execPath, [buildVendor], { cwd: root, stdio: "inherit" });

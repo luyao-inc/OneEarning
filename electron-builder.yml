@@ -47,6 +47,18 @@ nsis:
 
 mac:
   category: public.app-category.productivity
+  icon: resources/icons/icon.png
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: resources/entitlements.mac.plist
+  entitlementsInherit: resources/entitlements.mac.inherit.plist
+  # embedded-postgres 体积很大且包含大量原生二进制/库文件，逐文件 codesign 会极慢且容易出现“file modified”重试。
+  # 将其排除出签名范围（仍保留在包内），大幅提升构建稳定性与速度。
+  signIgnore:
+    # 注意：这里是 *正则表达式*（不是 glob），否则会触发 “Invalid regular expression … Nothing to repeat”
+    - ".*\\/Resources\\/paperclip\\/node_modules\\/@embedded-postgres\\/.*"
+    - ".*\\/Resources\\/app\\.asar\\.unpacked\\/node_modules\\/@embedded-postgres\\/.*"
+    - ".*\\/Resources\\/postgres\\/.*"
   target:
     - target: dmg
       arch: [x64, arm64]

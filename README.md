@@ -55,6 +55,26 @@ pnpm run prep:node:win
 pnpm run build:win
 ```
 
+### macOS（生产 / GitHub Release）
+
+本地打出 **Intel + Apple Silicon** 两套 DMG 与 ZIP（输出在 `release/`）：
+
+```bash
+pnpm install
+pnpm run build:mac
+```
+
+面向官网分发、减少 Gatekeeper 拦截时，需使用 **Apple Developer Program** 的 **Developer ID Application** 证书签名，并用 Apple ID 完成 **公证（notarization）**。本地示例（证书已通过钥匙串可被 `codesign` 自动发现时）：
+
+```bash
+export APPLE_ID="your@email.com"
+export APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+export APPLE_TEAM_ID="XXXXXXXXXX"
+pnpm run build:mac:release
+```
+
+证书与环境变量说明亦见 `.github/workflows/release-macos.yml` 注释。推送形如 `v1.2.3` 的 tag 会触发该工作流，将 `release/` 内 `.dmg` / `.zip` 上传到对应 GitHub Release（需在仓库配置可选 Secrets 才会自动签名与公证）。
+
 ## 配置
 
 - 更新源：设置环境变量 `ONEEARNING_UPDATE_URL` 或通过 `electron-builder.yml` 修改 `publish`。

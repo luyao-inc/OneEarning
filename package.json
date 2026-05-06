@@ -35,6 +35,7 @@
     "build": "pnpm run package && electron-builder",
     "build:win": "pnpm run package && electron-builder --win --publish never",
     "build:mac": "pnpm run package && electron-builder --mac --publish never",
+    "build:mac:release": "pnpm run package && electron-builder --mac --publish never -c.mac.notarize=true",
     "build:linux": "pnpm run package && electron-builder --linux --publish never",
     "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
     "build:vendor": "node scripts/build-vendor.mjs",
