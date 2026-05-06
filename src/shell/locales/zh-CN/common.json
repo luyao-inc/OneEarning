@@ -923,6 +923,9 @@
         "opencode_local": "opencode",
         "hermes_local": "hermes"
       },
+      "instructionsFileLabel": "智能体指令文件",
+      "instructionsFileHint": "Markdown 指令文件的绝对路径（如 AGENTS.md），运行时会注入到提示词中。",
+      "instructionsFileHintCodex": "Markdown 指令文件的绝对路径（如 AGENTS.md），运行时会注入到系统提示词中。Codex 仍可能自动应用仓库内的 AGENTS.md。",
       "help": {
         "name": "该智能体的显示名称。",
         "title": "组织结构图中展示的职位名称。",
@@ -3229,6 +3232,79 @@
       "testAgent": "测试智能体",
       "createPending": "正在创建…",
       "create": "创建智能体"
+    },
+    "agentRoles": {
+      "ceo": "CEO",
+      "cto": "CTO",
+      "cmo": "CMO",
+      "cfo": "CFO",
+      "security": "安全",
+      "engineer": "工程师",
+      "designer": "设计师",
+      "pm": "产品经理",
+      "qa": "测试",
+      "devops": "运维",
+      "researcher": "研究员",
+      "general": "通用"
+    },
+    "adapterDisplay": {
+      "types": {
+        "acpx_local": {
+          "label": "ACPX",
+          "description": "实验性本地 ACPX 多智能体适配器"
+        },
+        "claude_local": {
+          "label": "Claude Code",
+          "description": "本地 Claude 智能体"
+        },
+        "codex_local": {
+          "label": "Codex",
+          "description": "本地 Codex 智能体"
+        },
+        "gemini_local": {
+          "label": "Gemini CLI",
+          "description": "本地 Gemini 智能体"
+        },
+        "opencode_local": {
+          "label": "OpenCode",
+          "description": "本地多提供商智能体"
+        },
+        "hermes_local": {
+          "label": "Hermes Agent",
+          "description": "本地 Hermes CLI 智能体"
+        },
+        "pi_local": {
+          "label": "Pi",
+          "description": "本地 Pi 智能体"
+        },
+        "cursor": {
+          "label": "Cursor",
+          "description": "本地 Cursor 智能体"
+        },
+        "openclaw_gateway": {
+          "label": "OpenClaw Gateway",
+          "description": "通过网关协议调用 OpenClaw",
+          "disabledLabel": "请在 App 内配置 OpenClaw"
+        },
+        "process": {
+          "label": "Process",
+          "description": "内部进程适配器"
+        },
+        "http": {
+          "label": "HTTP",
+          "description": "内部 HTTP 适配器"
+        }
+      }
+    },
+    "reportsToPicker": {
+      "chooseManager": "选择上级…",
+      "noManager": "无上属",
+      "disabledEmpty": "汇报对象：无（CEO）",
+      "unknownManager": "未知的上级（ID 已失效）",
+      "reportsToNamed": "汇报给 {{name}}",
+      "reportsToTerminated": "汇报给 {{name}}（已终止）",
+      "currentTerminated": "当前：{{name}}（已终止）",
+      "staleManagerHint": "保存的上级已不在该公司。请选择新上级或清除。"
     },
     "newAgentDialog": {
       "header": "添加新智能体",

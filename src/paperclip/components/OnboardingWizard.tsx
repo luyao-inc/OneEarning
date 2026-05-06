@@ -29,7 +29,7 @@ import { listUIAdapters } from "../adapters";
 import { isVisualAdapterChoice } from "../adapters/metadata";
 import { useDisabledAdaptersSync } from "../adapters/use-disabled-adapters";
 import { useAdapterCapabilities } from "../adapters/use-adapter-capabilities";
-import { getAdapterDisplay } from "../adapters/adapter-display-registry";
+import { translateAdapterDisplay } from "../adapters/adapter-display-registry";
 import { defaultCreateValues } from "./agent-config-defaults";
 import { parseOnboardingGoalInput } from "../lib/onboarding-goal";
 import {
@@ -213,13 +213,13 @@ export function OnboardingWizard() {
         !disabledTypes.has(a.type) &&
         isVisualAdapterChoice(a.type)
       )
-      .map((a) => ({ ...getAdapterDisplay(a.type), type: a.type }));
+      .map((a) => ({ ...translateAdapterDisplay(t, a.type), type: a.type }));
 
     return {
       recommendedAdapters: all.filter((a) => a.recommended),
       moreAdapters: all.filter((a) => !a.recommended),
     };
-  }, [disabledTypes]);
+  }, [disabledTypes, t]);
   const COMMAND_PLACEHOLDERS: Record<string, string> = {
     claude_local: "claude",
     codex_local: "codex",

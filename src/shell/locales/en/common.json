@@ -914,6 +914,9 @@
         "failed": "Failed",
         "hintPrefix": "Hint:"
       },
+      "instructionsFileLabel": "Agent instructions file",
+      "instructionsFileHint": "Absolute path to a markdown file (e.g. AGENTS.md) that defines this agent's behavior. Injected into the prompt at runtime.",
+      "instructionsFileHintCodex": "Absolute path to a markdown file (e.g. AGENTS.md) that defines this agent's behavior. Injected into the system prompt at runtime. Note: Codex may still auto-apply repo-scoped AGENTS.md files from the workspace.",
       "commandPlaceholder": {
         "claude_local": "claude",
         "codex_local": "codex",
@@ -3191,6 +3194,79 @@
       "testAgent": "Test Agent",
       "createPending": "Creating…",
       "create": "Create agent"
+    },
+    "agentRoles": {
+      "ceo": "CEO",
+      "cto": "CTO",
+      "cmo": "CMO",
+      "cfo": "CFO",
+      "security": "Security",
+      "engineer": "Engineer",
+      "designer": "Designer",
+      "pm": "PM",
+      "qa": "QA",
+      "devops": "DevOps",
+      "researcher": "Researcher",
+      "general": "General"
+    },
+    "adapterDisplay": {
+      "types": {
+        "acpx_local": {
+          "label": "ACPX",
+          "description": "Experimental local ACPX multi-agent adapter"
+        },
+        "claude_local": {
+          "label": "Claude Code",
+          "description": "Local Claude agent"
+        },
+        "codex_local": {
+          "label": "Codex",
+          "description": "Local Codex agent"
+        },
+        "gemini_local": {
+          "label": "Gemini CLI",
+          "description": "Local Gemini agent"
+        },
+        "opencode_local": {
+          "label": "OpenCode",
+          "description": "Local multi-provider agent"
+        },
+        "hermes_local": {
+          "label": "Hermes Agent",
+          "description": "Local Hermes CLI agent"
+        },
+        "pi_local": {
+          "label": "Pi",
+          "description": "Local Pi agent"
+        },
+        "cursor": {
+          "label": "Cursor",
+          "description": "Local Cursor agent"
+        },
+        "openclaw_gateway": {
+          "label": "OpenClaw Gateway",
+          "description": "Invoke OpenClaw via gateway protocol",
+          "disabledLabel": "Configure OpenClaw within the App"
+        },
+        "process": {
+          "label": "Process",
+          "description": "Internal process adapter"
+        },
+        "http": {
+          "label": "HTTP",
+          "description": "Internal HTTP adapter"
+        }
+      }
+    },
+    "reportsToPicker": {
+      "chooseManager": "Reports to…",
+      "noManager": "No manager",
+      "disabledEmpty": "Reports to: N/A (CEO)",
+      "unknownManager": "Unknown manager (stale ID)",
+      "reportsToNamed": "Reports to {{name}}",
+      "reportsToTerminated": "Reports to {{name}} (terminated)",
+      "currentTerminated": "Current: {{name}} (terminated)",
+      "staleManagerHint": "Saved manager is missing from this company. Choose a new manager or clear."
     },
     "newAgentDialog": {
       "header": "Add a new agent",
