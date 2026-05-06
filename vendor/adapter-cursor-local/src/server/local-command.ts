@@ -38,6 +38,7 @@ export type PreparedCursorHostCommand = {
 
 function buildDarwinPathCandidates(homeDir: string): string[] {
   return [
+    path.join(homeDir, ".local", "bin"),
     "/opt/homebrew/bin",
     "/opt/homebrew/sbin",
     "/usr/local/bin",
@@ -53,13 +54,14 @@ function buildDarwinPathCandidates(homeDir: string): string[] {
 
 function buildDarwinExecutableCandidates(command: string, homeDir: string): string[] {
   const base = commandBasename(command);
-  const cursorBinDirs = [
+  const candidateDirs = [
+    path.join(homeDir, ".local", "bin"),
     "/Applications/Cursor.app/Contents/Resources/app/bin",
     path.join(homeDir, "Applications", "Cursor.app", "Contents", "Resources", "app", "bin"),
   ];
   const basenames = base === "agent" ? ["agent", "cursor-agent"] : ["cursor-agent", "agent"];
   const candidates: string[] = [];
-  for (const dir of cursorBinDirs) {
+  for (const dir of candidateDirs) {
     for (const exe of basenames) {
       candidates.push(path.join(dir, exe));
     }

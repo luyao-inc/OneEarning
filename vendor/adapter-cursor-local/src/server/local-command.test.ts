@@ -33,6 +33,7 @@ describe("prepareCursorHostCommand", () => {
       platform: "darwin",
       homeDir: "/Users/test",
     });
+    expect(result.env.PATH).toContain("/Users/test/.local/bin");
     expect(result.env.PATH).toContain("/opt/homebrew/bin");
     expect(result.env.PATH).toContain("/Applications/Cursor.app/Contents/Resources/app/bin");
     expect(result.command).toBe("agent");
