@@ -50,7 +50,7 @@ nsis:
 
 mac:
   category: public.app-category.productivity
-  icon: resources/icons/icon.png
+  icon: resources/icons/icon.icns
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: resources/entitlements.mac.plist
