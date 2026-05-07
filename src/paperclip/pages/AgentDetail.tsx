@@ -44,6 +44,7 @@ import { PageSkeleton } from "../components/PageSkeleton";
 import { RunButton, PauseResumeButton } from "../components/AgentActionButtons";
 import { BudgetPolicyCard } from "../components/BudgetPolicyCard";
 import { PackageFileTree, buildFileTree } from "../components/PackageFileTree";
+import { KnowledgeTab } from "../components/KnowledgeTab";
 import { ScrollToBottom } from "../components/ScrollToBottom";
 import { formatCents, formatDate, relativeTime, formatTokens, visibleRunCostUsd } from "../lib/utils";
 import { cn } from "../lib/utils";
@@ -235,13 +236,21 @@ function scrollToContainerBottom(container: ScrollContainer, behavior: ScrollBeh
   container.scrollTo({ top: container.scrollHeight, behavior });
 }
 
-type AgentDetailView = "dashboard" | "instructions" | "configuration" | "skills" | "runs" | "budget";
+type AgentDetailView =
+  | "dashboard"
+  | "instructions"
+  | "configuration"
+  | "skills"
+  | "runs"
+  | "budget"
+  | "knowledge";
 
 function parseAgentDetailView(value: string | null): AgentDetailView {
   if (value === "instructions" || value === "prompts") return "instructions";
   if (value === "configure" || value === "configuration") return "configuration";
   if (value === "skills") return "skills";
   if (value === "budget") return "budget";
+  if (value === "knowledge") return "knowledge";
   if (value === "runs") return value;
   return "dashboard";
 }
@@ -798,7 +807,9 @@ export function AgentDetail() {
               ? "runs"
               : activeView === "budget"
                 ? "budget"
-              : "dashboard";
+                : activeView === "knowledge"
+                  ? "knowledge"
+                  : "dashboard";
     if (routeAgentRef !== canonicalAgentRef || urlTab !== canonicalTab) {
       navigate(`/agents/${canonicalAgentRef}/${canonicalTab}`, { replace: true });
       return;
@@ -922,6 +933,8 @@ export function AgentDetail() {
         crumbs.push({ label: t("paperclip.crumbs.agentTabRuns") });
       } else if (activeView === "budget") {
         crumbs.push({ label: t("paperclip.crumbs.agentTabBudget") });
+      } else if (activeView === "knowledge") {
+        crumbs.push({ label: t("paperclip.crumbs.agentTabKnowledge") });
       } else {
         crumbs.push({ label: t("paperclip.crumbs.agentTabDashboard") });
       }
@@ -1062,6 +1075,7 @@ export function AgentDetail() {
               { value: "configuration", label: t("paperclip.crumbs.agentTabConfiguration") },
               { value: "runs", label: t("paperclip.crumbs.agentTabRuns") },
               { value: "budget", label: t("paperclip.crumbs.agentTabBudget") },
+              { value: "knowledge", label: t("paperclip.crumbs.agentTabKnowledge") },
             ]}
             value={activeView}
             onValueChange={(value) => navigate(`/agents/${canonicalAgentRef}/${value}`)}
@@ -1198,6 +1212,10 @@ export function AgentDetail() {
             variant="plain"
           />
         </div>
+      ) : null}
+
+      {activeView === "knowledge" && agent ? (
+        <KnowledgeTab agent={agent} companyId={resolvedCompanyId ?? undefined} />
       ) : null}
     </div>
   );

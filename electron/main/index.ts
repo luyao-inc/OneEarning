@@ -13,6 +13,7 @@ import { getAppIconPngPath } from './app-icon.js';
 import { createTray } from './tray.js';
 import { registerIpcHandlers } from './ipc.js';
 import { ClawhubSidecarManager } from './clawhub-sidecar.js';
+import { KnowledgeSidecarManager } from './knowledge-sidecar.js';
 import { checkForUpdatesInteractive } from './updater.js';
 import {
   notifyPaperclipReadyAfterRestart,
@@ -81,6 +82,7 @@ let mainWindow: BrowserWindow | null = null;
 let serverManager: PaperclipServerManager | null = null;
 let tray: Electron.Tray | null = null;
 let clawhubSidecar: ClawhubSidecarManager | null = new ClawhubSidecarManager();
+let knowledgeSidecar: KnowledgeSidecarManager | null = new KnowledgeSidecarManager();
 
 function preloadPath(): string {
   /** 与主 bundle 同目录解析；preload 产物为 index.cjs（见 vite preload entryFileNames） */
@@ -288,6 +290,12 @@ app.whenReady().then(async () => {
     console.error('[OneEarning] Clawhub sidecar failed', e);
   }
 
+  try {
+    await knowledgeSidecar?.start(app);
+  } catch (e) {
+    console.error('[OneEarning] Knowledge sidecar failed', e);
+  }
+
   mainWindow = createMainWindow();
   setupShellUi();
 
@@ -333,6 +341,8 @@ app.on('window-all-closed', () => {
 app.on('before-quit', async () => {
   await clawhubSidecar?.stop();
   clawhubSidecar = null;
+  await knowledgeSidecar?.stop();
+  knowledgeSidecar = null;
   await serverManager?.stop();
   serverManager = null;
   tray?.destroy();

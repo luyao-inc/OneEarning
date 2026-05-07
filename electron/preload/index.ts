@@ -56,4 +56,18 @@ contextBridge.exposeInMainWorld('oneEarning', {
     slugHint: string;
     files: { path: string; content: string }[];
   }) => ipcRenderer.invoke('oneearning:stage-clawhub-skill-directory', payload) as Promise<string>,
+  knowledgeGetRoot: (payload: { companyId: string; agentId: string }) =>
+    ipcRenderer.invoke('oneearning:knowledge-get-root', payload) as Promise<string>,
+  knowledgeOpenDir: (payload: { companyId: string; agentId: string }) =>
+    ipcRenderer.invoke('oneearning:knowledge-open-dir', payload) as Promise<void>,
+  knowledgeListFiles: (payload: { companyId: string; agentId: string }) =>
+    ipcRenderer.invoke('oneearning:knowledge-list-files', payload) as Promise<
+      Array<{ relPath: string; size: number; mtimeMs: number }>
+    >,
+  knowledgeImportDialog: (payload: { companyId: string; agentId: string }) =>
+    ipcRenderer.invoke('oneearning:knowledge-import-dialog', payload) as Promise<{ imported: string[] }>,
+  knowledgeDeleteDiskFile: (payload: { companyId: string; agentId: string; relPath: string }) =>
+    ipcRenderer.invoke('oneearning:knowledge-delete-disk-file', payload) as Promise<void>,
+  knowledgeOpenFile: (payload: { companyId: string; agentId: string; relPath: string }) =>
+    ipcRenderer.invoke('oneearning:knowledge-open-file', payload) as Promise<void>,
 });

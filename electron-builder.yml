@@ -17,6 +17,8 @@ files:
 extraResources:
   - from: servers/clawhub/dist
     to: servers/clawhub
+  - from: servers/knowledge/dist
+    to: servers/knowledge
   - from: build/paperclip
     to: paperclip
   - from: resources/postgres

@@ -1,10 +1,13 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join, relative, resolve as resolvePath } from 'node:path';
-import { ipcMain, shell } from 'electron';
+import { existsSync } from 'node:fs';
+import { copyFile, mkdir, readdir, stat, unlink, writeFile } from 'node:fs/promises';
+import { basename, dirname, join, relative, resolve as resolvePath } from 'node:path';
+import { dialog, ipcMain, shell } from 'electron';
+import type { OpenDialogOptions } from 'electron';
 import type { App, BrowserWindow } from 'electron';
 import { waitForPaperclipHealth } from '../services/port-discovery.js';
 import { getPaperclipDataDir } from '../utils/data-dir.js';
+import { getAgentKnowledgeDir } from '../utils/knowledge-dir.js';
 import type { PaperclipServerManager } from './server-manager.js';
 import { checkForUpdatesInteractive } from './updater.js';
 import { paperclipProxyFetch } from './paperclip-proxy.js';
@@ -135,4 +138,166 @@ export function registerIpcHandlers(
   ipcMain.handle('oneearning:check-updates', async () => {
     await checkForUpdatesInteractive();
   });
+
+  const MAX_KB_IMPORT_BYTES = 50 * 1024 * 1024;
+  const BLOCKED_IMPORT_EXT = new Set([
+    'exe',
+    'dll',
+    'bat',
+    'cmd',
+    'msi',
+    'scr',
+    'com',
+    'ps1',
+    'vbs',
+    'reg',
+    'lnk',
+  ]);
+
+  ipcMain.handle(
+    'oneearning:knowledge-get-root',
+    (_evt, payload: { companyId: string; agentId: string }) => {
+      const companyId = typeof payload?.companyId === 'string' ? payload.companyId.trim() : '';
+      const agentId = typeof payload?.agentId === 'string' ? payload.agentId.trim() : '';
+      if (!companyId || !agentId) throw new Error('Invalid knowledge payload');
+      return getAgentKnowledgeDir(app, companyId, agentId);
+    },
+  );
+
+  ipcMain.handle(
+    'oneearning:knowledge-open-dir',
+    async (_evt, payload: { companyId: string; agentId: string }) => {
+      const companyId = typeof payload?.companyId === 'string' ? payload.companyId.trim() : '';
+      const agentId = typeof payload?.agentId === 'string' ? payload.agentId.trim() : '';
+      if (!companyId || !agentId) throw new Error('Invalid knowledge payload');
+      const dir = getAgentKnowledgeDir(app, companyId, agentId);
+      await mkdir(dir, { recursive: true });
+      const err = await shell.openPath(dir);
+      if (err) throw new Error(err);
+    },
+  );
+
+  async function walkKbFiles(
+    root: string,
+    base: string,
+  ): Promise<Array<{ relPath: string; size: number; mtimeMs: number }>> {
+    const out: Array<{ relPath: string; size: number; mtimeMs: number }> = [];
+    const entries = await readdir(base, { withFileTypes: true });
+    for (const ent of entries) {
+      if (ent.name.startsWith('.')) continue;
+      const full = join(base, ent.name);
+      if (ent.isDirectory()) {
+        if (ent.name === '.index') continue;
+        out.push(...(await walkKbFiles(root, full)));
+      } else if (ent.isFile()) {
+        const rel = relative(root, full).replace(/\\/g, '/');
+        const st = await stat(full);
+        out.push({ relPath: rel, size: st.size, mtimeMs: st.mtimeMs });
+      }
+    }
+    return out;
+  }
+
+  ipcMain.handle(
+    'oneearning:knowledge-list-files',
+    async (_evt, payload: { companyId: string; agentId: string }) => {
+      const companyId = typeof payload?.companyId === 'string' ? payload.companyId.trim() : '';
+      const agentId = typeof payload?.agentId === 'string' ? payload.agentId.trim() : '';
+      if (!companyId || !agentId) throw new Error('Invalid knowledge payload');
+      const root = getAgentKnowledgeDir(app, companyId, agentId);
+      await mkdir(root, { recursive: true });
+      return walkKbFiles(root, root);
+    },
+  );
+
+  ipcMain.handle(
+    'oneearning:knowledge-import-dialog',
+    async (_evt, payload: { companyId: string; agentId: string }) => {
+      const companyId = typeof payload?.companyId === 'string' ? payload.companyId.trim() : '';
+      const agentId = typeof payload?.agentId === 'string' ? payload.agentId.trim() : '';
+      if (!companyId || !agentId) throw new Error('Invalid knowledge payload');
+      const root = getAgentKnowledgeDir(app, companyId, agentId);
+      await mkdir(root, { recursive: true });
+      const win = getMainWindow();
+      const dialogOpts: OpenDialogOptions = {
+        properties: ['openFile', 'multiSelections'],
+        title: '选择要导入的文件',
+      };
+      const { canceled, filePaths } =
+        win && !win.isDestroyed()
+          ? await dialog.showOpenDialog(win, dialogOpts)
+          : await dialog.showOpenDialog(dialogOpts);
+      if (canceled || filePaths.length === 0) return { imported: [] as string[] };
+
+      const imported: string[] = [];
+      for (const src of filePaths) {
+        const baseName = basename(src);
+        const ext = baseName.includes('.') ? baseName.split('.').pop()?.toLowerCase() ?? '' : '';
+        if (ext.length > 0 && BLOCKED_IMPORT_EXT.has(ext)) continue;
+        let st;
+        try {
+          st = await stat(src);
+        } catch {
+          continue;
+        }
+        if (!st.isFile() || st.size > MAX_KB_IMPORT_BYTES) continue;
+
+        let destName = baseName;
+        let dest = join(root, destName);
+        let n = 1;
+        while (existsSync(dest)) {
+          const dot = baseName.lastIndexOf('.');
+          const stem = dot > 0 ? baseName.slice(0, dot) : baseName;
+          const suf = dot > 0 ? baseName.slice(dot) : '';
+          destName = `${stem}_${n}${suf}`;
+          dest = join(root, destName);
+          n++;
+        }
+        await copyFile(src, dest);
+        imported.push(destName);
+      }
+      return { imported };
+    },
+  );
+
+  ipcMain.handle(
+    'oneearning:knowledge-delete-disk-file',
+    async (_evt, payload: { companyId: string; agentId: string; relPath: string }) => {
+      const companyId = typeof payload?.companyId === 'string' ? payload.companyId.trim() : '';
+      const agentId = typeof payload?.agentId === 'string' ? payload.agentId.trim() : '';
+      const relPath =
+        typeof payload?.relPath === 'string' ? payload.relPath.replace(/\\/g, '/').replace(/^\.\/+/, '') : '';
+      if (!companyId || !agentId || !relPath.length || relPath.includes('..')) {
+        throw new Error('Invalid delete payload');
+      }
+      const root = getAgentKnowledgeDir(app, companyId, agentId);
+      const abs = resolvePath(root, ...relPath.split('/').filter((s) => s.length > 0));
+      const relCheck = relative(root, abs);
+      if (!relCheck || relCheck.startsWith('..') || relCheck.includes('..')) {
+        throw new Error('Path escapes knowledge root');
+      }
+      await unlink(abs);
+    },
+  );
+
+  ipcMain.handle(
+    'oneearning:knowledge-open-file',
+    async (_evt, payload: { companyId: string; agentId: string; relPath: string }) => {
+      const companyId = typeof payload?.companyId === 'string' ? payload.companyId.trim() : '';
+      const agentId = typeof payload?.agentId === 'string' ? payload.agentId.trim() : '';
+      const relPath =
+        typeof payload?.relPath === 'string' ? payload.relPath.replace(/\\/g, '/').replace(/^\.\/+/, '') : '';
+      if (!companyId || !agentId || !relPath.length || relPath.includes('..')) {
+        throw new Error('Invalid knowledge payload');
+      }
+      const root = getAgentKnowledgeDir(app, companyId, agentId);
+      const abs = resolvePath(root, ...relPath.split('/').filter((s) => s.length > 0));
+      const relCheck = relative(root, abs);
+      if (!relCheck || relCheck.startsWith('..') || relCheck.includes('..')) {
+        throw new Error('Path escapes knowledge root');
+      }
+      const err = await shell.openPath(abs);
+      if (err) throw new Error(err);
+    },
+  );
 }

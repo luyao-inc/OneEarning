@@ -6,13 +6,14 @@
 
 子目录（如 `clawhub/`）已列入仓库根目录 [pnpm-workspace.yaml](../pnpm-workspace.yaml)（`servers/*`）。依赖应在**仓库根**执行 `pnpm install` 统一安装；不要在 `servers/<pkg>/` 里单独跑 `pnpm install`，否则会与根的虚拟存储配置冲突（例如 `ERR_PNPM_VIRTUAL_STORE_DIR_MAX_LENGTH_DIFF`）。
 
-构建侧车：`pnpm run build:clawhub`（仅编译，不触发子目录单独 install）。
+构建侧车：`pnpm run build:clawhub`、`pnpm run build:knowledge`（仅编译，不触发子目录单独 install）。
 
 ## 路由与端口
 
 | 相对路径（渲染进程 `fetch`） | 本机子服务 | 默认端口 |
 |------------------------------|------------|----------|
 | `/api/oneearning/clawhub/*` | [clawhub](./clawhub/) 侧车 | 启动时 `getPort()` 动态分配 |
+| `/api/oneearning/knowledge/*` | [knowledge](./knowledge/) 侧车 | 启动时 `getPort()` 动态分配 |
 
 > 不要写死端口号。主进程将 `PORT` 环境变量传入子进程，并在 [paperclip-proxy.ts](../electron/main/paperclip-proxy.ts) 中把上述路径转发到 `http://127.0.0.1:<port>`。
 

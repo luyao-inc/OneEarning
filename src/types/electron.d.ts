@@ -19,6 +19,20 @@ export interface OneEarningApi {
     slugHint: string;
     files: { path: string; content: string }[];
   }) => Promise<string>;
+  knowledgeGetRoot?: (payload: { companyId: string; agentId: string }) => Promise<string>;
+  knowledgeOpenDir?: (payload: { companyId: string; agentId: string }) => Promise<void>;
+  knowledgeListFiles?: (payload: {
+    companyId: string;
+    agentId: string;
+  }) => Promise<Array<{ relPath: string; size: number; mtimeMs: number }>>;
+  knowledgeImportDialog?: (payload: { companyId: string; agentId: string }) => Promise<{ imported: string[] }>;
+  knowledgeDeleteDiskFile?: (payload: {
+    companyId: string;
+    agentId: string;
+    relPath: string;
+  }) => Promise<void>;
+  /** 使用系统默认程序打开知识库目录下的文件 */
+  knowledgeOpenFile?: (payload: { companyId: string; agentId: string; relPath: string }) => Promise<void>;
 }
 
 declare global {
