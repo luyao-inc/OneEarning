@@ -90,6 +90,19 @@ export async function readCursorAuthInfo(cursorHome?: string): Promise<CursorAut
 const CURSOR_AUTH_REQUIRED_RE =
   /(?:authentication\s+required|not\s+authenticated|not\s+logged\s+in|unauthorized|invalid(?:\s+or\s+missing)?\s+api(?:[_\s-]?key)?|cursor[_\s-]?api[_\s-]?key|run\s+'?agent\s+login'?\s+first|api(?:[_\s-]?key)?(?:\s+is)?\s+required)/i;
 
+/** paperclipai 安装目录极大，agent 会把整个 workspace 当项目索引，hello probe 极易超时 */
+function isHeavyPaperclipPackageWorkspace(dir: string): boolean {
+  const normalized = path.normalize(dir);
+  const sep = path.sep;
+  if (!normalized.includes(`${sep}node_modules${sep}`)) return false;
+  return (
+    normalized.includes(`${sep}paperclipai${sep}`) ||
+    normalized.endsWith(`${sep}paperclipai`)
+  );
+}
+
+const CURSOR_HELLO_PROBE_TIMEOUT_SEC = 120;
+
 export async function testEnvironment(
   ctx: AdapterEnvironmentTestContext,
 ): Promise<AdapterEnvironmentTestResult> {
@@ -221,68 +234,90 @@ export async function testEnvironment(
         return asStringArray(config.args);
       })();
       const autoTrustEnabled = !hasCursorTrustBypassArg(extraArgs);
-      const args = ["-p", "--mode", "ask", "--output-format", "json", "--workspace", cwd];
-      if (model) args.push("--model", model);
-      if (autoTrustEnabled) args.push("--force");
-      if (extraArgs.length > 0) args.push(...extraArgs);
-      args.push("Respond with hello.");
 
-      const probe = await runAdapterExecutionTargetProcess(
-        runId,
-        target,
-        command,
-        args,
-        {
-          cwd,
-          env,
-          timeoutSec: 45,
-          graceSec: 5,
-          onLog: async () => {},
-        },
-      );
-      const parsed = parseCursorJsonl(probe.stdout);
-      const detail = summarizeProbeDetail(probe.stdout, probe.stderr, parsed.errorMessage);
-      const authEvidence = `${parsed.errorMessage ?? ""}\n${probe.stdout}\n${probe.stderr}`.trim();
+      let probeWorkspace = cwd;
+      let cleanupProbeDir: (() => Promise<void>) | null = null;
+      if (!targetIsRemote && isHeavyPaperclipPackageWorkspace(cwd)) {
+        probeWorkspace = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-probe-"));
+        cleanupProbeDir = async () => {
+          await fs.rm(probeWorkspace, { recursive: true, force: true }).catch(() => undefined);
+        };
+        checks.push({
+          code: "cursor_hello_probe_workspace_redirect",
+          level: "info",
+          message:
+            "Hello probe runs in a temporary workspace: the default cwd was under node_modules/paperclipai (indexing would be very slow and often time out).",
+          detail: probeWorkspace,
+        });
+      }
 
-      if (probe.timedOut) {
-        checks.push({
-          code: "cursor_hello_probe_timed_out",
-          level: "warn",
-          message: "Cursor hello probe timed out.",
-          hint: "Retry the probe. If this persists, verify `agent -p --mode ask --output-format json \"Respond with hello.\"` manually.",
-        });
-      } else if ((probe.exitCode ?? 1) === 0) {
-        const summary = parsed.summary.trim();
-        const hasHello = /\bhello\b/i.test(summary);
-        checks.push({
-          code: hasHello ? "cursor_hello_probe_passed" : "cursor_hello_probe_unexpected_output",
-          level: hasHello ? "info" : "warn",
-          message: hasHello
-            ? "Cursor hello probe succeeded."
-            : "Cursor probe ran but did not return `hello` as expected.",
-          ...(summary ? { detail: summary.replace(/\s+/g, " ").trim().slice(0, 240) } : {}),
-          ...(hasHello
-            ? {}
-            : {
-                hint: "Try `agent -p --mode ask --output-format json \"Respond with hello.\"` manually to inspect full output.",
-              }),
-        });
-      } else if (CURSOR_AUTH_REQUIRED_RE.test(authEvidence)) {
-        checks.push({
-          code: "cursor_hello_probe_auth_required",
-          level: "warn",
-          message: "Cursor CLI is installed, but authentication is not ready.",
-          ...(detail ? { detail } : {}),
-          hint: "Run `agent login` or configure CURSOR_API_KEY in adapter env/shell, then retry the probe.",
-        });
-      } else {
-        checks.push({
-          code: "cursor_hello_probe_failed",
-          level: "error",
-          message: "Cursor hello probe failed.",
-          ...(detail ? { detail } : {}),
-          hint: "Run `agent -p --mode ask --output-format json \"Respond with hello.\"` manually in this working directory to debug.",
-        });
+      try {
+        const args = ["-p", "--mode", "ask", "--output-format", "json", "--workspace", probeWorkspace];
+        if (model) args.push("--model", model);
+        if (autoTrustEnabled) args.push("--force");
+        if (extraArgs.length > 0) args.push(...extraArgs);
+        args.push("Respond with hello.");
+
+        const probe = await runAdapterExecutionTargetProcess(
+          runId,
+          target,
+          command,
+          args,
+          {
+            cwd: probeWorkspace,
+            env,
+            timeoutSec: CURSOR_HELLO_PROBE_TIMEOUT_SEC,
+            graceSec: 10,
+            onLog: async () => {},
+          },
+        );
+        const parsed = parseCursorJsonl(probe.stdout);
+        const detail = summarizeProbeDetail(probe.stdout, probe.stderr, parsed.errorMessage);
+        const authEvidence = `${parsed.errorMessage ?? ""}\n${probe.stdout}\n${probe.stderr}`.trim();
+
+        if (probe.timedOut) {
+          checks.push({
+            code: "cursor_hello_probe_timed_out",
+            level: "warn",
+            message: "Cursor hello probe timed out.",
+            hint:
+              "Retry or check network latency to Cursor. You can also run `agent -p --mode ask --output-format json --force \"Respond with hello.\"` in a small empty folder.",
+          });
+        } else if ((probe.exitCode ?? 1) === 0) {
+          const summary = parsed.summary.trim();
+          const hasHello = /\bhello\b/i.test(summary);
+          checks.push({
+            code: hasHello ? "cursor_hello_probe_passed" : "cursor_hello_probe_unexpected_output",
+            level: hasHello ? "info" : "warn",
+            message: hasHello
+              ? "Cursor hello probe succeeded."
+              : "Cursor probe ran but did not return `hello` as expected.",
+            ...(summary ? { detail: summary.replace(/\s+/g, " ").trim().slice(0, 240) } : {}),
+            ...(hasHello
+              ? {}
+              : {
+                  hint: "Try `agent -p --mode ask --output-format json \"Respond with hello.\"` manually to inspect full output.",
+                }),
+          });
+        } else if (CURSOR_AUTH_REQUIRED_RE.test(authEvidence)) {
+          checks.push({
+            code: "cursor_hello_probe_auth_required",
+            level: "warn",
+            message: "Cursor CLI is installed, but authentication is not ready.",
+            ...(detail ? { detail } : {}),
+            hint: "Run `agent login` or configure CURSOR_API_KEY in adapter env/shell, then retry the probe.",
+          });
+        } else {
+          checks.push({
+            code: "cursor_hello_probe_failed",
+            level: "error",
+            message: "Cursor hello probe failed.",
+            ...(detail ? { detail } : {}),
+            hint: "Run `agent -p --mode ask --output-format json \"Respond with hello.\"` manually in this working directory to debug.",
+          });
+        }
+      } finally {
+        if (cleanupProbeDir) await cleanupProbeDir();
       }
     }
   }
