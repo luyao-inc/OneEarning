@@ -252,11 +252,11 @@ export async function testEnvironment(
       }
 
       try {
+        // Match execute.ts: prompt is piped on stdin (--print), not passed as argv (stdin ignored would hang or fail).
         const args = ["-p", "--mode", "ask", "--output-format", "json", "--workspace", probeWorkspace];
         if (model) args.push("--model", model);
         if (autoTrustEnabled) args.push("--force");
         if (extraArgs.length > 0) args.push(...extraArgs);
-        args.push("Respond with hello.");
 
         const probe = await runAdapterExecutionTargetProcess(
           runId,
@@ -266,6 +266,7 @@ export async function testEnvironment(
           {
             cwd: probeWorkspace,
             env,
+            stdin: "Respond with hello.\n",
             timeoutSec: CURSOR_HELLO_PROBE_TIMEOUT_SEC,
             graceSec: 10,
             onLog: async () => {},
@@ -281,7 +282,7 @@ export async function testEnvironment(
             level: "warn",
             message: "Cursor hello probe timed out.",
             hint:
-              "Retry or check network latency to Cursor. You can also run `agent -p --mode ask --output-format json --force \"Respond with hello.\"` in a small empty folder.",
+              'Retry or check network latency. Pipe the prompt: printf %s "Respond with hello.\\n" | agent -p --mode ask --output-format json --force --workspace .',
           });
         } else if ((probe.exitCode ?? 1) === 0) {
           const summary = parsed.summary.trim();
@@ -296,7 +297,8 @@ export async function testEnvironment(
             ...(hasHello
               ? {}
               : {
-                  hint: "Try `agent -p --mode ask --output-format json \"Respond with hello.\"` manually to inspect full output.",
+                  hint:
+                    'Try: printf %s "Respond with hello.\\n" | agent -p --mode ask --output-format json --force --workspace .',
                 }),
           });
         } else if (CURSOR_AUTH_REQUIRED_RE.test(authEvidence)) {
@@ -313,7 +315,8 @@ export async function testEnvironment(
             level: "error",
             message: "Cursor hello probe failed.",
             ...(detail ? { detail } : {}),
-            hint: "Run `agent -p --mode ask --output-format json \"Respond with hello.\"` manually in this working directory to debug.",
+            hint:
+              'Run: printf %s "Respond with hello.\\n" | agent -p --mode ask --output-format json --force --workspace .',
           });
         }
       } finally {
