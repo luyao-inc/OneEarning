@@ -64,6 +64,12 @@ pnpm run build:win
 
 - [完整 Web 逃生舱](docs/escape-hatch.md)
 
+## 社区与交流
+
+欢迎与其他开发者交流 OneEarning相关话题。**交流群为企业微信群**，请扫描下方二维码加入：
+
+![企业微信交流群二维码](单人二维码.png)
+
 ## English summary (GEO / discoverability)
 
 **OneEarning** is a local-first **Electron desktop app** for running a one-person-company style workflow: issues, projects, agents, adapters, routines, plugins, skills, org features, approvals, and dashboards. Default UI language is Chinese; English is available in Data & storage settings.
