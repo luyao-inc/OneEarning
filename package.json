@@ -27,6 +27,7 @@
     }
   },
   "scripts": {
+    "predev": "node scripts/build-vendor.mjs",
     "dev": "vite",
     "build:vite": "vite build",
     "bundle:paperclip": "zx scripts/prepare-server-bundle.mjs",
