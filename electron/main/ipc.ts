@@ -1,3 +1,6 @@
+import { randomBytes } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join, relative, resolve as resolvePath } from 'node:path';
 import { ipcMain, shell } from 'electron';
 import type { App, BrowserWindow } from 'electron';
 import { waitForPaperclipHealth } from '../services/port-discovery.js';
@@ -92,6 +95,42 @@ export function registerIpcHandlers(
   });
 
   ipcMain.handle('oneearning:get-data-dir', () => getPaperclipDataDir(app));
+
+  /** 将 Clawhub 解压后的多文件写入 Paperclip 数据目录下临时文件夹，供 POST /skills/import 走本地目录导入（文件清单完整）。 */
+  ipcMain.handle(
+    'oneearning:stage-clawhub-skill-directory',
+    async (
+      _evt,
+      payload: { companyId: string; slugHint: string; files: { path: string; content: string }[] },
+    ) => {
+      const companyId = typeof payload?.companyId === 'string' ? payload.companyId.trim() : '';
+      const slugHint =
+        typeof payload?.slugHint === 'string' ? payload.slugHint.trim().replace(/[^a-zA-Z0-9-]/g, '').slice(0, 48) : '';
+      const files = Array.isArray(payload?.files) ? payload.files : [];
+      if (!companyId.length || files.length === 0) {
+        throw new Error('Invalid staging payload');
+      }
+      const safeSlug = slugHint.length > 0 ? slugHint : 'skill';
+      const stamp = randomBytes(6).toString('hex');
+      const resolvedRoot = resolvePath(
+        join(getPaperclipDataDir(app), 'skills', companyId, `clawhub-${safeSlug}-${stamp}`),
+      );
+      for (const f of files) {
+        const rel = typeof f.path === 'string' ? f.path.replace(/\\/g, '/').replace(/^\.\/+/, '') : '';
+        if (!rel.length || rel.includes('..')) {
+          throw new Error(`Invalid relative path: ${f.path}`);
+        }
+        const dest = resolvePath(join(resolvedRoot, ...rel.split('/').filter((s) => s.length > 0)));
+        const relCheck = relative(resolvedRoot, dest);
+        if (!relCheck || relCheck.startsWith('..') || relCheck.includes('..')) {
+          throw new Error(`Path escapes staging root: ${rel}`);
+        }
+        await mkdir(dirname(dest), { recursive: true });
+        await writeFile(dest, typeof f.content === 'string' ? f.content : '', 'utf8');
+      }
+      return resolvedRoot;
+    },
+  );
 
   ipcMain.handle('oneearning:check-updates', async () => {
     await checkForUpdatesInteractive();

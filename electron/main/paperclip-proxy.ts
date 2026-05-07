@@ -6,6 +6,15 @@ import type { PaperclipFetchRequest, PaperclipFetchResult } from '../shared/pape
 
 export type { PaperclipFetchRequest, PaperclipFetchResult };
 
+/** 由 clawhub-sidecar 注入 */
+let clawhubSidecarBaseUrl: string | null = null;
+
+export function setClawhubSidecarBaseUrl(url: string | null): void {
+  clawhubSidecarBaseUrl = url;
+}
+
+const CLAWHUB_PROXY_PREFIX = '/api/oneearning/clawhub';
+
 export function isAllowedPaperclipProxyPath(path: string): boolean {
   if (typeof path !== 'string' || path.length === 0 || !path.startsWith('/')) return false;
   if (path.includes('..') || path.includes('\n') || path.includes('\r')) return false;
@@ -20,20 +29,38 @@ export async function paperclipProxyFetch(
     return { ok: false, error: 'Path not allowed for OneEarning proxy' };
   }
 
-  let parsed: URL;
-  try {
-    parsed = new URL(req.path, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
-  } catch {
-    return { ok: false, error: 'Invalid base URL or path' };
-  }
+  let targetUrlStr: string;
 
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    return { ok: false, error: 'Invalid URL protocol' };
-  }
+  if (req.path.startsWith(CLAWHUB_PROXY_PREFIX)) {
+    const sidecar = clawhubSidecarBaseUrl;
+    if (!sidecar) {
+      return { ok: false, error: 'Clawhub sidecar not running' };
+    }
+    let tail = req.path.slice(CLAWHUB_PROXY_PREFIX.length);
+    if (!tail.startsWith('/')) tail = `/${tail}`;
+    if (tail === '') tail = '/';
+    try {
+      targetUrlStr = new URL(tail, sidecar.endsWith('/') ? sidecar : `${sidecar}/`).toString();
+    } catch {
+      return { ok: false, error: 'Invalid Clawhub sidecar URL' };
+    }
+  } else {
+    let parsed: URL;
+    try {
+      parsed = new URL(req.path, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+    } catch {
+      return { ok: false, error: 'Invalid base URL or path' };
+    }
 
-  const host = parsed.hostname;
-  if (host !== '127.0.0.1' && host !== 'localhost') {
-    return { ok: false, error: 'Host must be loopback' };
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return { ok: false, error: 'Invalid URL protocol' };
+    }
+
+    const host = parsed.hostname;
+    if (host !== '127.0.0.1' && host !== 'localhost') {
+      return { ok: false, error: 'Host must be loopback' };
+    }
+    targetUrlStr = parsed.toString();
   }
 
   const method = (req.method ?? 'GET').toUpperCase();
@@ -72,7 +99,7 @@ export async function paperclipProxyFetch(
       }
     }
 
-    const response = await fetch(parsed.toString(), {
+    const response = await fetch(targetUrlStr, {
       method,
       headers,
       body: method === 'GET' || method === 'HEAD' ? undefined : body,

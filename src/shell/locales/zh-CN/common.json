@@ -58,6 +58,25 @@
   "escape": {
     "hint": "若某项功能尚未在壳中实现，可使用完整 OneEarning Web。"
   },
+  "oneearning": {
+    "companySkills": {
+      "unifiedSourcePlaceholder": "本地路径、GitHub、skills.sh、Clawhub slug 或 clawhub install …",
+      "clawhub": {
+        "badge": "Clawhub",
+        "toastImportedGithub": "已从 GitHub 源导入",
+        "toastImportedLocal": "已从 Clawhub 包导入",
+        "errorSidecar": "Clawhub 侧车不可用，请重新启动应用或执行 pnpm run build:clawhub。",
+        "emptySourceExtra": "也可在同一输入框粘贴 Clawhub 的 slug、安装命令或 clawhub.ai 链接；系统会自动经本地侧车解析。",
+        "browseClawhub": "浏览 Clawhub",
+        "browseClawhubHint": "在注册表选好技能后，将 slug 或命令粘回上方输入框即可导入。",
+        "openOnClawhub": "在 Clawhub 查看",
+        "forceDialogTitle": "可疑技能确认",
+        "forceDialogBody": "ClawHub 曾将此技能标为可疑。请仅在已审阅代码并自担风险时继续。",
+        "forceConfirm": "仍要导入",
+        "stagingRequiresDesktop": "完整导入 Clawhub 技能包需使用 OneEarning 桌面版（本机会将包写入与 Paperclip 共用的数据目录再执行「从本地目录导入」）。仅浏览器预览无法落盘。"
+      }
+    }
+  },
   "paperclip": {
     "layout": {
       "skipToMain": "跳到主内容",

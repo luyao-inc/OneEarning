@@ -58,6 +58,25 @@
   "escape": {
     "hint": "Use full OneEarning Web for features not yet in the shell."
   },
+  "oneearning": {
+    "companySkills": {
+      "unifiedSourcePlaceholder": "Local path, GitHub URL, skills.sh, Clawhub slug, or clawhub install …",
+      "clawhub": {
+        "badge": "Clawhub",
+        "toastImportedGithub": "Imported from GitHub source",
+        "toastImportedLocal": "Imported from Clawhub package",
+        "errorSidecar": "Clawhub sidecar is not available. Run pnpm run build:clawhub and restart the app.",
+        "emptySourceExtra": "You can paste a Clawhub slug, install command, or clawhub.ai link in the same field; it will be resolved via the local sidecar.",
+        "browseClawhub": "Browse Clawhub",
+        "browseClawhubHint": "Pick a skill on the registry, then paste its slug or command into the field above.",
+        "openOnClawhub": "View on Clawhub",
+        "forceDialogTitle": "Suspicious skill",
+        "forceDialogBody": "ClawHub flagged this skill as suspicious. Continue only if you reviewed the code and accept the risk.",
+        "forceConfirm": "Import anyway",
+        "stagingRequiresDesktop": "Importing the full Clawhub skill package requires the OneEarning desktop app so files can be written next to Paperclip data and imported as a local folder. Browser preview cannot stage files on disk."
+      }
+    }
+  },
   "paperclip": {
     "layout": {
       "skipToMain": "Skip to Main Content",

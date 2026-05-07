@@ -13,6 +13,12 @@ export interface OneEarningApi {
   openDataDir?: () => void;
   checkUpdates?: () => Promise<void>;
   getDataDir?: () => Promise<string>;
+  /** 将多文件技能写入本机数据目录，返回绝对路径供 importFromSource 使用 */
+  stageClawhubSkillDirectory?: (payload: {
+    companyId: string;
+    slugHint: string;
+    files: { path: string; content: string }[];
+  }) => Promise<string>;
 }
 
 declare global {

@@ -51,4 +51,9 @@ contextBridge.exposeInMainWorld('oneEarning', {
   },
   checkUpdates: () => ipcRenderer.invoke('oneearning:check-updates') as Promise<void>,
   getDataDir: () => ipcRenderer.invoke('oneearning:get-data-dir') as Promise<string>,
+  stageClawhubSkillDirectory: (payload: {
+    companyId: string;
+    slugHint: string;
+    files: { path: string; content: string }[];
+  }) => ipcRenderer.invoke('oneearning:stage-clawhub-skill-directory', payload) as Promise<string>,
 });

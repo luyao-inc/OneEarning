@@ -18,6 +18,14 @@ import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useToastActions } from "../context/ToastContext";
 import { queryKeys } from "../lib/queryKeys";
+import type { ResolveClawhubErrorPayload } from "@shell/oneearning-api/clawhub";
+import {
+  getClawhubWebUrl,
+  isClawhubRegistrySkill,
+  isExplicitClawhubInput,
+  resolveClawhubImport,
+  shouldResolveViaClawhub,
+} from "@shell/oneearning-api/clawhub";
 import { EmptyState } from "../components/EmptyState";
 import { MarkdownBody } from "../components/MarkdownBody";
 import { MarkdownEditor } from "../components/MarkdownEditor";
@@ -143,6 +151,11 @@ function buildTree(entries: CompanySkillFileInventoryEntry[]) {
 
   sortNode(root);
   return root.children;
+}
+
+function skillListMetadata(skill: CompanySkillListItem): Record<string, unknown> | null {
+  const m = (skill as CompanySkillListItem & { metadata?: Record<string, unknown> | null }).metadata;
+  return m ?? null;
 }
 
 function sourceMeta(
@@ -500,6 +513,11 @@ function SkillList({
                   <span className="min-w-0 overflow-hidden text-[13px] font-medium leading-5 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
                     {skill.name}
                   </span>
+                  {isClawhubRegistrySkill(skillListMetadata(skill)) ? (
+                    <span className="shrink-0 rounded border border-border px-1 py-px text-[10px] font-medium uppercase text-muted-foreground">
+                      {t("oneearning.companySkills.clawhub.badge")}
+                    </span>
+                  ) : null}
                 </span>
               </Link>
               <button
@@ -601,6 +619,7 @@ function SkillPane({
 
   const source = sourceMeta(detail.sourceBadge, detail.sourceLabel, t);
   const SourceIcon = source.icon;
+  const clawhubBrowseUrl = getClawhubWebUrl(detail.metadata);
   const usedBy = detail.usedByAgents;
   const editableReasonDisplay =
     detail.editableReason &&
@@ -618,9 +637,14 @@ function SkillPane({
       <div className="border-b border-border px-5 py-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="flex items-center gap-2 truncate text-2xl font-semibold">
+            <h1 className="flex flex-wrap items-center gap-2 truncate text-2xl font-semibold">
               <SourceIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
               {detail.name}
+              {isClawhubRegistrySkill(detail.metadata) ? (
+                <span className="shrink-0 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {t("oneearning.companySkills.clawhub.badge")}
+                </span>
+              ) : null}
             </h1>
             {detail.description && (
               <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{detail.description}</p>
@@ -657,7 +681,7 @@ function SkillPane({
               <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                 {t("paperclip.companySkillsPage.source")}
               </span>
-              <span className="flex items-center gap-2">
+              <span className="flex flex-wrap items-center gap-2">
                 <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" />
                 {detail.sourcePath ? (
                   <button
@@ -672,6 +696,17 @@ function SkillPane({
                 ) : (
                   <span className="truncate">{source.label}</span>
                 )}
+                {clawhubBrowseUrl ? (
+                  <a
+                    href={clawhubBrowseUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground no-underline transition-colors hover:bg-accent/40 hover:text-foreground"
+                  >
+                    {t("oneearning.companySkills.clawhub.openOnClawhub")}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : null}
               </span>
             </div>
             {detail.sourceType === "github" && (
@@ -841,6 +876,9 @@ export function CompanySkills() {
   const { pushToast } = useToastActions();
   const [skillFilter, setSkillFilter] = useState("");
   const [source, setSource] = useState("");
+  const [importSourceBusy, setImportSourceBusy] = useState(false);
+  const [clawhubForceDialogOpen, setClawhubForceDialogOpen] = useState(false);
+  const [clawhubPendingRaw, setClawhubPendingRaw] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [emptySourceHelpOpen, setEmptySourceHelpOpen] = useState(false);
   const [expandedSkillId, setExpandedSkillId] = useState<string | null>(null);
@@ -1148,12 +1186,151 @@ export function CompanySkills() {
     return <EmptyState icon={Boxes} message={t("paperclip.companySkillsPage.selectCompany")} />;
   }
 
-  function handleAddSkillSource() {
+  async function tryClawhubImport(trimmed: string, force: boolean): Promise<void> {
+    const cid = selectedCompanyId!;
+    try {
+      const resolved = await resolveClawhubImport({ rawInput: trimmed, force });
+      if (resolved.kind === "github") {
+        const importResult = await companySkillsApi.importFromSource(cid, resolved.paperclipSource);
+        await queryClient.invalidateQueries({ queryKey: queryKeys.companySkills.list(cid) });
+        const first = importResult.imported[0];
+        if (first) navigate(skillRoute(first.id));
+        pushToast({
+          tone: "success",
+          title: t("oneearning.companySkills.clawhub.toastImportedGithub"),
+          body: t("paperclip.toasts.companySkills.importedBody", { count: importResult.imported.length }),
+        });
+        if (resolved.warnings[0]) {
+          pushToast({
+            tone: "warn",
+            title: t("paperclip.toasts.companySkills.importWarnings"),
+            body: resolved.warnings[0],
+          });
+        }
+        if (importResult.warnings[0]) {
+          pushToast({
+            tone: "warn",
+            title: t("paperclip.toasts.companySkills.importWarnings"),
+            body: importResult.warnings[0],
+          });
+        }
+        setSource("");
+        return;
+      }
+      {
+        const skillSlugHint = resolved.slug.replace(/[^a-z0-9-]/gi, "").slice(0, 48) || "skill";
+        /**
+         * Paperclip `readLocalSkillImports`：若 SKILL.md 位于传入目录的根层，`skillDir` 会变成 `"."`，
+         * 仅用 `entry.startsWith(skillDir + "/")` 过滤会漏掉 README、assets/ 等路径（不以 `./` 开头），
+         * 最终 DB 里 fileInventory 只有 SKILL.md，前端树也只显示一个文件。
+         * 写入时再套一层子目录（slug），使 dirname(SKILL.md) 为真实文件夹名，清单才能收齐。
+         */
+        const pkg = skillSlugHint;
+        const rel = (p: string) =>
+          `${pkg}/${p.replace(/\\/g, "/").replace(/^\.\//, "")}`;
+        const stagingFiles = [
+          { path: rel("SKILL.md"), content: resolved.skillMarkdown },
+          ...resolved.extraFiles.map((f) => ({
+            path: rel(f.path.replace(/\\/g, "/").replace(/^\.\//, "")),
+            content: f.content,
+          })),
+        ];
+        const stage = window.oneEarning?.stageClawhubSkillDirectory;
+        if (typeof stage !== "function") {
+          pushToast({
+            tone: "error",
+            title: t("paperclip.toasts.companySkills.skillImportFailed"),
+            body: t("oneearning.companySkills.clawhub.stagingRequiresDesktop"),
+          });
+          return;
+        }
+        const stageDir = await stage({ companyId: cid, slugHint: skillSlugHint, files: stagingFiles });
+        const importResult = await companySkillsApi.importFromSource(cid, stageDir);
+        await queryClient.invalidateQueries({ queryKey: queryKeys.companySkills.list(cid) });
+        const first = importResult.imported[0];
+        if (first) navigate(skillRoute(first.id));
+        pushToast({
+          tone: "success",
+          title: t("oneearning.companySkills.clawhub.toastImportedLocal"),
+          body: t("paperclip.toasts.companySkills.importedBody", { count: importResult.imported.length }),
+        });
+        if (resolved.warnings[0]) {
+          pushToast({
+            tone: "warn",
+            title: t("paperclip.toasts.companySkills.importWarnings"),
+            body: resolved.warnings[0],
+          });
+        }
+        if (importResult.warnings[0]) {
+          pushToast({
+            tone: "warn",
+            title: t("paperclip.toasts.companySkills.importWarnings"),
+            body: importResult.warnings[0],
+          });
+        }
+        setSource("");
+        return;
+      }
+    } catch (err: unknown) {
+      const e = err as Error & { status?: number; requiresForce?: boolean; payload?: ResolveClawhubErrorPayload };
+      const code = e.payload?.code;
+      if (code === "MODERATION_BLOCKED") {
+        pushToast({
+          tone: "error",
+          title: t("paperclip.toasts.companySkills.skillImportFailed"),
+          body: e instanceof Error ? e.message : String(err),
+        });
+        return;
+      }
+      if (!force && (e.status === 409 || e.requiresForce)) {
+        setClawhubPendingRaw(trimmed);
+        setClawhubForceDialogOpen(true);
+        return;
+      }
+      const msg = e instanceof Error ? e.message : String(err);
+      if (
+        !force
+        && !isExplicitClawhubInput(trimmed)
+        && /^[a-z0-9][a-z0-9-]*$/i.test(trimmed.trim())
+        && e.status !== 409
+      ) {
+        importSkill.mutate(trimmed);
+        return;
+      }
+      if (msg.includes("Clawhub sidecar") || msg.includes("sidecar")) {
+        pushToast({
+          tone: "error",
+          title: t("paperclip.toasts.companySkills.skillImportFailed"),
+          body: t("oneearning.companySkills.clawhub.errorSidecar"),
+        });
+        return;
+      }
+      pushToast({
+        tone: "error",
+        title: t("paperclip.toasts.companySkills.skillImportFailed"),
+        body: msg,
+      });
+    }
+  }
+
+  async function handleAddSkillSource() {
     const trimmedSource = source.trim();
     if (trimmedSource.length === 0) {
       setEmptySourceHelpOpen(true);
       return;
     }
+    if (importSkill.isPending || importSourceBusy) return;
+
+    if (shouldResolveViaClawhub(trimmedSource)) {
+      setImportSourceBusy(true);
+      try {
+        await tryClawhubImport(trimmedSource, false);
+      } finally {
+        setImportSourceBusy(false);
+      }
+      return;
+    }
+
     importSkill.mutate(trimmedSource);
   }
 
@@ -1211,7 +1388,10 @@ export function CompanySkills() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("paperclip.companySkillsPage.emptySourceTitle")}</DialogTitle>
-            <DialogDescription>{t("paperclip.companySkillsPage.emptySourceDescription")}</DialogDescription>
+            <DialogDescription className="space-y-2">
+              <span className="block">{t("paperclip.companySkillsPage.emptySourceDescription")}</span>
+              <span className="block text-muted-foreground">{t("oneearning.companySkills.clawhub.emptySourceExtra")}</span>
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <a
@@ -1242,8 +1422,60 @@ export function CompanySkills() {
               </span>
               <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             </a>
+            <a
+              href="https://clawhub.ai/skills"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-start justify-between rounded-md border border-border px-3 py-3 text-foreground no-underline transition-colors hover:bg-accent/40"
+            >
+              <span>
+                <span className="block font-medium">{t("oneearning.companySkills.clawhub.browseClawhub")}</span>
+                <span className="mt-1 block text-muted-foreground">
+                  {t("oneearning.companySkills.clawhub.browseClawhubHint")}
+                </span>
+              </span>
+              <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            </a>
           </div>
           <DialogFooter showCloseButton />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={clawhubForceDialogOpen}
+        onOpenChange={(open) => {
+          setClawhubForceDialogOpen(open);
+          if (!open) setClawhubPendingRaw(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("oneearning.companySkills.clawhub.forceDialogTitle")}</DialogTitle>
+            <DialogDescription>{t("oneearning.companySkills.clawhub.forceDialogBody")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" type="button" onClick={() => setClawhubForceDialogOpen(false)}>
+              {t("paperclip.companySkillsPage.cancel")}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                const raw = clawhubPendingRaw;
+                setClawhubForceDialogOpen(false);
+                if (!raw) {
+                  setClawhubPendingRaw(null);
+                  return;
+                }
+                setImportSourceBusy(true);
+                void tryClawhubImport(raw, true).finally(() => {
+                  setImportSourceBusy(false);
+                  setClawhubPendingRaw(null);
+                });
+              }}
+            >
+              {t("oneearning.companySkills.clawhub.forceConfirm")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1287,18 +1519,24 @@ export function CompanySkills() {
               <input
                 value={source}
                 onChange={(event) => setSource(event.target.value)}
-                placeholder={t("paperclip.companySkillsPage.sourcePlaceholder")}
+                placeholder={t("oneearning.companySkills.unifiedSourcePlaceholder")}
                 className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={handleAddSkillSource}
-                disabled={importSkill.isPending}
+                type="button"
+                onClick={() => void handleAddSkillSource()}
+                disabled={importSkill.isPending || importSourceBusy}
               >
-                {importSkill.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : t("paperclip.companySkillsPage.add")}
+                {importSkill.isPending || importSourceBusy ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  t("paperclip.companySkillsPage.add")
+                )}
               </Button>
             </div>
+
             {scanStatusMessage && (
               <p className="mt-3 text-xs text-muted-foreground">
                 {scanStatusMessage}
