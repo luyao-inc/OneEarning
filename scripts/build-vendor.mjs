@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const tsc = path.join(root, "node_modules", "typescript", "lib", "tsc.js");
+const syncVendorDist = path.join(root, "scripts", "sync-vendor-file-deps-dist.mjs");
 
 const configs = [
   "vendor/paperclip-shared/tsconfig.json",
@@ -25,3 +26,5 @@ for (const rel of configs) {
     stdio: "inherit",
   });
 }
+
+execFileSync(process.execPath, [syncVendorDist], { cwd: root, stdio: "inherit" });
