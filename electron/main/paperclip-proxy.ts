@@ -20,9 +20,18 @@ export function setKnowledgeSidecarBaseUrl(url: string | null): void {
   knowledgeSidecarBaseUrl = url;
 }
 
+/** 由 outcomes-sidecar 注入 */
+let outcomesSidecarBaseUrl: string | null = null;
+
+export function setOutcomesSidecarBaseUrl(url: string | null): void {
+  outcomesSidecarBaseUrl = url;
+}
+
 const CLAWHUB_PROXY_PREFIX = '/api/oneearning/clawhub';
 
 const KNOWLEDGE_PROXY_PREFIX = '/api/oneearning/knowledge';
+
+const OUTCOMES_PROXY_PREFIX = '/api/oneearning/outcomes';
 
 export function isAllowedPaperclipProxyPath(path: string): boolean {
   if (typeof path !== 'string' || path.length === 0 || !path.startsWith('/')) return false;
@@ -65,6 +74,19 @@ export async function paperclipProxyFetch(
       targetUrlStr = new URL(tail, sidecar.endsWith('/') ? sidecar : `${sidecar}/`).toString();
     } catch {
       return { ok: false, error: 'Invalid Knowledge sidecar URL' };
+    }
+  } else if (req.path.startsWith(OUTCOMES_PROXY_PREFIX)) {
+    const sidecar = outcomesSidecarBaseUrl;
+    if (!sidecar) {
+      return { ok: false, error: 'Outcomes sidecar not running' };
+    }
+    let tail = req.path.slice(OUTCOMES_PROXY_PREFIX.length);
+    if (!tail.startsWith('/')) tail = `/${tail}`;
+    if (tail === '') tail = '/';
+    try {
+      targetUrlStr = new URL(tail, sidecar.endsWith('/') ? sidecar : `${sidecar}/`).toString();
+    } catch {
+      return { ok: false, error: 'Invalid Outcomes sidecar URL' };
     }
   } else {
     let parsed: URL;

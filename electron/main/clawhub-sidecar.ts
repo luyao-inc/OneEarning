@@ -2,26 +2,15 @@
  * 本地启动 servers/clawhub 侧车（动态端口），供渲染进程经 /api/oneearning/clawhub/* 访问。
  */
 import { type ChildProcess, fork } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { basename, dirname } from 'node:path';
 import type { App } from 'electron';
 import getPort from 'get-port';
 import { setClawhubSidecarBaseUrl } from './paperclip-proxy.js';
+import { resolveNodeExecutable } from '../utils/node-resolve.js';
+import { resolveSidecarEntryScript } from '../utils/resolve-sidecar-entry.js';
 
 function resolveEntryScript(app: App): string | null {
-  const resources = process.resourcesPath;
-  const packaged = join(resources, 'servers/clawhub/index.js');
-  if (existsSync(packaged)) return packaged;
-
-  const cwdDev = join(app.getAppPath(), 'servers/clawhub/dist/index.js');
-  if (existsSync(cwdDev)) return cwdDev;
-
-  const here = dirname(fileURLToPath(import.meta.url));
-  const fromMain = join(here, '..', '..', 'servers', 'clawhub', 'dist', 'index.js');
-  if (existsSync(fromMain)) return fromMain;
-
-  return null;
+  return resolveSidecarEntryScript(app, 'clawhub');
 }
 
 export class ClawhubSidecarManager {
@@ -39,16 +28,21 @@ export class ClawhubSidecarManager {
     }
 
     const port = await getPort({ port: 38740 });
-    const cwd = dirname(dirname(script));
+    const scriptDir = dirname(script);
+    const cwd = basename(scriptDir) === 'dist' ? dirname(scriptDir) : scriptDir;
     this.child = fork(script, [], {
       cwd,
+      execPath: resolveNodeExecutable(app),
       env: {
         ...process.env,
         PORT: String(port),
       },
-      silent: false,
+      /** Windows：silent:false 会让 node 子进程继承控制台并弹出空白终端窗口 */
+      silent: true,
       execArgv: [],
     });
+    this.child.stdout?.resume();
+    this.child.stderr?.resume();
 
     this.baseUrl = `http://127.0.0.1:${port}`;
     setClawhubSidecarBaseUrl(this.baseUrl);

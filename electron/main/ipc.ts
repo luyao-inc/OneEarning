@@ -1,13 +1,15 @@
 import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { copyFile, mkdir, readdir, stat, unlink, writeFile } from 'node:fs/promises';
-import { basename, dirname, join, relative, resolve as resolvePath } from 'node:path';
+import { basename, dirname, join, normalize, relative, resolve as resolvePath } from 'node:path';
 import { dialog, ipcMain, shell } from 'electron';
 import type { OpenDialogOptions } from 'electron';
 import type { App, BrowserWindow } from 'electron';
 import { waitForPaperclipHealth } from '../services/port-discovery.js';
 import { getPaperclipDataDir } from '../utils/data-dir.js';
 import { getAgentKnowledgeDir } from '../utils/knowledge-dir.js';
+import { readSidecarLogTail } from '../utils/sidecar-log.js';
+import { getKnowledgeSidecarDiagnosticsSnapshot } from './knowledge-sidecar.js';
 import type { PaperclipServerManager } from './server-manager.js';
 import { checkForUpdatesInteractive } from './updater.js';
 import { paperclipProxyFetch } from './paperclip-proxy.js';
@@ -98,6 +100,23 @@ export function registerIpcHandlers(
   });
 
   ipcMain.handle('oneearning:get-data-dir', () => getPaperclipDataDir(app));
+
+  ipcMain.handle('oneearning:open-sidecar-logs-dir', async () => {
+    const dir = join(app.getPath('userData'), 'logs', 'sidecars');
+    await mkdir(dir, { recursive: true });
+    await shell.openPath(dir);
+  });
+
+  ipcMain.handle('oneearning:get-sidecar-log', async (_evt, name: string) => {
+    const n = typeof name === 'string' ? name.trim() : '';
+    if (!n || /[/\\]/.test(n)) {
+      return '';
+    }
+    const tail = await readSidecarLogTail(app, n, 96 * 1024);
+    return tail.length > 0 ? tail : '(尚无日志)';
+  });
+
+  ipcMain.handle('oneearning:get-knowledge-sidecar-diagnostics', () => getKnowledgeSidecarDiagnosticsSnapshot());
 
   /** 将 Clawhub 解压后的多文件写入 Paperclip 数据目录下临时文件夹，供 POST /skills/import 走本地目录导入（文件清单完整）。 */
   ipcMain.handle(
@@ -300,4 +319,60 @@ export function registerIpcHandlers(
       if (err) throw new Error(err);
     },
   );
+
+  ipcMain.handle('oneearning:outcomes-open-url', async (_evt, url: string) => {
+    if (typeof url !== 'string' || !url.trim()) {
+      throw new Error('Invalid URL');
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(url.trim());
+    } catch {
+      throw new Error('Invalid URL');
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('Protocol not allowed');
+    }
+    await shell.openExternal(url.trim());
+  });
+
+  function normalizeOutcomeAbsolutePath(raw: string): string {
+    const s = raw.trim().replace(/\0/g, '');
+    if (!s.length) {
+      throw new Error('Invalid path');
+    }
+    const n = normalize(s);
+    if (!n.length) {
+      throw new Error('Invalid path');
+    }
+    if (process.platform === 'win32') {
+      const unc = n.startsWith('\\\\');
+      const drive = /^[A-Za-z]:[\\/]/.test(n) || /^[A-Za-z]:$/.test(n);
+      if (!unc && !drive) {
+        throw new Error('Path must be absolute');
+      }
+    } else if (!n.startsWith('/')) {
+      throw new Error('Path must be absolute');
+    }
+    return n;
+  }
+
+  ipcMain.handle('oneearning:outcomes-open-path', async (_evt, payload: { path?: string }) => {
+    const abs = normalizeOutcomeAbsolutePath(typeof payload?.path === 'string' ? payload.path : '');
+    if (!existsSync(abs)) {
+      throw new Error('File or folder does not exist');
+    }
+    const err = await shell.openPath(abs);
+    if (err) {
+      throw new Error(err);
+    }
+  });
+
+  ipcMain.handle('oneearning:outcomes-reveal-path', async (_evt, payload: { path?: string }) => {
+    const abs = normalizeOutcomeAbsolutePath(typeof payload?.path === 'string' ? payload.path : '');
+    if (!existsSync(abs)) {
+      throw new Error('File or folder does not exist');
+    }
+    shell.showItemInFolder(abs);
+  });
 }

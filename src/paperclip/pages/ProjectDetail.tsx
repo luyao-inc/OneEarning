@@ -31,10 +31,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs } from "@/components/ui/tabs";
 import { PluginLauncherOutlet } from "@/plugins/launchers";
 import { PluginSlotMount, PluginSlotOutlet, usePluginSlots } from "@/plugins/slots";
+import { ProjectOutcomesTab } from "../components/ProjectOutcomesTab";
 
 /* ── Top-level tab types ── */
 
-type ProjectBaseTab = "overview" | "list" | "workspaces" | "configuration" | "budget";
+type ProjectBaseTab = "overview" | "list" | "workspaces" | "configuration" | "budget" | "outcomes";
 type ProjectPluginTab = `plugin:${string}`;
 type ProjectTab = ProjectBaseTab | ProjectPluginTab;
 
@@ -52,6 +53,7 @@ function resolveProjectTab(pathname: string, projectId: string): ProjectTab | nu
   if (tab === "budget") return "budget";
   if (tab === "issues") return "list";
   if (tab === "workspaces") return "workspaces";
+  if (tab === "outcomes") return "outcomes";
   return null;
 }
 
@@ -394,6 +396,10 @@ export function ProjectDetail() {
       navigate(`/projects/${canonicalProjectRef}/budget`, { replace: true });
       return;
     }
+    if (activeTab === "outcomes") {
+      navigate(`/projects/${canonicalProjectRef}/outcomes`, { replace: true });
+      return;
+    }
     if (activeTab === "workspaces") {
       navigate(`/projects/${canonicalProjectRef}/workspaces`, { replace: true });
       return;
@@ -527,6 +533,9 @@ export function ProjectDetail() {
     if (cachedTab === "budget") {
       return <Navigate to={`/projects/${canonicalProjectRef}/budget`} replace />;
     }
+    if (cachedTab === "outcomes") {
+      return <Navigate to={`/projects/${canonicalProjectRef}/outcomes`} replace />;
+    }
     if (cachedTab === "workspaces" && workspaceTabDecisionLoaded && showWorkspacesTab) {
       return <Navigate to={`/projects/${canonicalProjectRef}/workspaces`} replace />;
     }
@@ -543,6 +552,9 @@ export function ProjectDetail() {
   if (error) return <p className="text-sm text-destructive">{error.message}</p>;
   if (!project) return null;
 
+  const outcomesDesktop =
+    typeof window !== "undefined" && Boolean(window.oneEarning?.outcomesOpenPath);
+
   const handleTabChange = (tab: ProjectTab) => {
     // Cache the active tab per project
     if (project?.id) {
@@ -556,8 +568,10 @@ export function ProjectDetail() {
       navigate(`/projects/${canonicalProjectRef}/overview`);
     } else if (tab === "workspaces") {
       navigate(`/projects/${canonicalProjectRef}/workspaces`);
-    } else if (tab === "budget") {
+    } else     if (tab === "budget") {
       navigate(`/projects/${canonicalProjectRef}/budget`);
+    } else if (tab === "outcomes") {
+      navigate(`/projects/${canonicalProjectRef}/outcomes`);
     } else if (tab === "configuration") {
       navigate(`/projects/${canonicalProjectRef}/configuration`);
     } else {
@@ -627,6 +641,7 @@ export function ProjectDetail() {
             { value: "list", label: t("paperclip.crumbs.issues") },
             { value: "overview", label: t("paperclip.crumbs.overview") },
             ...(showWorkspacesTab ? [{ value: "workspaces", label: t("paperclip.crumbs.workspaces") }] : []),
+            ...(outcomesDesktop ? [{ value: "outcomes", label: t("paperclip.projectsPage.outcomesTab") }] : []),
             { value: "configuration", label: t("paperclip.crumbs.agentTabConfiguration") },
             { value: "budget", label: t("paperclip.crumbs.agentTabBudget") },
             ...pluginTabItems.map((item) => ({
@@ -654,6 +669,14 @@ export function ProjectDetail() {
       {activeTab === "list" && project?.id && resolvedCompanyId && (
         <ProjectIssuesList projectId={project.id} companyId={resolvedCompanyId} />
       )}
+
+      {activeTab === "outcomes" && project?.id && resolvedCompanyId ? (
+        <ProjectOutcomesTab
+          companyId={resolvedCompanyId}
+          projectId={project.id}
+          projectLookupRef={projectLookupRef}
+        />
+      ) : null}
 
       {activeTab === "workspaces" ? (
         workspaceTabDecisionLoaded ? (

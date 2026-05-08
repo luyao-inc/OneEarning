@@ -13,6 +13,19 @@ export interface OneEarningApi {
   openDataDir?: () => void;
   checkUpdates?: () => Promise<void>;
   getDataDir?: () => Promise<string>;
+  /** 侧车日志尾部（用户数据目录 logs/sidecars/<name>.log） */
+  getSidecarLog?: (name: string) => Promise<string>;
+  /** 打开用户数据目录下的 logs/sidecars（与「打开数据目录」的 paperclip 子目录不同） */
+  openSidecarLogsDir?: () => Promise<void>;
+  getKnowledgeSidecarDiagnostics?: () => Promise<{
+    baseUrl: string | null;
+    script: string | null;
+    cwd: string | null;
+    nodeExecutable: string | null;
+    pid: number | undefined;
+    lastExitCode: number | null;
+    lastExitSignal: string | null;
+  }>;
   /** 将多文件技能写入本机数据目录，返回绝对路径供 importFromSource 使用 */
   stageClawhubSkillDirectory?: (payload: {
     companyId: string;
@@ -33,6 +46,12 @@ export interface OneEarningApi {
   }) => Promise<void>;
   /** 使用系统默认程序打开知识库目录下的文件 */
   knowledgeOpenFile?: (payload: { companyId: string; agentId: string; relPath: string }) => Promise<void>;
+  /** 系统浏览器打开 http(s) 链接（成果等） */
+  outcomesOpenUrl?: (url: string) => Promise<void>;
+  /** 打开绝对路径文件或目录（Windows 本地路径 / UNC） */
+  outcomesOpenPath?: (path: string) => Promise<void>;
+  /** 在资源管理器中定位文件或文件夹 */
+  outcomesRevealPath?: (path: string) => Promise<void>;
 }
 
 declare global {

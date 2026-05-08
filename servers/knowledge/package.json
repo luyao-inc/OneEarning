@@ -10,10 +10,26 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
+    "@xmldom/xmldom": "^0.8.6",
+    "argparse": "~1.0.3",
+    "base64-js": "^1.5.1",
+    "bluebird": "~3.4.0",
+    "dingbat-to-unicode": "^1.0.1",
+    "duck": "^0.1.12",
     "hono": "^4.6.12",
+    "jszip": "^3.7.1",
+    "lie": "~3.3.0",
+    "lop": "^0.4.2",
     "mammoth": "^1.12.0",
+    "option": "~0.2.1",
+    "path-is-absolute": "^1.0.0",
+    "pako": "~1.0.2",
     "pdfjs-dist": "^4.10.38",
-    "sql.js": "^1.12.0"
+    "readable-stream": "~2.3.6",
+    "setimmediate": "^1.0.5",
+    "sql.js": "^1.12.0",
+    "underscore": "^1.13.1",
+    "xmlbuilder": "^10.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

@@ -51,6 +51,19 @@ contextBridge.exposeInMainWorld('oneEarning', {
   },
   checkUpdates: () => ipcRenderer.invoke('oneearning:check-updates') as Promise<void>,
   getDataDir: () => ipcRenderer.invoke('oneearning:get-data-dir') as Promise<string>,
+  getSidecarLog: (name: string) =>
+    ipcRenderer.invoke('oneearning:get-sidecar-log', name) as Promise<string>,
+  openSidecarLogsDir: () => ipcRenderer.invoke('oneearning:open-sidecar-logs-dir') as Promise<void>,
+  getKnowledgeSidecarDiagnostics: () =>
+    ipcRenderer.invoke('oneearning:get-knowledge-sidecar-diagnostics') as Promise<{
+      baseUrl: string | null;
+      script: string | null;
+      cwd: string | null;
+      nodeExecutable: string | null;
+      pid: number | undefined;
+      lastExitCode: number | null;
+      lastExitSignal: string | null;
+    }>,
   stageClawhubSkillDirectory: (payload: {
     companyId: string;
     slugHint: string;
@@ -70,4 +83,9 @@ contextBridge.exposeInMainWorld('oneEarning', {
     ipcRenderer.invoke('oneearning:knowledge-delete-disk-file', payload) as Promise<void>,
   knowledgeOpenFile: (payload: { companyId: string; agentId: string; relPath: string }) =>
     ipcRenderer.invoke('oneearning:knowledge-open-file', payload) as Promise<void>,
+  outcomesOpenUrl: (url: string) => ipcRenderer.invoke('oneearning:outcomes-open-url', url) as Promise<void>,
+  outcomesOpenPath: (path: string) =>
+    ipcRenderer.invoke('oneearning:outcomes-open-path', { path }) as Promise<void>,
+  outcomesRevealPath: (path: string) =>
+    ipcRenderer.invoke('oneearning:outcomes-reveal-path', { path }) as Promise<void>,
 });

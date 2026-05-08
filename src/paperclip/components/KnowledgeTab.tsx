@@ -5,6 +5,7 @@ import type { Agent } from "@paperclipai/shared";
 import { agentsApi } from "../api/agents";
 import { companySkillsApi } from "../api/companySkills";
 import { knowledgeApi } from "../api/knowledge";
+import { ApiError } from "../api/client";
 import { useToastActions } from "../context/ToastContext";
 import { queryKeys } from "../lib/queryKeys";
 import {
@@ -78,13 +79,44 @@ export function KnowledgeTab({ agent, companyId }: KnowledgeTabProps) {
     enabled: Boolean(companyId && isElectron),
   });
 
-  const { data: status, isError: statusQueryError } = useQuery({
+  const { data: status, isError: statusQueryError, error: statusErr } = useQuery({
     queryKey: queryKeys.knowledge.status(companyId ?? "", agent.id),
     queryFn: () => knowledgeApi.status(companyId!, agent.id),
     enabled: Boolean(companyId),
     refetchInterval: 15_000,
     retry: 1,
   });
+
+  const [sidecarDebug, setSidecarDebug] = useState<{ diag: string; logTail: string } | null>(null);
+  useEffect(() => {
+    if (!statusQueryError || !isElectron) {
+      setSidecarDebug(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const w = oe;
+      const [log, diag] = await Promise.all([
+        w?.getSidecarLog?.("knowledge") ?? Promise.resolve(""),
+        w?.getKnowledgeSidecarDiagnostics?.() ?? Promise.resolve(null),
+      ]);
+      if (cancelled) return;
+      const dLine = diag
+        ? [
+            `baseUrl=${diag.baseUrl ?? "null"}`,
+            `pid=${diag.pid ?? "—"}`,
+            `exit=${diag.lastExitCode ?? "—"}`,
+            `node=${diag.nodeExecutable ?? "—"}`,
+            `cwd=${diag.cwd ?? "—"}`,
+            `script=${diag.script ?? "—"}`,
+          ].join(" | ")
+        : "(no diagnostics)";
+      setSidecarDebug({ diag: dLine, logTail: log });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [statusQueryError, isElectron, oe]);
 
   const { data: info } = useQuery({
     queryKey: queryKeys.knowledge.info(companyId ?? "", agent.id),
@@ -271,9 +303,35 @@ export function KnowledgeTab({ agent, companyId }: KnowledgeTabProps) {
       </div>
 
       {statusQueryError && (
-        <p className="text-xs text-amber-200/90 rounded-md border border-amber-500/40 bg-amber-950/25 px-3 py-2">
-          {t("paperclip.knowledge.sidecarUnavailable")}
-        </p>
+        <div className="text-xs text-amber-200/90 rounded-md border border-amber-500/40 bg-amber-950/25 px-3 py-2 space-y-2">
+          <p>{t("paperclip.knowledge.sidecarUnavailable")}</p>
+          {statusErr instanceof ApiError && (
+            <p className="font-mono text-[11px] text-amber-100/90 break-all">
+              {t("paperclip.knowledge.requestFailedDetail", { message: statusErr.message })}
+            </p>
+          )}
+          {isElectron && sidecarDebug && (
+            <>
+              <p className="font-mono text-[10px] opacity-90 break-all">{sidecarDebug.diag}</p>
+              <details className="text-[10px]">
+                <summary className="cursor-pointer select-none opacity-90">
+                  {t("paperclip.knowledge.sidecarLogSummary")}
+                </summary>
+                <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap opacity-90">{sidecarDebug.logTail}</pre>
+              </details>
+              <p className="text-[10px] text-muted-foreground">{t("paperclip.knowledge.sidecarLogPathHint")}</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-[10px] h-7"
+                onClick={() => void oe?.openSidecarLogsDir?.()}
+              >
+                {t("paperclip.knowledge.openSidecarLogsFolder")}
+              </Button>
+            </>
+          )}
+        </div>
       )}
 
       {info && (
