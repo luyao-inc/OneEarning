@@ -37,11 +37,11 @@ export const defaultIssueFilterState: IssueFilterState = {
 export const issueStatusOrder = ["in_progress", "todo", "backlog", "in_review", "blocked", "done", "cancelled"];
 export const issuePriorityOrder = ["critical", "high", "medium", "low"];
 
-export const issueQuickFilterPresets = [
-  { label: "All", statuses: [] as string[] },
-  { label: "Active", statuses: ["todo", "in_progress", "in_review", "blocked"] },
-  { label: "Backlog", statuses: ["backlog"] },
-  { label: "Done", statuses: ["done", "cancelled"] },
+export const issueQuickFilterPresets: ReadonlyArray<{ id: string; statuses: string[] }> = [
+  { id: "all", statuses: [] },
+  { id: "active", statuses: ["todo", "in_progress", "in_review", "blocked"] },
+  { id: "backlog", statuses: ["backlog"] },
+  { id: "done", statuses: ["done", "cancelled"] },
 ];
 
 export function issueFilterLabel(value: string): string {

@@ -1567,7 +1567,7 @@ function IssueChatAssistantMessage({
                       <DropdownMenuItem asChild>
                         <Link to={runHref} target="_blank" rel="noreferrer noopener">
                           <Search className="mr-2 h-3.5 w-3.5" />
-                          View run
+                          {t("paperclip.toasts.live.viewRun")}
                         </Link>
                       </DropdownMenuItem>
                     ) : null}

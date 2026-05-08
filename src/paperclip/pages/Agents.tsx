@@ -19,11 +19,32 @@ import { PageTabBar } from "../components/PageTabBar";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Bot, Plus, List, GitBranch, SlidersHorizontal } from "lucide-react";
-import { AGENT_ROLE_LABELS, type Agent } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
+import { AGENT_ROLE_LABELS, type Agent, type AgentRole } from "@paperclipai/shared";
 
-import { getAdapterLabel } from "../adapters/adapter-display-registry";
+import { translateAdapterLabel } from "../adapters/adapter-display-registry";
 
 const roleLabels = AGENT_ROLE_LABELS as Record<string, string>;
+
+function agentRoleLabel(t: TFunction, role: string): string {
+  return t(`paperclip.agentRoles.${role}`, {
+    defaultValue: roleLabels[role as AgentRole] ?? role,
+  });
+}
+
+function formatAgentSubtitle(t: TFunction, role: string, title: string | null): string {
+  const rolePart = agentRoleLabel(t, role);
+  return title ? `${rolePart} - ${title}` : rolePart;
+}
+
+function displayConfiguredModel(t: TFunction, agent: Agent): string {
+  const raw = getConfiguredModel(agent);
+  if (!raw) return "—";
+  if (raw.trim().toLowerCase() === "auto") {
+    return t("paperclip.agentsPage.modelAuto");
+  }
+  return raw;
+}
 
 type FilterTab = "all" | "active" | "paused" | "error";
 
@@ -122,7 +143,7 @@ export function Agents() {
   }, [setBreadcrumbs, t]);
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Bot} message="Select a company to view agents." />;
+    return <EmptyState icon={Bot} message={t("paperclip.agentsPage.selectCompany")} />;
   }
 
   if (isLoading) {
@@ -158,7 +179,7 @@ export function Agents() {
               onClick={() => setFiltersOpen(!filtersOpen)}
             >
               <SlidersHorizontal className="h-3 w-3" />
-              Filters
+              {t("paperclip.agentsPage.filters")}
               {showTerminated && <span className="ml-0.5 px-1 bg-foreground/10 rounded text-[10px]">1</span>}
             </button>
             {filtersOpen && (
@@ -173,7 +194,7 @@ export function Agents() {
                   )}>
                     {showTerminated && <span className="text-background text-[10px] leading-none">&#10003;</span>}
                   </span>
-                  Show terminated
+                  {t("paperclip.agentsPage.showTerminated")}
                 </button>
               </div>
             )}
@@ -203,13 +224,15 @@ export function Agents() {
           )}
           <Button size="sm" variant="outline" onClick={openNewAgent}>
             <Plus className="h-3.5 w-3.5 mr-1.5" />
-            New Agent
+            {t("paperclip.agentsPage.newAgent")}
           </Button>
         </div>
       </div>
 
       {filtered.length > 0 && (
-        <p className="text-xs text-muted-foreground">{filtered.length} agent{filtered.length !== 1 ? "s" : ""}</p>
+        <p className="text-xs text-muted-foreground">
+          {t("paperclip.agentsPage.agentCount", { count: filtered.length })}
+        </p>
       )}
 
       {error && <p className="text-sm text-destructive">{error.message}</p>}
@@ -217,8 +240,8 @@ export function Agents() {
       {agents && agents.length === 0 && (
         <EmptyState
           icon={Bot}
-          message="Create your first agent to get started."
-          action="New Agent"
+          message={t("paperclip.agentsPage.emptyCreateFirst")}
+          action={t("paperclip.agentsPage.newAgent")}
           onAction={openNewAgent}
         />
       )}
@@ -227,11 +250,12 @@ export function Agents() {
       {effectiveView === "list" && filtered.length > 0 && (
         <div className="border border-border">
           {filtered.map((agent) => {
+            const modelDisplay = displayConfiguredModel(t, agent);
             return (
               <EntityRow
                 key={agent.id}
                 title={agent.name}
-                subtitle={`${roleLabels[agent.role] ?? agent.role}${agent.title ? ` - ${agent.title}` : ""}`}
+                subtitle={formatAgentSubtitle(t, agent.role, agent.title)}
                 to={agentUrl(agent)}
                 className={agent.pausedAt && tab !== "paused" ? "opacity-50" : ""}
                 leading={
@@ -263,13 +287,13 @@ export function Agents() {
                         />
                       )}
                       <span className="w-28 whitespace-nowrap text-left font-mono text-xs text-muted-foreground">
-                        {getAdapterLabel(agent.adapterType)}
+                        {translateAdapterLabel(t, agent.adapterType)}
                       </span>
                       <span
                         className="w-36 truncate text-left font-mono text-xs text-muted-foreground"
-                        title={getConfiguredModel(agent) ?? undefined}
+                        title={modelDisplay !== "—" ? modelDisplay : undefined}
                       >
-                        {getConfiguredModel(agent) ?? "—"}
+                        {modelDisplay}
                       </span>
                       <span className="text-xs text-muted-foreground w-16 text-right">
                         {agent.lastHeartbeatAt ? relativeTime(agent.lastHeartbeatAt) : "—"}
@@ -288,7 +312,7 @@ export function Agents() {
 
       {effectiveView === "list" && agents && agents.length > 0 && filtered.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">
-          No agents match the selected filter.
+          {t("paperclip.agentsPage.noMatchFilter")}
         </p>
       )}
 
@@ -296,20 +320,27 @@ export function Agents() {
       {effectiveView === "org" && filteredOrg.length > 0 && (
         <div className="border border-border py-1">
           {filteredOrg.map((node) => (
-            <OrgTreeNode key={node.id} node={node} depth={0} agentMap={agentMap} liveRunByAgent={liveRunByAgent} tab={tab} />
+            <OrgTreeNode
+              key={node.id}
+              node={node}
+              depth={0}
+              agentMap={agentMap}
+              liveRunByAgent={liveRunByAgent}
+              tab={tab}
+            />
           ))}
         </div>
       )}
 
       {effectiveView === "org" && orgTree && orgTree.length > 0 && filteredOrg.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">
-          No agents match the selected filter.
+          {t("paperclip.agentsPage.noMatchFilter")}
         </p>
       )}
 
       {effectiveView === "org" && orgTree && orgTree.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">
-          No organizational hierarchy defined.
+          {t("paperclip.agentsPage.noOrgHierarchy")}
         </p>
       )}
     </div>
@@ -329,7 +360,9 @@ function OrgTreeNode({
   liveRunByAgent: Map<string, { runId: string; liveCount: number }>;
   tab: FilterTab;
 }) {
+  const { t } = useTranslation();
   const agent = agentMap.get(node.id);
+  const modelDisplay = agent ? displayConfiguredModel(t, agent) : "—";
 
   const statusColor = agentStatusDot[node.status] ?? agentStatusDotDefault;
 
@@ -345,8 +378,7 @@ function OrgTreeNode({
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium">{node.name}</span>
           <span className="text-xs text-muted-foreground ml-2">
-            {roleLabels[node.role] ?? node.role}
-            {agent?.title ? ` - ${agent.title}` : ""}
+            {formatAgentSubtitle(t, node.role, agent?.title ?? null)}
           </span>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -372,13 +404,13 @@ function OrgTreeNode({
             {agent && (
               <>
                 <span className="w-28 whitespace-nowrap text-left font-mono text-xs text-muted-foreground">
-                  {getAdapterLabel(agent.adapterType)}
+                  {translateAdapterLabel(t, agent.adapterType)}
                 </span>
                 <span
                   className="w-36 truncate text-left font-mono text-xs text-muted-foreground"
-                  title={getConfiguredModel(agent) ?? undefined}
+                  title={modelDisplay !== "—" ? modelDisplay : undefined}
                 >
-                  {getConfiguredModel(agent) ?? "—"}
+                  {modelDisplay}
                 </span>
                 <span className="text-xs text-muted-foreground w-16 text-right">
                   {agent.lastHeartbeatAt ? relativeTime(agent.lastHeartbeatAt) : "—"}
@@ -411,6 +443,7 @@ function LiveRunIndicator({
   runId: string;
   liveCount: number;
 }) {
+  const { t } = useTranslation();
   return (
     <Link
       to={`/agents/${agentRef}/runs/${runId}`}
@@ -422,7 +455,9 @@ function LiveRunIndicator({
         <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
       </span>
       <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
-        Live{liveCount > 1 ? ` (${liveCount})` : ""}
+        {liveCount > 1
+          ? t("paperclip.agentsPage.liveRunWithCount", { count: liveCount })
+          : t("paperclip.agentsPage.liveRun")}
       </span>
     </Link>
   );

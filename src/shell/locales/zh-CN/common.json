@@ -1041,6 +1041,20 @@
       "moreRuns_one": "还有 {{count}} 条活跃/近期运行",
       "moreRuns_other": "还有 {{count}} 条活跃/近期运行"
     },
+    "agentsPage": {
+      "filters": "筛选",
+      "showTerminated": "显示已终止",
+      "newAgent": "新建智能体",
+      "selectCompany": "请选择公司以查看智能体。",
+      "emptyCreateFirst": "创建第一个智能体以开始使用。",
+      "noMatchFilter": "没有符合当前筛选条件的智能体。",
+      "noOrgHierarchy": "尚未配置组织汇报关系。",
+      "agentCount_one": "{{count}} 个智能体",
+      "agentCount_other": "{{count}} 个智能体",
+      "liveRun": "运行中",
+      "liveRunWithCount": "运行中（{{count}}）",
+      "modelAuto": "自动"
+    },
     "runChatSurface": {
       "waitingForOutput": "等待运行输出…",
       "noOutputCaptured": "未捕获运行输出。"
@@ -1612,6 +1626,8 @@
       "filtersHeading": "筛选",
       "clearFilters": "清除",
       "quickFilters": "快捷筛选",
+      "quickFilterPresetDone": "已结束",
+      "filterCreatorBoard": "看板",
       "filterSectionStatus": "状态",
       "filterSectionPriority": "优先级",
       "filterSectionAssignee": "经办人",
@@ -2182,6 +2198,12 @@
       "outcomesKindVideo": "视频",
       "outcomesKindDocument": "文档",
       "outcomesKindFile": "本地文件",
+      "outcomesSourceKind": {
+        "attachment": "附件",
+        "work_product_file": "工作产出文件",
+        "issue_comment_relative": "任务评论（相对路径）",
+        "unknown": "未知"
+      },
       "outcomesColumnKind": "类型",
       "outcomesColumnTitle": "标题 / 地址",
       "outcomesColumnSources": "来源",

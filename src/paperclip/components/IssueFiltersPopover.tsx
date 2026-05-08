@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,21 @@ import {
   toggleIssueFilterValue,
   type IssueFilterState,
 } from "../lib/issue-filters";
+
+function quickFilterPresetLabel(t: TFunction, id: string): string {
+  switch (id) {
+    case "all":
+      return t("paperclip.filterTabs.all");
+    case "active":
+      return t("paperclip.filterTabs.active");
+    case "backlog":
+      return t("paperclip.issueStatus.backlog");
+    case "done":
+      return t("paperclip.issuesList.quickFilterPresetDone");
+    default:
+      return id;
+  }
+}
 import { formatAssigneeUserLabel } from "../lib/assignees";
 
 type AgentOption = {
@@ -168,7 +184,7 @@ export function IssueFiltersPopover({
                 const isActive = issueFilterArraysEqual(state.statuses, preset.statuses);
                 return (
                   <button
-                    key={preset.label}
+                    key={preset.id}
                     type="button"
                     className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
                       isActive
@@ -177,7 +193,7 @@ export function IssueFiltersPopover({
                     }`}
                     onClick={() => onChange({ statuses: isActive ? [] : [...preset.statuses] })}
                   >
-                    {preset.label}
+                    {quickFilterPresetLabel(t, preset.id)}
                   </button>
                 );
               })}
@@ -198,7 +214,9 @@ export function IssueFiltersPopover({
                         onCheckedChange={() => onChange({ statuses: toggleIssueFilterValue(state.statuses, status) })}
                       />
                       <StatusIcon status={status} />
-                      <span className="text-sm">{issueFilterLabel(status)}</span>
+                      <span className="text-sm">
+                        {t(`paperclip.issueStatus.${status}`, { defaultValue: issueFilterLabel(status) })}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -214,7 +232,9 @@ export function IssueFiltersPopover({
                         onCheckedChange={() => onChange({ priorities: toggleIssueFilterValue(state.priorities, priority) })}
                       />
                       <PriorityIcon priority={priority} />
-                      <span className="text-sm">{issueFilterLabel(priority)}</span>
+                      <span className="text-sm">
+                        {t(`paperclip.issuePriority.${priority}`, { defaultValue: issueFilterLabel(priority) })}
+                      </span>
                     </label>
                   ))}
                 </div>

@@ -1,14 +1,17 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
+import type { Issue } from "@paperclipai/shared";
 import { Link } from "@/lib/router";
 import { Button } from "@/components/ui/button";
 import { outcomesApi, type OutcomeItemRow } from "../api/outcomes";
+import { issuesApi } from "../api/issues";
 import { buildProjectOutcomesCorpus } from "../lib/project-outcomes-corpus";
 import { queryKeys } from "../lib/queryKeys";
 import { ApiError } from "../api/client";
 import { RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, relativeTime } from "@/lib/utils";
 
 function isSourceRef(
   v: unknown,
@@ -19,6 +22,37 @@ function isSourceRef(
     "sourceKind" in v &&
     typeof (v as { sourceKind: unknown }).sourceKind === "string"
   );
+}
+
+function issuePathForUrl(issue: Issue | undefined, fallbackId: string | null): string {
+  if (issue) return issue.identifier ?? issue.id;
+  return fallbackId ?? "";
+}
+
+/** 列表中展示：优先编号（如 CMP-14），否则缩短 UUID */
+function issueSourceListLabel(issue: Issue | undefined, rawIssueId: string | null): string {
+  if (issue) {
+    const id = issue.identifier?.trim();
+    if (id) return id;
+    return `${issue.id.slice(0, 8)}…`;
+  }
+  if (rawIssueId) return `${rawIssueId.slice(0, 8)}…`;
+  return "";
+}
+
+function sourceRefHoverTitle(
+  issue: Issue | undefined,
+  routeLabel: string,
+  t: TFunction,
+): string | undefined {
+  if (!issue) return undefined;
+  const head = issue.title?.trim() ?? "";
+  const statusLabel = t(`paperclip.issueStatus.${issue.status}`, { defaultValue: issue.status });
+  const time = issue.updatedAt != null ? relativeTime(issue.updatedAt) : "";
+  const meta = [routeLabel, statusLabel, time].filter(Boolean).join(" · ");
+  if (head && meta) return `${head}\n${meta}`;
+  if (head) return head;
+  return meta || undefined;
 }
 
 function displayLabelKey(displayKind: string): string {
@@ -59,6 +93,20 @@ export function ProjectOutcomesTab({
     queryFn: () => outcomesApi.items(companyId, projectId),
     enabled: Boolean(companyId && projectId && isDesktop),
   });
+
+  const projectIssuesQuery = useQuery({
+    queryKey: queryKeys.issues.listByProject(companyId, projectId),
+    queryFn: () => issuesApi.list(companyId, { projectId, limit: 500 }),
+    enabled: Boolean(companyId && projectId && isDesktop),
+  });
+
+  const issueById = useMemo(() => {
+    const m = new Map<string, Issue>();
+    for (const issue of projectIssuesQuery.data ?? []) {
+      m.set(issue.id, issue);
+    }
+    return m;
+  }, [projectIssuesQuery.data]);
 
   useEffect(() => {
     if (!isDesktop) return;
@@ -160,7 +208,7 @@ export function ProjectOutcomesTab({
             </thead>
             <tbody>
               {items.map((row, idx) => (
-                <OutcomeRowView key={`${row.canonical}-${idx}`} row={row} />
+                <OutcomeRowView key={`${row.canonical}-${idx}`} row={row} issueById={issueById} />
               ))}
             </tbody>
           </table>
@@ -170,7 +218,13 @@ export function ProjectOutcomesTab({
   );
 }
 
-function OutcomeRowView({ row }: { row: OutcomeItemRow }) {
+function OutcomeRowView({
+  row,
+  issueById,
+}: {
+  row: OutcomeItemRow;
+  issueById: ReadonlyMap<string, Issue>;
+}) {
   const { t } = useTranslation();
   const oe = typeof window !== "undefined" ? window.oneEarning : undefined;
 
@@ -199,18 +253,32 @@ function OutcomeRowView({ row }: { row: OutcomeItemRow }) {
           "—"
         ) : (
           <div className="flex flex-wrap gap-x-2 gap-y-1">
-            {refs.filter(isSourceRef).map((r, i) => (
-              <span key={`${r.sourceKind}-${r.issueId ?? i}`}>
-                {r.issueId ? (
-                  <Link className="underline hover:text-foreground" to={`/issues/${r.issueId}`}>
-                    {r.sourceKind}
-                  </Link>
-                ) : (
-                  r.sourceKind
-                )}
-                {r.truncated ? " *" : ""}
-              </span>
-            ))}
+            {refs.filter(isSourceRef).map((r, i) => {
+              const issue = r.issueId ? issueById.get(r.issueId) : undefined;
+              const pathId = issuePathForUrl(issue, r.issueId);
+              const linkLabel = r.issueId
+                ? issueSourceListLabel(issue, r.issueId)
+                : t(`paperclip.projectsPage.outcomesSourceKind.${r.sourceKind}`, {
+                    defaultValue: r.sourceKind.replace(/_/g, " "),
+                  });
+              const hoverTitle = r.issueId ? sourceRefHoverTitle(issue, pathId, t) : undefined;
+              return (
+                <span key={`${r.sourceKind}-${r.issueId ?? "x"}-${i}`}>
+                  {r.issueId && pathId ? (
+                    <Link
+                      className="underline hover:text-foreground"
+                      to={`/issues/${pathId}`}
+                      title={hoverTitle}
+                    >
+                      {linkLabel}
+                    </Link>
+                  ) : (
+                    <span title={r.sourceKind}>{linkLabel}</span>
+                  )}
+                  {r.truncated ? " *" : ""}
+                </span>
+              );
+            })}
           </div>
         )}
       </td>
