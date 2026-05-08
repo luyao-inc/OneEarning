@@ -124,4 +124,64 @@ for (const [realPath, pkgName] of collected) {
 }
 
 echo`   Copied ${copiedCount} packages, skipped ${skippedDupes} duplicate names`;
+
+// macOS codesign 会拒绝指向 bundle 外的符号链接（"invalid destination for symbolic link in bundle"）。
+// 一些依赖（尤其是 embedded-postgres）里包含 dylib 的 symlink（例如 libz.dylib → libz.1.3.1.dylib），
+// pnpm / store 形态下可能变成指向工作区 node_modules 的绝对路径。这里强制将 OUTPUT 内的 symlink 实体化为普通文件/目录。
+function materializeSymlinks(rootDir) {
+  const rootPath = path.resolve(rootDir);
+  const queue = [rootPath];
+  while (queue.length) {
+    const dir = queue.pop();
+    let entries = [];
+    try {
+      entries = fs.readdirSync(normWin(dir), { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const ent of entries) {
+      const p = path.join(dir, ent.name);
+      let st;
+      try {
+        st = fs.lstatSync(normWin(p));
+      } catch {
+        continue;
+      }
+      if (st.isSymbolicLink()) {
+        let linkTarget;
+        try {
+          linkTarget = fs.readlinkSync(normWin(p));
+        } catch {
+          continue;
+        }
+        const resolved = path.isAbsolute(linkTarget)
+          ? linkTarget
+          : path.resolve(path.dirname(p), linkTarget);
+
+        if (!fs.existsSync(normWin(resolved))) {
+          // 保留断链（后续也能更明确地报错）
+          continue;
+        }
+
+        // 用真实内容替换 symlink
+        try {
+          fs.unlinkSync(normWin(p));
+          const targetStat = fs.statSync(normWin(resolved));
+          if (targetStat.isDirectory()) {
+            fs.cpSync(normWin(resolved), normWin(p), { recursive: true, dereference: true });
+          } else {
+            fs.mkdirSync(normWin(path.dirname(p)), { recursive: true });
+            fs.copyFileSync(normWin(resolved), normWin(p));
+          }
+        } catch {
+          // best-effort
+        }
+      } else if (st.isDirectory()) {
+        queue.push(p);
+      }
+    }
+  }
+}
+
+materializeSymlinks(OUTPUT);
 echo`✅ Output: ${OUTPUT}`;

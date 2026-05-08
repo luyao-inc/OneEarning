@@ -27,6 +27,7 @@
     }
   },
   "scripts": {
+    "predev": "node scripts/build-vendor.mjs",
     "dev": "vite",
     "build:vite": "vite build",
     "bundle:paperclip": "zx scripts/prepare-server-bundle.mjs",
@@ -36,7 +37,9 @@
     "package": "pnpm run build:vite ; pnpm run build:clawhub ; pnpm run build:knowledge ; pnpm run bundle:paperclip ; pnpm run bundle:postgres",
     "build": "pnpm run package && electron-builder",
     "build:win": "pnpm run package && electron-builder --win --publish never",
-    "build:mac": "pnpm run package && electron-builder --mac --publish never",
+    "prep:node:mac": "zx scripts/download-bundled-node.mjs --platform=mac",
+    "build:mac": "pnpm run prep:node:mac && pnpm run package && electron-builder --mac --publish never -c.mac.notarize=false",
+    "build:mac:release": "pnpm run prep:node:mac && pnpm run package && electron-builder --mac --publish never -c.mac.notarize=true",
     "build:linux": "pnpm run package && electron-builder --linux --publish never",
     "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
     "build:vendor": "node scripts/build-vendor.mjs",

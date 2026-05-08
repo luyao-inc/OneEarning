@@ -1,0 +1,72 @@
+# macOS 产物（DMG + ZIP，arm64 / x64）并上传到 GitHub Release。
+#
+# 可选 Secrets（用于公证并消除 Gatekeeper 拦截）：
+# - APPLE_CERTIFICATE_P12：Developer ID Application 的 .p12（base64）
+# - APPLE_CERTIFICATE_PASSWORD：上述 .p12 密码
+# - APPLE_ID：Apple ID 邮箱
+# - APPLE_APP_SPECIFIC_PASSWORD：App 专用密码（appleid.apple.com）
+# - APPLE_TEAM_ID：10 位 Team ID
+#
+# 若未配置 APPLE_ID / 专用密码 / Team ID，工作流仍会上传未公证的安装包（适合 fork 或内测）。
+
+name: Release macOS
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Import Apple code signing certificate
+        if: ${{ secrets.APPLE_CERTIFICATE_P12 != '' }}
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      - name: Build macOS installers
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -e
+          if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+            echo "Building with notarization (APPLE_* present)."
+            pnpm run build:mac:release
+          else
+            echo "Building without notarization (set APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID to enable)."
+            pnpm run build:mac
+          fi
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.dmg
+            release/*.zip
+          draft: false
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

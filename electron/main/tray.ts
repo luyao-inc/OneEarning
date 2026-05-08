@@ -2,14 +2,14 @@ import { Menu, Tray, nativeImage, type App } from 'electron';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ShellStrings } from './i18n.js';
-import { getAppIconPngPath } from './app-icon.js';
+import { getAppIconPath } from './app-icon.js';
 
 /** 16×16 占位图标（无 resources/icons/icon.png 时使用） */
 const TRAY_PNG =
   'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGklEQVQ4T2NkGGDAiMRAImBiYGD4TykWBgYAc24BAftfQZ0AAAAASUVORK5CYII=';
 
 function resolveTrayIcon(app: App): Electron.NativeImage {
-  const mainIcon = getAppIconPngPath();
+  const mainIcon = getAppIconPath();
   if (mainIcon) {
     const img = nativeImage.createFromPath(mainIcon);
     if (!img.isEmpty()) return img;

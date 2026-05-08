@@ -44,6 +44,7 @@ import {
 import { DEFAULT_CURSOR_LOCAL_MODEL } from "../index.js";
 import { parseCursorJsonl, isCursorUnknownSessionError } from "./parse.js";
 import { prepareCursorSandboxCommand } from "./remote-command.js";
+import { prepareCursorHostCommand } from "./local-command.js";
 import { normalizeCursorStreamLine } from "../shared/stream.js";
 import { hasCursorTrustBypassArg } from "../shared/trust.js";
 
@@ -318,6 +319,23 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   });
   command = sandboxCommand.command;
   env = sandboxCommand.env;
+  if (!executionTargetIsRemote) {
+    const hostCommand = await prepareCursorHostCommand({ command, env });
+    command = hostCommand.command;
+    env = hostCommand.env;
+    if (hostCommand.addedPathEntries.length > 0) {
+      await onLog(
+        "stdout",
+        `[paperclip] macOS PATH补全：${hostCommand.addedPathEntries.join(", ")}\n`,
+      );
+    }
+    if (hostCommand.resolvedCommandPath) {
+      await onLog(
+        "stdout",
+        `[paperclip] macOS 已解析 Cursor CLI: ${hostCommand.resolvedCommandPath}\n`,
+      );
+    }
+  }
   const effectiveEnv = Object.fromEntries(
     Object.entries({ ...process.env, ...env }).filter(
       (entry): entry is [string, string] => typeof entry[1] === "string",
@@ -457,7 +475,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const commandNotes = (() => {
     const notes: string[] = [];
     if (autoTrustEnabled) {
-      notes.push("Auto-added --yolo to bypass interactive prompts.");
+      notes.push("Auto-added --force to bypass interactive prompts.");
     }
     notes.push("Prompt is piped to Cursor via stdin.");
     if (sandboxCommand.addedPathEntry) {
@@ -522,7 +540,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     if (resumeSessionId) args.push("--resume", resumeSessionId);
     if (model) args.push("--model", model);
     if (mode) args.push("--mode", mode);
-    if (autoTrustEnabled) args.push("--yolo");
+    if (autoTrustEnabled) args.push("--force");
     if (extraArgs.length > 0) args.push(...extraArgs);
     return args;
   };

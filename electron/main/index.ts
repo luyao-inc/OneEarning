@@ -9,7 +9,7 @@ import getPort from 'get-port';
 import { PaperclipServerManager } from './server-manager.js';
 import { waitForPaperclipHealth } from '../services/port-discovery.js';
 import { loadShellStrings } from './i18n.js';
-import { getAppIconPngPath } from './app-icon.js';
+import { getAppIconPath } from './app-icon.js';
 import { createTray } from './tray.js';
 import { registerIpcHandlers } from './ipc.js';
 import { ClawhubSidecarManager } from './clawhub-sidecar.js';
@@ -74,7 +74,7 @@ function bindFixedWindowTitle(win: BrowserWindow): void {
 }
 
 function windowIconOptions(): { icon: string } | Record<string, never> {
-  const p = getAppIconPngPath();
+  const p = getAppIconPath();
   return p ? { icon: p } : {};
 }
 
