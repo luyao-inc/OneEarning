@@ -50,9 +50,12 @@ asarUnpack:
 
 npmRebuild: false
 
+# GitHub Releases：CI 使用 GH_TOKEN（repo 权限）执行 electron-builder --publish always 上传 release/ 内产物。
+# 本地构建可加 --publish never。运行时可通过 ONEEARNING_UPDATE_URL 覆盖为 generic 更新源（测试或镜像）。
 publish:
-  - provider: generic
-    url: https://example.invalid/oneearning-updates
+  - provider: github
+    owner: luyao-inc
+    repo: OneEarning
 
 win:
   icon: resources/icons/icon.png

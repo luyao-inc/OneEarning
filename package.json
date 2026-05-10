@@ -1,6 +1,6 @@
 {
   "name": "oneearning",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "OneEarning — Paperclip 桌面端封装（内嵌 Paperclip UI）",
   "main": "dist-electron/main/index.js",

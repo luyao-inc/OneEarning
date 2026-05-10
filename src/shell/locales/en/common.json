@@ -37,7 +37,7 @@
   },
   "about": {
     "title": "About OneEarning",
-    "body": "OneEarning desktop shell using the local HTTP API; Chinese by default — change language in Settings."
+    "body": "OneEarning desktop app using the local HTTP API; Chinese by default — switch language from the tray menu."
   },
   "service": {
     "title": "Service",
@@ -54,6 +54,21 @@
     "language": "Language",
     "zh": "中文",
     "en": "English"
+  },
+  "update": {
+    "sectionTitle": "App updates",
+    "currentVersion": "Current version",
+    "checking": "Checking for updates…",
+    "available": "Update available: {{version}}",
+    "notAvailable": "You're up to date",
+    "downloading": "Downloading update…",
+    "downloadProgress": "{{percent}}%",
+    "downloaded": "Update downloaded. Restart to install.",
+    "restartInstall": "Restart and install",
+    "download": "Download update",
+    "check": "Check for updates",
+    "error": "Update error",
+    "statusLabel": "Status"
   },
   "escape": {
     "hint": "Use full OneEarning Web for features not yet in the shell."
@@ -1224,7 +1239,9 @@
       "secondarySignedIn": "Signed in",
       "secondaryLocalWorkspace": "Local workspace board",
       "defaultDisplayName": "Board",
-      "openAccountMenuAria": "Open account menu"
+      "openAccountMenuAria": "Open account menu",
+      "desktopAbout": "About OneEarning",
+      "desktopAboutDesc": "Version and check for updates."
     },
     "instanceSidebar": {
       "header": "Instance Settings",

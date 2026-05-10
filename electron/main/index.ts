@@ -1,7 +1,7 @@
 /**
  * OneEarning — Electron 主进程：启动 Paperclip 子进程、主窗口、托盘与 IPC。
  */
-import { app, BrowserWindow, dialog, Menu } from 'electron';
+import { app, BrowserWindow, dialog, Menu, type BrowserWindowConstructorOptions } from 'electron';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,7 +15,7 @@ import { registerIpcHandlers } from './ipc.js';
 import { ClawhubSidecarManager } from './clawhub-sidecar.js';
 import { KnowledgeSidecarManager } from './knowledge-sidecar.js';
 import { OutcomesSidecarManager } from './outcomes-sidecar.js';
-import { checkForUpdatesInteractive } from './updater.js';
+import { checkForUpdatesInteractive, initUpdater, scheduleSilentStartupCheck } from './updater.js';
 import {
   notifyPaperclipReadyAfterRestart,
   resetPaperclipReadyCoordinator,
@@ -170,10 +170,12 @@ function openAuxWindow(route: 'about' | 'service' | 'settings'): void {
   if (!existsSync(preload)) {
     throw new Error(`未找到 preload 脚本：${preload}`);
   }
-  const child = new BrowserWindow({
+  const auxBase: BrowserWindowConstructorOptions = {
     width: route === 'service' ? 720 : 520,
     height: route === 'service' ? 540 : 420,
     title: APP_DISPLAY_TITLE,
+    /** 与 `index.css` `.dark` 下 `--background`（oklch 0.145）一致，贴近 Dialog 弹窗 */
+    backgroundColor: '#141414',
     ...windowIconOptions(),
     webPreferences: {
       preload,
@@ -183,7 +185,22 @@ function openAuxWindow(route: 'about' | 'service' | 'settings'): void {
     },
     parent: mainWindow ?? undefined,
     modal: false,
-  });
+  };
+  if (process.platform === 'darwin') {
+    Object.assign(auxBase, {
+      titleBarStyle: 'hiddenInset' as const,
+      trafficLightPosition: { x: 14, y: 14 },
+    });
+  } else if (process.platform === 'win32') {
+    Object.assign(auxBase, {
+      titleBarOverlay: {
+        color: '#0f1419',
+        symbolColor: '#e6edf3',
+        height: 40,
+      },
+    });
+  }
+  const child = new BrowserWindow(auxBase);
   bindFixedWindowTitle(child);
   if (isDev) {
     const base = devServerUrlForElectron();
@@ -284,7 +301,8 @@ app.whenReady().then(async () => {
     app.setAppUserModelId('app.oneearning.desktop');
   }
 
-  registerIpcHandlers(app, () => mainWindow, () => serverManager);
+  initUpdater(app);
+  registerIpcHandlers(app, () => mainWindow, () => serverManager, (route) => openAuxWindow(route));
 
   try {
     await clawhubSidecar?.start(app);
@@ -329,6 +347,8 @@ app.whenReady().then(async () => {
     app.quit();
     return;
   }
+
+  scheduleSilentStartupCheck();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0 && serverManager) {

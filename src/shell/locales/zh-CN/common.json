@@ -37,7 +37,7 @@
   },
   "about": {
     "title": "关于 OneEarning",
-    "body": "基于 OneEarning 的桌面壳，通过本地 HTTP API 驱动原生界面；默认中文，可在设置中切换语言。"
+    "body": "基于 OneEarning 的桌面应用，通过本地 HTTP API 驱动界面；默认中文，语言可在托盘菜单中切换。"
   },
   "service": {
     "title": "服务状态",
@@ -54,6 +54,21 @@
     "language": "界面语言",
     "zh": "中文",
     "en": "English"
+  },
+  "update": {
+    "sectionTitle": "应用更新",
+    "currentVersion": "当前版本",
+    "checking": "正在检查更新…",
+    "available": "发现新版本 {{version}}",
+    "notAvailable": "当前已是最新版本",
+    "downloading": "正在下载更新…",
+    "downloadProgress": "{{percent}}%",
+    "downloaded": "更新已下载，重启后将完成安装",
+    "restartInstall": "重启并安装",
+    "download": "下载更新",
+    "check": "检查更新",
+    "error": "更新出错",
+    "statusLabel": "状态"
   },
   "escape": {
     "hint": "若某项功能尚未在壳中实现，可使用完整 OneEarning Web。"
@@ -1263,7 +1278,9 @@
       "secondarySignedIn": "已登录",
       "secondaryLocalWorkspace": "本地工作区看板",
       "defaultDisplayName": "看板",
-      "openAccountMenuAria": "打开账户菜单"
+      "openAccountMenuAria": "打开账户菜单",
+      "desktopAbout": "关于 OneEarning",
+      "desktopAboutDesc": "版本信息与检查更新。"
     },
     "instanceSidebar": {
       "header": "实例设置",

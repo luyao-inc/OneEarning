@@ -1,4 +1,7 @@
 import type { PaperclipFetchRequest, PaperclipFetchResult } from '@electron/shared/paperclip-ipc';
+import type { UpdateStatusPayload } from '@electron/shared/update-ipc';
+
+export type { UpdateStatusPayload };
 
 export interface OneEarningApi {
   /** 壳已挂载并注册 IPC 监听后调用，主进程再派发 paperclip-ready */
@@ -11,7 +14,13 @@ export interface OneEarningApi {
   getServiceLog?: () => Promise<string>;
   restartPaperclip?: () => Promise<void>;
   openDataDir?: () => void;
+  /** 打开壳层小窗：关于 / 服务状态 / 数据与存储（与托盘菜单一致） */
+  openShellAux?: (route: 'about' | 'service' | 'settings') => Promise<void>;
   checkUpdates?: () => Promise<void>;
+  getAppVersion?: () => Promise<string>;
+  downloadUpdate?: () => Promise<void>;
+  quitAndInstall?: () => Promise<void>;
+  onUpdateStatus?: (cb: (p: UpdateStatusPayload) => void) => () => void;
   getDataDir?: () => Promise<string>;
   /** 侧车日志尾部（用户数据目录 logs/sidecars/<name>.log） */
   getSidecarLog?: (name: string) => Promise<string>;

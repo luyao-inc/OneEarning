@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { PaperclipFetchRequest, PaperclipFetchResult } from '../shared/paperclip-ipc.js';
+import type { UpdateStatusPayload } from '../shared/update-ipc.js';
 
 type PaperclipReadyPayload = { baseUrl: string };
 const paperclipReadyCallbacks = new Set<(p: PaperclipReadyPayload) => void>();
@@ -49,7 +50,17 @@ contextBridge.exposeInMainWorld('oneEarning', {
   openDataDir: () => {
     ipcRenderer.send('oneearning:open-data-dir');
   },
+  openShellAux: (route: 'about' | 'service' | 'settings') =>
+    ipcRenderer.invoke('oneearning:open-shell-aux', route) as Promise<void>,
   checkUpdates: () => ipcRenderer.invoke('oneearning:check-updates') as Promise<void>,
+  getAppVersion: () => ipcRenderer.invoke('oneearning:get-app-version') as Promise<string>,
+  downloadUpdate: () => ipcRenderer.invoke('oneearning:download-update') as Promise<void>,
+  quitAndInstall: () => ipcRenderer.invoke('oneearning:quit-and-install') as Promise<void>,
+  onUpdateStatus: (cb: (p: UpdateStatusPayload) => void) => {
+    const fn = (_e: unknown, p: UpdateStatusPayload) => cb(p);
+    ipcRenderer.on('oneearning:update-status', fn);
+    return () => ipcRenderer.removeListener('oneearning:update-status', fn);
+  },
   getDataDir: () => ipcRenderer.invoke('oneearning:get-data-dir') as Promise<string>,
   getSidecarLog: (name: string) =>
     ipcRenderer.invoke('oneearning:get-sidecar-log', name) as Promise<string>,
