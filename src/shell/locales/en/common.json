@@ -37,7 +37,7 @@
   },
   "about": {
     "title": "About OneEarning",
-    "body": "OneEarning desktop shell using the local HTTP API; Chinese by default — change language in Settings."
+    "body": "OneEarning desktop app using the local HTTP API; Chinese by default — switch language from the tray menu."
   },
   "service": {
     "title": "Service",
@@ -54,6 +54,21 @@
     "language": "Language",
     "zh": "中文",
     "en": "English"
+  },
+  "update": {
+    "sectionTitle": "App updates",
+    "currentVersion": "Current version",
+    "checking": "Checking for updates…",
+    "available": "Update available: {{version}}",
+    "notAvailable": "You're up to date",
+    "downloading": "Downloading update…",
+    "downloadProgress": "{{percent}}%",
+    "downloaded": "Update downloaded. Restart to install.",
+    "restartInstall": "Restart and install",
+    "download": "Download update",
+    "check": "Check for updates",
+    "error": "Update error",
+    "statusLabel": "Status"
   },
   "escape": {
     "hint": "Use full OneEarning Web for features not yet in the shell."
@@ -1001,6 +1016,20 @@
       "moreRuns_one": "{{count}} more active/recent run",
       "moreRuns_other": "{{count}} more active/recent runs"
     },
+    "agentsPage": {
+      "filters": "Filters",
+      "showTerminated": "Show terminated",
+      "newAgent": "New Agent",
+      "selectCompany": "Select a company to view agents.",
+      "emptyCreateFirst": "Create your first agent to get started.",
+      "noMatchFilter": "No agents match the selected filter.",
+      "noOrgHierarchy": "No organizational hierarchy defined.",
+      "agentCount_one": "{{count}} agent",
+      "agentCount_other": "{{count}} agents",
+      "liveRun": "Live",
+      "liveRunWithCount": "Live ({{count}})",
+      "modelAuto": "Auto"
+    },
     "runChatSurface": {
       "waitingForOutput": "Waiting for run output...",
       "noOutputCaptured": "No run output captured."
@@ -1210,7 +1239,9 @@
       "secondarySignedIn": "Signed in",
       "secondaryLocalWorkspace": "Local workspace board",
       "defaultDisplayName": "Board",
-      "openAccountMenuAria": "Open account menu"
+      "openAccountMenuAria": "Open account menu",
+      "desktopAbout": "About OneEarning",
+      "desktopAboutDesc": "Version and check for updates."
     },
     "instanceSidebar": {
       "header": "Instance Settings",
@@ -1573,6 +1604,8 @@
       "filtersHeading": "Filters",
       "clearFilters": "Clear",
       "quickFilters": "Quick filters",
+      "quickFilterPresetDone": "Done",
+      "filterCreatorBoard": "Board",
       "filterSectionStatus": "Status",
       "filterSectionPriority": "Priority",
       "filterSectionAssignee": "Assignee",
@@ -2143,6 +2176,12 @@
       "outcomesKindVideo": "Video",
       "outcomesKindDocument": "Document",
       "outcomesKindFile": "Local file",
+      "outcomesSourceKind": {
+        "attachment": "Attachment",
+        "work_product_file": "Work product file",
+        "issue_comment_relative": "Task comment (relative path)",
+        "unknown": "Unknown"
+      },
       "outcomesColumnKind": "Kind",
       "outcomesColumnTitle": "Title / location",
       "outcomesColumnSources": "Sources",

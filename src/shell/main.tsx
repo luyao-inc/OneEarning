@@ -5,6 +5,7 @@ import './i18n';
 import '@mdxeditor/editor/style.css';
 import '../paperclip/index.css';
 import { AboutAuxPage, ServiceAuxPage, SettingsAuxPage } from './AuxPages';
+import { ShellAuxFrame } from './ShellAuxFrame';
 import { RootApp } from './RootApp';
 
 function getAuxRoute(): 'about' | 'service' | 'settings' | null {
@@ -19,11 +20,23 @@ const aux = getAuxRoute();
 const rootEl = document.getElementById('root')!;
 
 if (aux === 'about') {
-  createRoot(rootEl).render(<AboutAuxPage />);
+  createRoot(rootEl).render(
+    <ShellAuxFrame>
+      <AboutAuxPage />
+    </ShellAuxFrame>,
+  );
 } else if (aux === 'service') {
-  createRoot(rootEl).render(<ServiceAuxPage />);
+  createRoot(rootEl).render(
+    <ShellAuxFrame>
+      <ServiceAuxPage />
+    </ShellAuxFrame>,
+  );
 } else if (aux === 'settings') {
-  createRoot(rootEl).render(<SettingsAuxPage />);
+  createRoot(rootEl).render(
+    <ShellAuxFrame>
+      <SettingsAuxPage />
+    </ShellAuxFrame>,
+  );
 } else {
   const skipServiceWorker =
     window.location.protocol === 'file:' || typeof window.oneEarning !== 'undefined';

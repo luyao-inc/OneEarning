@@ -11,7 +11,7 @@ import { getAgentKnowledgeDir } from '../utils/knowledge-dir.js';
 import { readSidecarLogTail } from '../utils/sidecar-log.js';
 import { getKnowledgeSidecarDiagnosticsSnapshot } from './knowledge-sidecar.js';
 import type { PaperclipServerManager } from './server-manager.js';
-import { checkForUpdatesInteractive } from './updater.js';
+import { checkForUpdates, downloadPendingUpdate, quitAndInstallNow } from './updater.js';
 import { paperclipProxyFetch } from './paperclip-proxy.js';
 import {
   notifyPaperclipReadyAfterRestart,
@@ -24,11 +24,21 @@ function paperclipBaseUrl(mgr: PaperclipServerManager | null): string {
   return `http://127.0.0.1:${port}`;
 }
 
+export type ShellAuxRoute = 'about' | 'service' | 'settings';
+
 export function registerIpcHandlers(
   app: App,
   getMainWindow: () => BrowserWindow | null,
   getServerManager: () => PaperclipServerManager | null,
+  openShellAux: (route: ShellAuxRoute) => void,
 ): void {
+  ipcMain.handle('oneearning:open-shell-aux', (_evt, route: unknown) => {
+    const r = route === 'about' || route === 'service' || route === 'settings' ? route : null;
+    if (!r) {
+      throw new Error('Invalid shell aux route');
+    }
+    openShellAux(r);
+  });
   ipcMain.on('oneearning:shell-ready', (event) => {
     const win = getMainWindow();
     const senderId = event.sender.id;
@@ -154,8 +164,18 @@ export function registerIpcHandlers(
     },
   );
 
+  ipcMain.handle('oneearning:get-app-version', () => app.getVersion());
+
   ipcMain.handle('oneearning:check-updates', async () => {
-    await checkForUpdatesInteractive();
+    await checkForUpdates({ notifyDialog: false });
+  });
+
+  ipcMain.handle('oneearning:download-update', async () => {
+    await downloadPendingUpdate();
+  });
+
+  ipcMain.handle('oneearning:quit-and-install', () => {
+    quitAndInstallNow();
   });
 
   const MAX_KB_IMPORT_BYTES = 50 * 1024 * 1024;

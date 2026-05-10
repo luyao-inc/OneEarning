@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
+  Info,
   Languages,
   LogOut,
   type LucideIcon,
   Moon,
   Settings,
-  UserRound,
   Sun,
+  UserRound,
   UserRoundPen,
 } from "lucide-react";
 import type { DeploymentMode } from "@paperclipai/shared";
@@ -130,6 +131,9 @@ export function SidebarAccountMenu({
     ? t("paperclip.accountMenu.accountBadgeAccount")
     : t("paperclip.accountMenu.accountBadgeLocal");
   const initials = deriveInitials(displayName);
+  /** 桌面壳：弹层内不重复展示邮箱与后端版本（版本见「关于 OneEarning」）。 */
+  const hideAccountHeaderMeta =
+    typeof window !== "undefined" && typeof window.oneEarning !== "undefined";
   /** Canonical self profile URL; server resolves `me` to the signed-in board user (see user-profiles route). */
   const profileHref = "/u/me";
 
@@ -176,8 +180,10 @@ export function SidebarAccountMenu({
                     {accountBadge}
                   </span>
                 </div>
-                <p className="truncate text-sm text-muted-foreground">{secondaryLabel}</p>
-                {version ? (
+                {!hideAccountHeaderMeta ? (
+                  <p className="truncate text-sm text-muted-foreground">{secondaryLabel}</p>
+                ) : null}
+                {version && !hideAccountHeaderMeta ? (
                   <p className="mt-1 text-xs text-muted-foreground">
                     {t("paperclip.accountMenu.versionLine", { version })}
                   </p>
@@ -207,6 +213,17 @@ export function SidebarAccountMenu({
                 href={instanceSettingsTarget}
                 onClick={closeNavigationChrome}
               />
+              {typeof window.oneEarning?.openShellAux === "function" ? (
+                <MenuAction
+                  label={t("paperclip.accountMenu.desktopAbout")}
+                  description={t("paperclip.accountMenu.desktopAboutDesc")}
+                  icon={Info}
+                  onClick={() => {
+                    void window.oneEarning?.openShellAux?.("about");
+                    closeNavigationChrome();
+                  }}
+                />
+              ) : null}
               <MenuAction
                 label={languageSwitchLabel}
                 description={t("paperclip.accountMenu.languageHint")}

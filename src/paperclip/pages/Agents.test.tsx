@@ -53,7 +53,7 @@ vi.mock("../api/heartbeats", () => ({
 }));
 
 vi.mock("../adapters/adapter-display-registry", () => ({
-  getAdapterLabel: (type: string) => type,
+  translateAdapterLabel: (_t: unknown, type: string) => type,
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
