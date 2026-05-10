@@ -15,9 +15,12 @@ files:
   - locales
 
 extraResources:
-  # 与 electron/utils/node-resolve.ts 一致：Resources/bin/<platform>-<arch>/node(.exe)
-  - from: resources/bin
-    to: bin
+  - from: servers/clawhub/dist
+    to: servers/clawhub
+  - from: servers/knowledge/dist
+    to: servers/knowledge
+  - from: servers/outcomes/dist
+    to: servers/outcomes
   - from: build/paperclip
     to: paperclip
   - from: resources/postgres
@@ -26,6 +29,20 @@ extraResources:
     to: locales/zh-CN
   - from: resources/icons
     to: icons
+  # 侧车为 tsc 输出 + 依赖；仅 dist 时运行期无法 resolve hono/sql.js 等
+  # 由 scripts/materialize-sidecar-node-modules.mjs 解引用 pnpm junction 后生成
+  - from: build/sidecar-node-modules/clawhub/node_modules
+    to: servers/clawhub/node_modules
+  - from: servers/clawhub/package.json
+    to: servers/clawhub/package.json
+  - from: build/sidecar-node-modules/knowledge/node_modules
+    to: servers/knowledge/node_modules
+  - from: servers/knowledge/package.json
+    to: servers/knowledge/package.json
+  - from: build/sidecar-node-modules/outcomes/node_modules
+    to: servers/outcomes/node_modules
+  - from: servers/outcomes/package.json
+    to: servers/outcomes/package.json
 
 asar: true
 asarUnpack:
@@ -43,6 +60,9 @@ publish:
 win:
   icon: resources/icons/icon.png
   verifyUpdateCodeSignature: false
+  extraResources:
+    - from: resources/bin/win32-x64
+      to: bin/win32-x64
   target:
     - target: nsis
       arch: [x64]
@@ -53,7 +73,12 @@ nsis:
 
 mac:
   category: public.app-category.productivity
-  icon: resources/icons/icon.png
+  icon: resources/icons/icon.icns
+  extraResources:
+    - from: resources/bin/darwin-arm64
+      to: bin/darwin-arm64
+    - from: resources/bin/darwin-x64
+      to: bin/darwin-x64
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: resources/entitlements.mac.plist
@@ -72,6 +97,7 @@ mac:
       arch: [x64, arm64]
 
 linux:
+  icon: resources/icons/icon.png
   target:
     - target: AppImage
       arch: [x64, arm64]
