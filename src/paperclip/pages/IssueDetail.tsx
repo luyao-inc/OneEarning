@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type Ref } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "@shell/i18n";
+import { usePaperclipBaseUrl } from "@shell/paperclip-base-url-context";
 import { pickTextColorForPillBg } from "@/lib/color-contrast";
 import { Link, useLocation, useNavigate, useNavigationType, useParams } from "@/lib/router";
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient, type InfiniteData, type QueryClient } from "@tanstack/react-query";
@@ -62,6 +63,7 @@ import {
 } from "../lib/optimistic-issue-comments";
 import { clearIssueExecutionRun, removeLiveRunById, upsertInterruptedRun } from "../lib/optimistic-issue-runs";
 import { useProjectOrder } from "../hooks/useProjectOrder";
+import { resolvePaperclipPublicAssetUrl } from "../lib/paperclip-public-url";
 import { relativeTime, cn, formatTokens, visibleRunCostUsd } from "../lib/utils";
 import { ApprovalCard } from "../components/ApprovalCard";
 import { InlineEditor } from "../components/InlineEditor";
@@ -1119,6 +1121,7 @@ export function IssueDetail() {
   const location = useLocation();
   const { pushToast } = useToastActions();
   const { t } = useTranslation();
+  const paperclipBaseUrl = usePaperclipBaseUrl();
   const { isMobile } = useSidebar();
   const [moreOpen, setMoreOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -2630,10 +2633,10 @@ export function IssueDetail() {
         setGalleryOpen(true);
       } else {
         // Image not in attachment list — open in new tab
-        window.open(src, "_blank");
+        window.open(resolvePaperclipPublicAssetUrl(src, paperclipBaseUrl), "_blank");
       }
     },
-    [imageAttachments],
+    [imageAttachments, paperclipBaseUrl],
   );
 
   const copyIssueToClipboard = async () => {
@@ -3524,7 +3527,7 @@ export function IssueDetail() {
                 }}
               >
                 <img
-                  src={attachment.contentPath}
+                  src={resolvePaperclipPublicAssetUrl(attachment.contentPath, paperclipBaseUrl)}
                   alt={attachment.originalFilename ?? t("paperclip.issueDetail.attachmentAlt")}
                   className="h-full w-full object-cover"
                   loading="lazy"
@@ -3585,7 +3588,7 @@ export function IssueDetail() {
               <div key={attachment.id} className="border border-border rounded-md p-2">
                 <div className="flex items-center justify-between gap-2">
                   <a
-                    href={attachment.contentPath}
+                    href={resolvePaperclipPublicAssetUrl(attachment.contentPath, paperclipBaseUrl)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-xs hover:underline truncate"
