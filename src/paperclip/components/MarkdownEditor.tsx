@@ -1,3 +1,10 @@
+import { useTranslation } from "react-i18next";
+import { usePaperclipBaseUrl } from "@shell/paperclip-base-url-context";
+import { createMdxEditorTranslation } from "../lib/mdx-editor-translation";
+import {
+  normalizeMarkdownInlineImageUrlsToRelative,
+  rewriteMarkdownInlineImageUrlsToAbsolute,
+} from "../lib/paperclip-public-url";
 import {
   type ClipboardEvent,
   forwardRef,
@@ -557,6 +564,16 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
   readOnly = false,
 }: MarkdownEditorProps, forwardedRef) {
   const editorValue = useMemo(() => prepareMarkdownForEditor(value), [value]);
+  const { t } = useTranslation();
+  const mdxTranslation = useMemo(() => createMdxEditorTranslation(t), [t]);
+  const paperclipBaseUrl = usePaperclipBaseUrl();
+  const paperclipBaseUrlRef = useRef(paperclipBaseUrl);
+  paperclipBaseUrlRef.current = paperclipBaseUrl;
+  const displayEditorMarkdown = useMemo(
+    () => rewriteMarkdownInlineImageUrlsToAbsolute(editorValue, paperclipBaseUrl),
+    [editorValue, paperclipBaseUrl],
+  );
+  const prevPaperclipBaseRef = useRef<string | null | undefined>(undefined);
   const { slashCommands } = useEditorAutocomplete();
   const containerRef = useRef<HTMLDivElement>(null);
   const ref = useRef<MDXEditorMethods>(null);
@@ -613,9 +630,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
       return;
     }
     if (valueRef.current !== latestValueRef.current) {
-      // Re-apply the latest controlled value once MDXEditor exposes its imperative API.
-      echoIgnoreMarkdownRef.current = valueRef.current;
-      instance.setMarkdown(valueRef.current);
+      const display = rewriteMarkdownInlineImageUrlsToAbsolute(valueRef.current, paperclipBaseUrlRef.current);
+      echoIgnoreMarkdownRef.current = display;
+      instance.setMarkdown(display);
       latestValueRef.current = valueRef.current;
     }
   }, []);
@@ -714,8 +731,12 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
               );
               if (updated !== current) {
                 latestValueRef.current = updated;
-                echoIgnoreMarkdownRef.current = updated;
-                ref.current?.setMarkdown(updated);
+                const displayUpdated = rewriteMarkdownInlineImageUrlsToAbsolute(
+                  updated,
+                  paperclipBaseUrlRef.current,
+                );
+                echoIgnoreMarkdownRef.current = displayUpdated;
+                ref.current?.setMarkdown(displayUpdated);
                 onChange(updated);
                 requestAnimationFrame(() => {
                   ref.current?.focus(undefined, { defaultSelection: "rootEnd" });
@@ -754,15 +775,17 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
   }, [hasImageUpload]);
 
   useEffect(() => {
-    if (editorValue !== latestValueRef.current) {
-      if (ref.current) {
-        // Pair with onChange echo suppression (echoIgnoreMarkdownRef).
-        echoIgnoreMarkdownRef.current = editorValue;
-        ref.current.setMarkdown(editorValue);
-        latestValueRef.current = editorValue;
-      }
+    if (!ref.current) return;
+    const display = displayEditorMarkdown;
+    const propMismatch = editorValue !== latestValueRef.current;
+    const baseChanged = prevPaperclipBaseRef.current !== paperclipBaseUrl;
+    prevPaperclipBaseRef.current = paperclipBaseUrl;
+    if (propMismatch || baseChanged) {
+      echoIgnoreMarkdownRef.current = display;
+      ref.current.setMarkdown(display);
+      latestValueRef.current = editorValue;
     }
-  }, [editorValue]);
+  }, [editorValue, displayEditorMarkdown, paperclipBaseUrl]);
 
   const decorateProjectMentions = useCallback(() => {
     const editable = containerRef.current?.querySelector('[contenteditable="true"]');
@@ -907,8 +930,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
       const next = applyMention(current, state, option);
       if (next !== current) {
         latestValueRef.current = next;
-        echoIgnoreMarkdownRef.current = next;
-        ref.current?.setMarkdown(next);
+        const displayNext = rewriteMarkdownInlineImageUrlsToAbsolute(next, paperclipBaseUrlRef.current);
+        echoIgnoreMarkdownRef.current = displayNext;
+        ref.current?.setMarkdown(displayNext);
         onChange(next);
       }
 
@@ -1178,32 +1202,36 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
     >
       <MDXEditor
         ref={setEditorRef}
-        markdown={editorValue}
+        markdown={displayEditorMarkdown}
+        translation={mdxTranslation}
         suppressHtmlProcessing
         placeholder={placeholder}
         readOnly={readOnly}
         onChange={(next) => {
           if (readOnly) return;
+          const canonicalNext = normalizeMarkdownInlineImageUrlsToRelative(next, paperclipBaseUrl);
           const echo = echoIgnoreMarkdownRef.current;
-          if (echo !== null && next === echo) {
-            echoIgnoreMarkdownRef.current = null;
-            latestValueRef.current = next;
-            return;
-          }
           if (echo !== null) {
+            const echoCanonical = normalizeMarkdownInlineImageUrlsToRelative(echo, paperclipBaseUrl);
+            if (canonicalNext === echoCanonical || next === echo) {
+              echoIgnoreMarkdownRef.current = null;
+              latestValueRef.current = canonicalNext;
+              return;
+            }
             echoIgnoreMarkdownRef.current = null;
           }
 
           if (initialChildOnChangeRef.current) {
             initialChildOnChangeRef.current = false;
             if (next === "" && editorValue !== "") {
-              echoIgnoreMarkdownRef.current = editorValue;
-              ref.current?.setMarkdown(editorValue);
+              const display = rewriteMarkdownInlineImageUrlsToAbsolute(editorValue, paperclipBaseUrl);
+              echoIgnoreMarkdownRef.current = display;
+              ref.current?.setMarkdown(display);
               return;
             }
           }
-          latestValueRef.current = next;
-          onChange(next);
+          latestValueRef.current = canonicalNext;
+          onChange(canonicalNext);
         }}
         onBlur={() => onBlur?.()}
         onError={(payload) => {

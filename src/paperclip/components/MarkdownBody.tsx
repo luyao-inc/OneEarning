@@ -430,13 +430,15 @@ export function MarkdownBody({
   if (resolveImageSrc || onImageClick) {
     components.img = ({ node: _node, src, alt, ...imgProps }) => {
       const resolved = resolveImageSrc && src ? resolveImageSrc(src) : null;
-      const finalSrc = resolved ?? src;
+      const finalSrc = resolved ?? src ?? "";
+      /** 画廊匹配仍按 Markdown 中的路径（多为 `/api/...`），不要用解析后的绝对 URL */
+      const clickSrc = src ?? finalSrc;
       return (
         <img
           {...imgProps}
           src={finalSrc}
           alt={alt ?? ""}
-          onClick={onImageClick && finalSrc ? (e) => { e.preventDefault(); onImageClick(finalSrc); } : undefined}
+          onClick={onImageClick && clickSrc ? (e) => { e.preventDefault(); onImageClick(clickSrc); } : undefined}
           style={onImageClick ? { cursor: "pointer", ...(imgProps.style as React.CSSProperties | undefined) } : imgProps.style as React.CSSProperties | undefined}
         />
       );

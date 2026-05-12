@@ -1180,6 +1180,43 @@
       "agents": "智能体",
       "inbox": "收件箱"
     },
+    "mdxEditor": {
+      "uploadImage": {
+        "dialogTitle": "上传图片",
+        "uploadInstructions": "从本机选择图片：",
+        "addViaUrlInstructions": "或通过图片地址添加：",
+        "addViaUrlInstructionsNoUpload": "通过图片地址添加：",
+        "autoCompletePlaceholder": "选择或粘贴图片地址",
+        "alt": "替代文本：",
+        "title": "标题：",
+        "width": "宽度：",
+        "height": "高度："
+      },
+      "dialogControls": {
+        "save": "保存",
+        "cancel": "取消"
+      },
+      "contentArea": {
+        "editableMarkdown": "Markdown 编辑区域"
+      },
+      "createLink": {
+        "url": "链接地址",
+        "urlPlaceholder": "选择或粘贴 URL",
+        "textTooltip": "页面上显示的链接文字",
+        "text": "锚文本",
+        "titleTooltip": "链接的 title 属性，悬停时显示",
+        "title": "链接标题",
+        "saveTooltip": "设置链接",
+        "cancelTooltip": "取消修改"
+      },
+      "linkPreview": {
+        "open": "在新窗口打开 {{url}}",
+        "edit": "编辑链接地址",
+        "copyToClipboard": "复制到剪贴板",
+        "copied": "已复制！",
+        "remove": "移除链接"
+      }
+    },
     "empty": {
       "selectCompanyIssues": "请选择公司以查看任务。",
       "selectCompanyAgents": "请选择公司以查看智能体。",

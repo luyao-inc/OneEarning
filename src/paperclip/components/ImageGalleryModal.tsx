@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
 import type { IssueAttachment } from "@paperclipai/shared";
+import { usePaperclipBaseUrl } from "@shell/paperclip-base-url-context";
+import { resolvePaperclipPublicAssetUrl } from "../lib/paperclip-public-url";
 
 interface ImageGalleryModalProps {
   images: IssueAttachment[];
@@ -16,6 +18,7 @@ export function ImageGalleryModal({
   open,
   onOpenChange,
 }: ImageGalleryModalProps) {
+  const paperclipBaseUrl = usePaperclipBaseUrl();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -62,6 +65,8 @@ export function ImageGalleryModal({
   const current = images[currentIndex];
   if (!current) return null;
 
+  const displaySrc = resolvePaperclipPublicAssetUrl(current.contentPath, paperclipBaseUrl);
+
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
@@ -81,7 +86,7 @@ export function ImageGalleryModal({
                 {currentIndex + 1} / {images.length}
               </span>
               <a
-                href={current.contentPath}
+                href={displaySrc}
                 download={current.originalFilename ?? "image"}
                 className="text-white/50 hover:text-white transition-colors"
                 title="Download"
@@ -120,7 +125,7 @@ export function ImageGalleryModal({
             <div className="flex-1 flex items-center justify-center min-w-0 min-h-0 h-full px-2">
               <img
                 ref={imageRef}
-                src={current.contentPath}
+                src={displaySrc}
                 alt={current.originalFilename ?? "attachment"}
                 className="max-w-full max-h-full object-contain select-none rounded-lg"
                 draggable={false}

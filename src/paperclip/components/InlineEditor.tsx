@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { usePaperclipBaseUrl } from "@shell/paperclip-base-url-context";
+import { resolvePaperclipPublicAssetUrl } from "../lib/paperclip-public-url";
 import { cn } from "../lib/utils";
 import { MarkdownBody } from "./MarkdownBody";
 import { MarkdownEditor, type MarkdownEditorRef, type MentionOption } from "./MarkdownEditor";
@@ -74,6 +76,12 @@ export function InlineEditor({
     reset,
     runSave,
   } = useAutosaveIndicator();
+
+  const paperclipBaseUrl = usePaperclipBaseUrl();
+  const resolveImageSrc = useCallback(
+    (src: string) => resolvePaperclipPublicAssetUrl(src, paperclipBaseUrl),
+    [paperclipBaseUrl],
+  );
 
   useEffect(() => {
     const previousValue = lastPropValueRef.current;
@@ -288,12 +296,18 @@ export function InlineEditor({
         >
           {foldable ? (
             <FoldCurtain>
-              <MarkdownBody className={cn("paperclip-edit-in-place-content", className)}>
+              <MarkdownBody
+                className={cn("paperclip-edit-in-place-content", className)}
+                resolveImageSrc={resolveImageSrc}
+              >
                 {previewValue}
               </MarkdownBody>
             </FoldCurtain>
           ) : (
-            <MarkdownBody className={cn("paperclip-edit-in-place-content", className)}>
+            <MarkdownBody
+              className={cn("paperclip-edit-in-place-content", className)}
+              resolveImageSrc={resolveImageSrc}
+            >
               {previewValue}
             </MarkdownBody>
           )}

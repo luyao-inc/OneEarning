@@ -1141,6 +1141,43 @@
       "agents": "Agents",
       "inbox": "Inbox"
     },
+    "mdxEditor": {
+      "uploadImage": {
+        "dialogTitle": "Upload an image",
+        "uploadInstructions": "Upload an image from your device:",
+        "addViaUrlInstructions": "Or add an image from an URL:",
+        "addViaUrlInstructionsNoUpload": "Add an image from an URL:",
+        "autoCompletePlaceholder": "Select or paste an image src",
+        "alt": "Alt:",
+        "title": "Title:",
+        "width": "Width:",
+        "height": "Height:"
+      },
+      "dialogControls": {
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "contentArea": {
+        "editableMarkdown": "editable markdown"
+      },
+      "createLink": {
+        "url": "URL",
+        "urlPlaceholder": "Select or paste an URL",
+        "textTooltip": "The text to be displayed for the link",
+        "text": "Anchor text",
+        "titleTooltip": "The link's title attribute, shown on hover",
+        "title": "Link title",
+        "saveTooltip": "Set URL",
+        "cancelTooltip": "Cancel change"
+      },
+      "linkPreview": {
+        "open": "Open {{url}} in new window",
+        "edit": "Edit link URL",
+        "copyToClipboard": "Copy to clipboard",
+        "copied": "Copied!",
+        "remove": "Remove link"
+      }
+    },
     "empty": {
       "selectCompanyIssues": "Select a company to view issues.",
       "selectCompanyAgents": "Select a company to view agents.",

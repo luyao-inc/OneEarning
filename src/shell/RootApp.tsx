@@ -17,6 +17,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { initPluginBridge } from '@/plugins/bridge-init';
 import { PluginLauncherProvider } from '@/plugins/launchers';
 import { usePaperclipGate } from './usePaperclipGate';
+import { PaperclipBaseUrlProvider } from './paperclip-base-url-context';
 import { SplashPage } from './SplashPage';
 
 initPluginBridge(React, ReactDOM);
@@ -67,7 +68,11 @@ function GateShell() {
   if (!gate.ready) {
     return <SplashPage />;
   }
-  return <PaperclipTree />;
+  return (
+    <PaperclipBaseUrlProvider baseUrl={gate.baseUrl}>
+      <PaperclipTree />
+    </PaperclipBaseUrlProvider>
+  );
 }
 
 export function RootApp() {

@@ -86,6 +86,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MarkdownBody } from "./MarkdownBody";
+import { usePaperclipBaseUrl } from "@shell/paperclip-base-url-context";
+import { resolvePaperclipPublicAssetUrl } from "../lib/paperclip-public-url";
 import { MarkdownEditor, type MentionOption, type MarkdownEditorRef } from "./MarkdownEditor";
 import { Identity } from "./Identity";
 import { InlineEntitySelector, type InlineEntityOption } from "./InlineEntitySelector";
@@ -591,11 +593,17 @@ function commentDateLabel(date: Date | string | undefined): string {
 
 const IssueChatTextPart = memo(function IssueChatTextPart({ text, recessed }: { text: string; recessed?: boolean }) {
   const { onImageClick } = useContext(IssueChatCtx);
+  const paperclipBaseUrl = usePaperclipBaseUrl();
+  const resolveImageSrc = useCallback(
+    (src: string) => resolvePaperclipPublicAssetUrl(src, paperclipBaseUrl),
+    [paperclipBaseUrl],
+  );
   return (
     <MarkdownBody
       className="text-sm leading-6"
       style={recessed ? { opacity: 0.55 } : undefined}
       softBreaks
+      resolveImageSrc={resolveImageSrc}
       onImageClick={onImageClick}
     >
       {text}
